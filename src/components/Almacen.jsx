@@ -15,7 +15,8 @@ export default function Almacen({
   onAddItem,   onUpdateItem,   onDeleteItem,
   onAddAlmacenArchivo, onDeleteAlmacenArchivo,
 }) {
-  const [view,      setView]      = useState(null)
+  const [view,      setView_]     = useState(() => { try { const v = localStorage.getItem("almacen_view"); return v || null } catch { return null } })
+  const setView = (v) => { setView_(v || null); try { if (v) localStorage.setItem("almacen_view", v); else localStorage.removeItem("almacen_view") } catch {} }
   const [viewFile,  setViewFile]  = useState(null)
   const [searchCl,  setSearchCl]  = useState("")
   const [uploadingCount, setUploadingCount] = useState(0)

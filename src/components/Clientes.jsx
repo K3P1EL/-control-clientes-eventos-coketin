@@ -14,7 +14,8 @@ export default function Clientes({
   onAddContratoArchivo, onDeleteContratoArchivo,
   onMergeClients,
 }) {
-  const [view,           setView]           = useState(null)
+  const [view,           setView_]          = useState(() => { try { const v = localStorage.getItem("client_view"); return v || null } catch { return null } })
+  const setView = (v) => { setView_(v || null); try { if (v) localStorage.setItem("client_view", v); else localStorage.removeItem("client_view") } catch {} }
   const [activeContrato, setActiveContrato] = useState(0)
   const [linking,        setLinking]        = useState(false)
   const [phoneInput,     setPhoneInput]     = useState("")
