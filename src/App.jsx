@@ -118,7 +118,10 @@ export default function App() {
       const userEmail = sessionUser.email ?? ""
       const userName = sessionUser.user_metadata?.name ?? userEmail.split("@")[0] ?? "Usuario"
 
-      // Fetch profile via direct fetch with 3s timeout — avoids supabase client hanging
+      // Start loading data immediately — don't wait for profile
+      loadData()
+
+      // Fetch profile in parallel
       let profile = null
       try {
         const controller = new AbortController()
@@ -156,7 +159,6 @@ export default function App() {
 
       setUser(profile)
       setAuthState("logged_in")
-      loadData()
     } catch (e) {
       console.error("handleLogin error:", e)
       loginInProgress.current = false
