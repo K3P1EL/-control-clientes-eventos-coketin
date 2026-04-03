@@ -19,7 +19,17 @@ export default function Clientes({
   const [activeContrato, setActiveContrato] = useState(0)
   const [linking,        setLinking]        = useState(false)
   const [phoneInput,     setPhoneInput]     = useState("")
-  const [viewEmp,        setViewEmp]        = useState(adm ? null : "__mine__")
+  const [viewEmp,        setViewEmp_]       = useState(() => {
+    if (!adm) return "__mine__"
+    try {
+      const saved = localStorage.getItem("client_viewEmp")
+      if (saved) return saved
+      // If a client view is open, default to __all__ so it renders the ficha
+      if (localStorage.getItem("client_view")) return "__all__"
+      return null
+    } catch { return null }
+  })
+  const setViewEmp = (v) => { setViewEmp_(v); try { if (v) localStorage.setItem("client_viewEmp", v); else localStorage.removeItem("client_viewEmp") } catch {} }
   const [ocrLoading,     setOcrLoading]     = useState(false)
   const [ocrLines,       setOcrLines]       = useState(null)
   const [ocrAssign,      setOcrAssign]      = useState({})
@@ -31,6 +41,15 @@ export default function Clientes({
   const ocrRef = useRef(null)
 
   useEffect(() => { if (navClientId) { setView(navClientId); clearNavClient() } }, [navClientId])
+
+  // If we have a saved view but no viewEmp yet (admin refresh), auto-set viewEmp to show the client
+  useEffect(() => {
+    if (view && !viewEmp && adm) {
+      const c = clients.find(x => x.id === view)
+      if (c) setViewEmp(c.created_by || "__all__")
+      else if (clients.length > 0) setViewEmp("__all__")
+    }
+  }, [view, viewEmp, clients])
 
   // ── OCR ──────────────────────────────────────────────────────────────────
   const scanPhoto = async (clientId, file) => {
@@ -101,7 +120,7 @@ export default function Clientes({
   // ── Detail view ───────────────────────────────────────────────────────────
   if (view) {
     const c = clients.find(x=>x.id===view)
-    if (!c) { setView(null); return null }
+    if (!c) { if (clients.length > 0) setView(null); return null }
     const contratos = getContratos(c)
     const regIds    = getRegIds(c)
     const ct        = contratos[activeContrato] || contratos[0]

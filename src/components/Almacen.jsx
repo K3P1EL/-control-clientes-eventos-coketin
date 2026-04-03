@@ -37,7 +37,7 @@ export default function Almacen({
   // ── Detail view ───────────────────────────────────────────────────────────
   if (view) {
     const s = almacen.find(x=>x.id===view)
-    if (!s) { setView(null); return null }
+    if (!s) { if (almacen.length > 0) setView(null); return null }
     const totalItems = (s.almacen_items||[]).length
     const devueltos  = (s.almacen_items||[]).filter(it=>it.devuelto).length
 
