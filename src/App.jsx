@@ -95,38 +95,54 @@ export default function App() {
     return Promise.race([promise, timer])
   }
 
-  const handleLogin = async (userId) => {
+  // handleLogin receives the full session.user object to avoid any extra network calls
+  const handleLogin = async (sessionUser) => {
     try {
-      console.log("[auth] handleLogin start, userId:", userId)
+      const userId = sessionUser.id
+      const userEmail = sessionUser.email ?? ""
+      const userName = sessionUser.user_metadata?.name ?? userEmail.split("@")[0] ?? "Usuario"
+      console.log("[auth] handleLogin start, userId:", userId, "email:", userEmail)
 
-      // Step 1: get auth user data (needed for fallback regardless)
-      console.log("[auth] calling supabase.auth.getUser()...")
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      console.log("[auth] supabase.auth.getUser() done:", authUser?.email)
-
-      // Step 2: try getProfile with 5s timeout
+      // Fetch profile via direct fetch with 3s timeout — avoids supabase client hanging
       let profile = null
       try {
-        console.log("[auth] calling getProfile()...")
-        profile = await withTimeout(getProfile(userId), 5000, "getProfile")
-        console.log("[auth] getProfile() done:", profile)
-      } catch (profileErr) {
-        console.error("[auth] getProfile failed or timed out:", profileErr.message)
-        // Fallback: hardcoded profile from auth.users data
+        console.log("[auth] fetching profile via direct fetch...")
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 3000)
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+        })
+        clearTimeout(timer)
+        const rows = await res.json()
+        console.log("[auth] profile fetch result:", rows)
+        if (Array.isArray(rows) && rows.length > 0) profile = rows[0]
+        else console.warn("[auth] profile row not found, using fallback")
+      } catch (fetchErr) {
+        console.error("[auth] profile fetch error:", fetchErr.message)
+      }
+
+      // Fallback: build profile from session data
+      if (!profile) {
         profile = {
           id: userId,
-          email: authUser?.email ?? "",
-          name: authUser?.user_metadata?.name ?? authUser?.email?.split("@")[0] ?? "Usuario",
+          email: userEmail,
+          name: userName,
           active: true,
-          is_admin: authUser?.email === "k3p1elsor@gmail.com",
+          is_admin: userEmail === "k3p1elsor@gmail.com",
           permissions: ["registro","clientes","almacen","inventario","agenda","auditoria","dashboard"],
           client_visibility: "all",
         }
-        console.log("[auth] using hardcoded fallback profile:", profile)
-        // Try to persist it in background (don't await — don't block login)
+        console.log("[auth] using fallback profile:", profile)
+        // Persist in background
         supabase.from("profiles").upsert(profile).then(({ error }) => {
-          if (error) console.warn("[auth] background upsert profile failed:", error.message)
-          else console.log("[auth] background upsert profile OK")
+          if (error) console.warn("[auth] background upsert failed:", error.message)
+          else console.log("[auth] background upsert OK")
         })
       }
 
@@ -153,7 +169,7 @@ export default function App() {
     getSession()
       .then(session => {
         console.log("[auth] session result:", session)
-        if (session?.user) return handleLogin(session.user.id)
+        if (session?.user) return handleLogin(session.user)
         else setAuthState("logged_out")
       })
       .catch(e => { console.error("[auth] getSession error:", e); setAuthState("logged_out") })
@@ -161,7 +177,7 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
-        await handleLogin(session.user.id)
+        await handleLogin(session.user)
       } else if (event === "SIGNED_OUT") {
         setUser(null); setUsers([]); setRegs([]); setClients([])
         setAlmacen([]); setInventario([]); setPhotos({}); setDataReady(false)
