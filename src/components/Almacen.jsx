@@ -18,7 +18,7 @@ export default function Almacen({
   const [view,      setView]      = useState(null)
   const [viewFile,  setViewFile]  = useState(null)
   const [searchCl,  setSearchCl]  = useState("")
-  const [uploading, setUploading] = useState(false)
+  const [uploadingCount, setUploadingCount] = useState(0)
   const fRef = useRef(null)
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function Almacen({
               Ver cliente: {s.client_name||s.client_code}
             </button>
           )}
-          {adm && <button onClick={async()=>{await onDeleteSalida(s.id);setView(null)}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
+          {adm && <button onClick={async()=>{if(!window.confirm("¿Eliminar esta salida permanentemente?"))return;await onDeleteSalida(s.id);setView(null)}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
         </div>
 
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
@@ -76,7 +76,7 @@ export default function Almacen({
                 <button onClick={()=>onUpdateItem(s.id,it.id,{devuelto:!it.devuelto})} style={{ padding:"3px 8px", borderRadius:6, border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:it.devuelto?C.green+"33":C.yellow+"33", color:it.devuelto?C.green:C.yellow }}>
                   {it.devuelto?"✓ Devuelto":"Pendiente"}
                 </button>
-                <button onClick={()=>onDeleteItem(s.id,it.id)} style={{ ...ib, color:C.danger }}>
+                <button onClick={()=>{if(window.confirm("¿Eliminar este item?"))onDeleteItem(s.id,it.id)}} style={{ ...ib, color:C.danger }}>
                   <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4h8M9 4V10a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg>
                 </button>
               </div>
@@ -91,8 +91,11 @@ export default function Almacen({
           {/* Archivos */}
           <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
             <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:12, color:C.accent }}>Archivos / Grabaciones</h3>
-            <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;setUploading(true);try{await onAddAlmacenArchivo(s.id,f)}catch(err){alert("Error subiendo archivo: "+err.message)}finally{setUploading(false);e.target.value=""}}} />
-            <button onClick={()=>fRef.current?.click()} disabled={uploading} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:uploading?C.muted:C.accent, cursor:uploading?"wait":"pointer", padding:"8px 16px", fontSize:12, fontWeight:600, marginBottom:12 }}>{uploading ? "Subiendo..." : "Subir archivo"}</button>
+            <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;setUploadingCount(c=>c+1);try{await onAddAlmacenArchivo(s.id,f)}catch(err){alert("Error subiendo archivo: "+err.message)}finally{setUploadingCount(c=>c-1);e.target.value=""}}} />
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"8px 16px", fontSize:12, fontWeight:600 }}>Subir archivo</button>
+              {uploadingCount > 0 && <span style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:C.accent }}><span style={{ display:"inline-block", width:12, height:12, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} />{uploadingCount} subiendo...</span>}
+            </div>
             {!(s.almacen_archivos||[]).length && <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:13, background:C.cardAlt, borderRadius:8 }}>Sin archivos.</div>}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(80px, 1fr))", gap:8 }}>
               {(s.almacen_archivos||[]).map(ar => (
@@ -102,7 +105,7 @@ export default function Almacen({
                     : ar.tipo?.startsWith("video")
                     ? <div style={{ width:"100%", height:"100%", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
                     : <div style={{ width:"100%", height:"100%", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color:C.yellow, fontWeight:600 }}>PDF</div>}
-                  {adm && <button onClick={e=>{e.stopPropagation();onDeleteAlmacenArchivo(s.id,ar.id)}} style={{ position:"absolute", top:2, right:2, background:C.danger, border:"none", borderRadius:4, color:"#fff", cursor:"pointer", padding:"1px 4px", fontSize:10, lineHeight:1 }}>×</button>}
+                  {adm && <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este archivo?"))onDeleteAlmacenArchivo(s.id,ar.id)}} style={{ position:"absolute", top:2, right:2, background:C.danger, border:"none", borderRadius:4, color:"#fff", cursor:"pointer", padding:"1px 4px", fontSize:10, lineHeight:1 }}>×</button>}
                 </div>
               ))}
             </div>

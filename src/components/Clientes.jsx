@@ -25,6 +25,7 @@ export default function Clientes({
   const [ocrClientId,    setOcrClientId]    = useState(null)
   const [expandNotes,    setExpandNotes]    = useState(null)
   const [viewContratoImg,setViewContratoImg]= useState(null)
+  const [uploadingContrato, setUploadingContrato] = useState(0)
   const fRef   = useRef(null)
   const ocrRef = useRef(null)
 
@@ -124,7 +125,7 @@ export default function Clientes({
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h4l2 3h6l2-3h4v12H3z"/></svg>Almacén
             </button>
           )}
-          {adm && <button onClick={async()=>{await onDeleteClient(c.id);setView(null)}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
+          {adm && <button onClick={async()=>{if(!window.confirm("¿Eliminar este cliente permanentemente?"))return;await onDeleteClient(c.id);setView(null)}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
         </div>
 
         {/* Lightbox */}
@@ -134,6 +135,8 @@ export default function Clientes({
               <button onClick={()=>setViewContratoImg(null)} style={{ position:"absolute", top:-14, right:-14, background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:30, height:30, cursor:"pointer", fontSize:18, fontWeight:700, zIndex:1 }}>×</button>
               {viewContratoImg.tipo==="image"
                 ? <img src={viewContratoImg.url} alt="" style={{ maxWidth:"90vw", maxHeight:"85vh", borderRadius:8, objectFit:"contain" }} />
+                : viewContratoImg.tipo==="video"
+                ? <video src={viewContratoImg.url} controls autoPlay style={{ maxWidth:"90vw", maxHeight:"85vh", borderRadius:8 }} />
                 : <embed src={viewContratoImg.url} type="application/pdf" style={{ width:"85vw", height:"85vh", borderRadius:8 }} />}
               {viewContratoImg.nombre && <div style={{ marginTop:8, color:"#fff", fontSize:12 }}>{viewContratoImg.nombre}</div>}
             </div>
@@ -346,19 +349,24 @@ export default function Clientes({
                 {/* Archivos de contrato */}
                 <div style={{ marginTop:8 }}>
                   <label style={lbl}>Contrato (archivos)</label>
-                  <input ref={fRef} type="file" accept="image/*,application/pdf" style={{ display:"none" }} onChange={e=>{const f=e.target.files?.[0];if(f)onAddContratoArchivo(c.id,ct.id,f);e.target.value=""}} />
-                  <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, marginBottom:8 }}>+ Subir archivo</button>
+                  <input ref={fRef} type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,application/pdf" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;setUploadingContrato(c=>c+1);try{await onAddContratoArchivo(c.id,ct.id,f)}catch(err){alert("Error subiendo archivo: "+err.message)}finally{setUploadingContrato(c=>c-1);e.target.value=""}}} />
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                    <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>+ Subir archivo</button>
+                    {uploadingContrato > 0 && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:C.accent }}><span style={{ display:"inline-block", width:12, height:12, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} />{uploadingContrato} subiendo...</span>}
+                  </div>
                   {(ct.contrato_archivos||[]).length>0 && (
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(70px, 1fr))", gap:6 }}>
                       {(ct.contrato_archivos||[]).map((item,idx)=>(
                         <div key={item.id||idx} style={{ position:"relative", borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer", aspectRatio:"1" }} onClick={()=>setViewContratoImg(item)}>
                           {item.tipo==="image"
                             ? <img src={item.url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                            : item.tipo==="video"
+                            ? <div style={{ width:"100%", height:"100%", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
                             : <div style={{ width:"100%", height:"100%", background:C.cardAlt, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4 }}>
                                 <svg width="24" height="24" fill="none" stroke={C.red} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
                                 <span style={{ fontSize:8, color:C.muted, textAlign:"center", padding:"0 4px" }}>PDF</span>
                               </div>}
-                          {adm && <button onClick={e=>{e.stopPropagation();onDeleteContratoArchivo(c.id,ct.id,item.id)}} style={{ position:"absolute", top:2, right:2, background:C.danger, border:"none", borderRadius:4, color:"#fff", cursor:"pointer", padding:"0 4px", fontSize:10, lineHeight:"16px" }}>×</button>}
+                          {adm && <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este archivo?"))onDeleteContratoArchivo(c.id,ct.id,item.id)}} style={{ position:"absolute", top:2, right:2, background:C.danger, border:"none", borderRadius:4, color:"#fff", cursor:"pointer", padding:"0 4px", fontSize:10, lineHeight:"16px" }}>×</button>}
                         </div>
                       ))}
                     </div>
@@ -416,7 +424,7 @@ export default function Clientes({
                       {inv ? <>
                         <span style={{ padding:"2px 6px", borderRadius:4, fontSize:9, fontWeight:700, background:C.red+"33", color:C.red }}>INVÁLIDO</span>
                         {adm && <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{invalid:false})} style={{ background:C.green+"22", border:"none", borderRadius:4, color:C.green, cursor:"pointer", padding:"2px 5px", fontSize:10, fontWeight:700 }}>↩</button>}
-                        {adm && <button onClick={()=>onDeleteAdelanto(c.id,ct.id,a.id)} style={{ ...ib, color:C.danger }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4h8M9 4V10a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg></button>}
+                        {adm && <button onClick={()=>{if(window.confirm("¿Eliminar este adelanto?"))onDeleteAdelanto(c.id,ct.id,a.id)}} style={{ ...ib, color:C.danger }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4h8M9 4V10a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg></button>}
                       </> : !locked ? <>
                         <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{locked:true})} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:6, color:C.green, cursor:"pointer", padding:"3px 6px", fontSize:11, fontWeight:700 }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 6l3 3 5-5"/></svg></button>
                         <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{invalid:true})} style={{ background:C.red+"15", border:"none", borderRadius:6, color:C.red, cursor:"pointer", padding:"3px 6px", fontSize:9, fontWeight:700 }}>✗</button>
@@ -424,7 +432,7 @@ export default function Clientes({
                         <span style={{ padding:"2px 6px", borderRadius:4, fontSize:10, fontWeight:700, background:C.green+"33", color:C.green }}>✓</span>
                         <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{invalid:true})} style={{ background:C.red+"15", border:"none", borderRadius:6, color:C.red, cursor:"pointer", padding:"3px 6px", fontSize:9, fontWeight:700 }}>✗</button>
                         {adm && <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{locked:false})} style={{ ...ib, color:C.yellow }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="8" height="6" rx="1"/><path d="M4 5V3a2 2 0 014 0"/></svg></button>}
-                        {adm && <button onClick={()=>onDeleteAdelanto(c.id,ct.id,a.id)} style={{ ...ib, color:C.danger }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4h8M9 4V10a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg></button>}
+                        {adm && <button onClick={()=>{if(window.confirm("¿Eliminar este adelanto?"))onDeleteAdelanto(c.id,ct.id,a.id)}} style={{ ...ib, color:C.danger }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4h8M9 4V10a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg></button>}
                       </>}
                     </div>
                   </div>

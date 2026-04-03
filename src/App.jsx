@@ -287,7 +287,7 @@ export default function App() {
   }, [])
   const onAddContratoArchivo = useCallback(async (clientId, contratoId, file) => {
     const localUrl = URL.createObjectURL(file)
-    const tipo    = file.type?.startsWith("image") ? "image" : "pdf"
+    const tipo    = file.type?.startsWith("image") ? "image" : file.type?.startsWith("video") ? "video" : "pdf"
     const tempId  = `temp_${Date.now()}`
     const optimistic = { id: tempId, contrato_id: contratoId, nombre: file.name, tipo, url: localUrl }
     setClients(prev => prev.map(c => {

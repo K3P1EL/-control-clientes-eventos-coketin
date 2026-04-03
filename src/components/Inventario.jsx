@@ -18,7 +18,7 @@ export default function Inventario({ inventario, user, adm, onAddInventario, onU
   }
 
   const upd = (id, field, val) => onUpdateInventario(id, { [field]: val })
-  const del = async (id) => { await onDeleteInventario(id); if (editId===id) setEditId(null) }
+  const del = async (id) => { if (!window.confirm("¿Eliminar este item permanentemente?")) return; await onDeleteInventario(id); if (editId===id) setEditId(null) }
 
   const filtered = inventario.filter(i => {
     if (filterCat && i.categoria !== filterCat) return false
