@@ -161,8 +161,9 @@ export default function App() {
       setAuthState("logged_in")
     } catch (e) {
       console.error("handleLogin error:", e)
-      loginInProgress.current = false
       setAuthState("logged_out")
+    } finally {
+      loginInProgress.current = false
     }
   }
 
@@ -252,6 +253,19 @@ export default function App() {
   const onDeleteClient = useCallback(async (id) => {
     setClients(prev => prev.filter(c => c.id !== id))
     deleteClient(id).catch(e => { console.error("deleteClient failed:", e); alert("Error eliminando cliente") })
+  }, [])
+  const onAddContrato = useCallback(async (clientId, payload) => {
+    const tempId = `temp_${Date.now()}`
+    const optimistic = { id: tempId, client_id: clientId, ...payload, adelantos: [], contrato_archivos: [], created_at: new Date().toISOString() }
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, contratos: [...(c.contratos||[]), optimistic] } : c))
+    try {
+      const ct = await createContrato({ client_id: clientId, ...payload })
+      setClients(prev => prev.map(c => c.id === clientId ? { ...c, contratos: (c.contratos||[]).map(x => x.id === tempId ? { ...ct, adelantos: [], contrato_archivos: [] } : x) } : c))
+      return ct
+    } catch (e) {
+      setClients(prev => prev.map(c => c.id === clientId ? { ...c, contratos: (c.contratos||[]).filter(x => x.id !== tempId) } : c))
+      alert("Error creando contrato"); throw e
+    }
   }, [])
   const onUpdateContrato = useCallback(async (clientId, contratoId, patch) => {
     setClients(prev => prev.map(c => {
@@ -499,7 +513,7 @@ export default function App() {
               navClientId={navClientId} clearNavClient={()=>setNavClientId(null)} changeTab={changeTab}
               goToReg={goToReg} goToAlmacen={goToAlmacen}
               onAddClient={onAddClient} onUpdateClient={onUpdateClient} onDeleteClient={onDeleteClient}
-              onAddContrato={async(cid,p)=>{const ct=await createContrato({client_id:cid,...p});setClients(prev=>prev.map(c=>c.id===cid?{...c,contratos:[...(c.contratos||[]),ct]}:c));return ct}}
+              onAddContrato={onAddContrato}
               onUpdateContrato={onUpdateContrato}
               onAddAdelanto={onAddAdelanto} onUpdateAdelanto={onUpdateAdelanto} onDeleteAdelanto={onDeleteAdelanto}
               onAddContratoArchivo={onAddContratoArchivo} onDeleteContratoArchivo={onDeleteContratoArchivo}

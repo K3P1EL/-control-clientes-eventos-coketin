@@ -4,9 +4,10 @@ export async function listRegistros() {
   const { data, error } = await supabase
     .from('registros')
     .select('*')
-    .order('created_at')
+    .order('created_at', { ascending: false })
+    .limit(1000)
   if (error) throw error
-  return data ?? []
+  return (data ?? []).reverse()
 }
 
 export async function createRegistro(payload) {

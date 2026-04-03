@@ -11,18 +11,10 @@ export async function listClients() {
         contrato_archivos (*)
       )
     `)
-    .order('created_at')
+    .order('created_at', { ascending: false })
+    .limit(500)
   if (error) throw error
-  return (data ?? []).map(c => ({
-    ...c,
-    contratos: (c.contratos ?? [])
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .map(ct => ({
-        ...ct,
-        adelantos: (ct.adelantos ?? []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
-        contrato_archivos: (ct.contrato_archivos ?? []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
-      })),
-  }))
+  return (data ?? []).reverse()
 }
 
 export async function createClient(payload) {

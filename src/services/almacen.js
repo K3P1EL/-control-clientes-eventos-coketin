@@ -8,9 +8,10 @@ export async function listAlmacen() {
       almacen_items (*),
       almacen_archivos (*)
     `)
-    .order('created_at')
+    .order('created_at', { ascending: false })
+    .limit(500)
   if (error) throw error
-  return data ?? []
+  return (data ?? []).reverse()
 }
 
 export async function createSalida(payload) {

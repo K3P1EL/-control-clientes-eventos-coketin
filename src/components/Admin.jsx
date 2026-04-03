@@ -76,7 +76,7 @@ export default function Admin({ users, tags, locales, prodTags, onSetTags, onSet
                     </div>
                   </td>
                   <td style={td}>
-                    <button onClick={()=>onDeleteProfile(u.id)} style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:4 }}>
+                    <button onClick={()=>{if(window.confirm("¿Eliminar este usuario permanentemente?"))onDeleteProfile(u.id)}} style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:4 }}>
                       <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
                     </button>
                   </td>

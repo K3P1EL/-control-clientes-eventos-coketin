@@ -33,9 +33,9 @@ export default function Agenda({ clients, user, adm, goToClient }) {
     if (filter === "hoy") return evDate === todayStr
     if (filter === "semana") {
       if (!evDate) return true
-      const d = new Date(evDate)
-      const diff = (d - now) / 86400000
-      return diff >= -1 && diff <= 7
+      const d = new Date(evDate + "T00:00:00")
+      const diff = Math.floor((d - new Date(todayStr + "T00:00:00")) / 86400000)
+      return diff >= 0 && diff <= 7
     }
     if (!evDate) return true
     return evDate >= todayStr

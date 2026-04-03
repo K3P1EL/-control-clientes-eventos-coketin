@@ -211,7 +211,7 @@ export default function Registro({
               {locales.map(l => <option key={l} value={l} style={{ background:C.card, color:C.text }}>{l}</option>)}
             </select>
           </div>
-          <button onClick={add} style={btn}>+ Agregar Cliente</button>
+          <button onClick={add} style={btn}>+ Agregar Registro</button>
           {adm && (
             <button onClick={exportExcel} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:8, color:C.green, cursor:"pointer", padding:"6px 12px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v10H4V3h5l3 3z"/><path d="M9 3v3h3"/></svg>
@@ -234,11 +234,12 @@ export default function Registro({
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={14} style={{ padding:40, textAlign:"center", color:C.muted }}>No hay registros. Haz clic en "+ Agregar Cliente".</td></tr>
+              <tr><td colSpan={14} style={{ padding:40, textAlign:"center", color:C.muted }}>No hay registros. Haz clic en "+ Agregar Registro".</td></tr>
             )}
             {rows.map((r, i) => {
               const isDel   = r.deleted
-              const canEdit = !isDel && (adm || i >= total - 3)
+              const nonDelIdx = isDel ? -1 : rows.filter(x => !x.deleted).indexOf(r)
+              const canEdit = !isDel && (adm || nonDelIdx >= total - 3)
               const lock    = !canEdit ? { opacity:.45, pointerEvents:"none" } : {}
               const fc = getBg(r.foto,   { SI:C.green, NO:C.red })
               const cc = getBg(r.canal,  { W:C.teal, F:C.purple })

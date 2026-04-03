@@ -87,6 +87,7 @@ export default function Clientes({
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getContratos  = (c) => (c.contratos||[])
   const getRegIds     = (c) => c.reg_ids||[]
+  const parseProds    = (pi) => Array.isArray(pi) ? pi : (pi||"").split(",").map(s=>s.trim()).filter(Boolean)
 
   const addNew = async () => {
     const nc = await onAddClient({
@@ -295,7 +296,7 @@ export default function Clientes({
                   {prodTags.length>0 && (
                     <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6, maxHeight:60, overflow:"auto", padding:"2px 0" }}>
                       {prodTags.map(t => {
-                        const prods = Array.isArray(ct.producto_interes) ? ct.producto_interes : (ct.producto_interes||"").split(",").map(s=>s.trim()).filter(Boolean)
+                        const prods = parseProds(ct.producto_interes)
                         const active = prods.includes(t)
                         return (
                           <button key={t} onClick={()=>{
@@ -307,7 +308,7 @@ export default function Clientes({
                     </div>
                   )}
                   {(() => {
-                    const prods = Array.isArray(ct.producto_interes) ? ct.producto_interes : (ct.producto_interes||"").split(",").map(s=>s.trim()).filter(Boolean)
+                    const prods = parseProds(ct.producto_interes)
                     const custom = prods.filter(p=>!prodTags.includes(p))
                     return <>
                       <div style={{ ...inp, marginBottom:6, opacity:.7, cursor:"not-allowed", minHeight:36, display:"flex", alignItems:"center", fontSize:13 }}>
