@@ -6,7 +6,7 @@ import LinkPopup from "./LinkPopup"
 
 export default function Clientes({
   clients, user, adm, regs, users, prodTags,
-  navClientId, clearNavClient,
+  navClientId, clearNavClient, changeTab,
   goToReg, goToAlmacen,
   onAddClient, onUpdateClient, onDeleteClient,
   onAddContrato, onUpdateContrato,
@@ -134,7 +134,10 @@ export default function Clientes({
       <div>
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16, flexWrap:"wrap" }}>
-          <button onClick={()=>{setView(null);setActiveContrato(0)}} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+          <button onClick={()=>{
+            setView(null);setActiveContrato(0)
+            try { const rt = localStorage.getItem("return_tab"); if (rt && rt !== "clientes") { localStorage.removeItem("return_tab"); changeTab(rt) } } catch {}
+          }} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>{c.nombre||"Ficha de Cliente"}</h2>

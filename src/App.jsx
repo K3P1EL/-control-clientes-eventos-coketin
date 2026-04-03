@@ -67,9 +67,9 @@ export default function App() {
   const [navRegDate,     setNavRegDate]     = useState(null)
   const [navAlmClientId, setNavAlmClientId] = useState(null)
 
-  const goToClient  = useCallback((id)        => { setNavClientId(id); setTab("clientes") }, [])
-  const goToReg     = useCallback((uid, date) => { setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }, [])
-  const goToAlmacen = useCallback((id)        => { setNavAlmClientId(id); setTab("almacen") }, [])
+  const goToClient  = useCallback((id)        => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavClientId(id); setTab("clientes") }, [])
+  const goToReg     = useCallback((uid, date) => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }, [])
+  const goToAlmacen = useCallback((id)        => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavAlmClientId(id); setTab("almacen") }, [])
 
   // ── Load all data ─────────────────────────────────────────────────────────
   const safe = (promise, fallback) => {
@@ -493,7 +493,7 @@ export default function App() {
           {tab==="clientes" && (
             <Clientes
               clients={clients} user={user} adm={adm} regs={regs} users={users} prodTags={prodTags}
-              navClientId={navClientId} clearNavClient={()=>setNavClientId(null)}
+              navClientId={navClientId} clearNavClient={()=>setNavClientId(null)} changeTab={changeTab}
               goToReg={goToReg} goToAlmacen={goToAlmacen}
               onAddClient={onAddClient} onUpdateClient={onUpdateClient} onDeleteClient={onDeleteClient}
               onAddContrato={async(cid,p)=>{const ct=await createContrato({client_id:cid,...p});setClients(prev=>prev.map(c=>c.id===cid?{...c,contratos:[...(c.contratos||[]),ct]}:c));return ct}}
