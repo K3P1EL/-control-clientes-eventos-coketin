@@ -59,8 +59,8 @@ export default function App() {
   const [prodTags,   setProdTags]   = useState([])
 
   // ── Navigation ────────────────────────────────────────────────────────────
-  const [tab,            setTab_]           = useState(() => sessionStorage.getItem("tab") || "registro")
-  const setTab = useCallback((t) => { setTab_(t); sessionStorage.setItem("tab", t) }, [])
+  const [tab,            setTab_]           = useState(() => { try { return localStorage.getItem("app_tab") || "registro" } catch { return "registro" } })
+  const setTab = useCallback((t) => { setTab_(t); try { localStorage.setItem("app_tab", t) } catch {} }, [])
   const [mobSide,        setMobSide]        = useState(false)
   const [navClientId,    setNavClientId]    = useState(null)
   const [navRegId,       setNavRegId]       = useState(null)
