@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { C } from "../lib/colors"
-import { today, fmtDate } from "../lib/helpers"
+import { today, fmtDate, canChangeTipo } from "../lib/helpers"
 import { lbl, inp, mi, btn, td, ib, DInput } from "./shared"
 import { parseOCRText } from "../services/ocr"
 import { incrementOCRCount } from "../services/config"
@@ -42,14 +42,6 @@ export default function Clientes({
   const [uploadingContrato, setUploadingContrato] = useState(0)
   const fRef   = useRef(null)
   const ocrRef = useRef(null)
-  const tipoChanges = useRef({ hour: 0, count: 0 })
-  const rateLimitTipo = () => {
-    const curHour = Math.floor(Date.now() / 3600000)
-    if (tipoChanges.current.hour !== curHour) tipoChanges.current = { hour: curHour, count: 0 }
-    if (tipoChanges.current.count >= 3) { alert("Limite de cambios alcanzado (3 por hora)"); return false }
-    tipoChanges.current.count++
-    return true
-  }
 
   useEffect(() => { if (navClientId) { setView(navClientId); clearNavClient() } }, [navClientId])
 
@@ -289,9 +281,9 @@ export default function Clientes({
                     {ct.tipo==="contrato"?"Contrato":"Proforma"}{contratos.length>1?` #${activeContrato+1}`:""}
                   </h3>
                   <div style={{ display:"flex", gap:6 }}>
-                    <div style={{ display:"flex", borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}` }}>
-                      <button onClick={()=>{if(ct.tipo!=="proforma"&&rateLimitTipo())onUpdateContrato(c.id,ct.id,{tipo:"proforma"})}} style={{ padding:"4px 12px", border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo!=="contrato"?C.yellow+"33":"transparent", color:ct.tipo!=="contrato"?C.yellow:C.muted }}>Proforma</button>
-                      <button onClick={()=>{if(ct.tipo!=="contrato"&&rateLimitTipo())onUpdateContrato(c.id,ct.id,{tipo:"contrato"})}} style={{ padding:"4px 12px", border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo==="contrato"?C.green+"33":"transparent", color:ct.tipo==="contrato"?C.green:C.muted }}>Contrato</button>
+                    <div style={{ display:"inline-flex", borderRadius:20, background:C.bg, padding:2 }}>
+                      <button onClick={()=>{if(ct.tipo!=="proforma"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"proforma"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo!=="contrato"?C.yellow:C.bg, color:ct.tipo!=="contrato"?"#fff":C.muted, transition:"all .2s" }}>Proforma</button>
+                      <button onClick={()=>{if(ct.tipo!=="contrato"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"contrato"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo==="contrato"?C.green:C.bg, color:ct.tipo==="contrato"?"#fff":C.muted, transition:"all .2s" }}>Contrato</button>
                     </div>
                     <button onClick={()=>onUpdateContrato(c.id,ct.id,{estado:ct.estado==="finalizado"?"activo":"finalizado"})} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.estado==="finalizado"?C.blue+"33":C.border, color:ct.estado==="finalizado"?C.blue:C.muted }}>
                       {ct.estado==="finalizado"?"✓ Finalizado":"En curso"}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import * as XLSX from "xlsx"
 import { C, estadoColors } from "../lib/colors"
-import { today, nowTime, genCode } from "../lib/helpers"
+import { today, nowTime, genCode, canChangeTipo } from "../lib/helpers"
 import { Bdg, DInput, lbl, inp, mi, sel, btn, td, ib } from "./shared"
 
 function getBg(val, map) { return map[val] || C.border }
@@ -21,7 +21,7 @@ export default function Registro({
   const [contractUploading, setContractUploading] = useState(new Set())
   const [previewRegId, setPreviewRegId] = useState(null)
   const [viewFile, setViewFile] = useState(null)
-  const tipoChanges = useRef({ hour: 0, count: 0 }) // max 3 toggles per hour
+  const [selectedRow, setSelectedRow] = useState(null)
   const cRef = useRef(null)
 
   useEffect(() => {
@@ -292,13 +292,10 @@ export default function Registro({
         const archivos = (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[])
         if (!archivos.length) return null
         const tipo = lastCt?.tipo || "proforma"
-        const toggleTipo = () => {
-          if (!lastCt) return
-          const curHour = Math.floor(Date.now() / 3600000)
-          if (tipoChanges.current.hour !== curHour) tipoChanges.current = { hour: curHour, count: 0 }
-          if (tipoChanges.current.count >= 3) { alert("Limite de cambios alcanzado (3 por hora)"); return }
-          tipoChanges.current.count++
-          onUpdateContrato(linked.id, lastCt.id, { tipo: tipo==="contrato"?"proforma":"contrato" })
+        const toggleTipo = (newTipo) => {
+          if (!lastCt || tipo === newTipo) return
+          if (!canChangeTipo()) { alert("Limite de cambios alcanzado (3 por hora)"); return }
+          onUpdateContrato(linked.id, lastCt.id, { tipo: newTipo })
         }
         return (
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={()=>setPreviewRegId(null)}>
@@ -307,9 +304,9 @@ export default function Registro({
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                   <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:C.text }}>{archivos.length} archivo{archivos.length>1?"s":""}</h3>
-                  <div style={{ display:"flex", borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}` }}>
-                    <button onClick={()=>{if(tipo!=="proforma")toggleTipo()}} style={{ padding:"3px 10px", border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:tipo!=="contrato"?C.yellow+"33":"transparent", color:tipo!=="contrato"?C.yellow:C.muted }}>Proforma</button>
-                    <button onClick={()=>{if(tipo!=="contrato")toggleTipo()}} style={{ padding:"3px 10px", border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:tipo==="contrato"?C.green+"33":"transparent", color:tipo==="contrato"?C.green:C.muted }}>Contrato</button>
+                  <div style={{ display:"inline-flex", borderRadius:20, background:C.bg, padding:2 }}>
+                    <button onClick={()=>toggleTipo("proforma")} style={{ padding:"4px 12px", borderRadius:18, border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:tipo!=="contrato"?C.yellow:C.bg, color:tipo!=="contrato"?"#fff":C.muted, transition:"all .2s" }}>Proforma</button>
+                    <button onClick={()=>toggleTipo("contrato")} style={{ padding:"4px 12px", borderRadius:18, border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:tipo==="contrato"?C.green:C.bg, color:tipo==="contrato"?"#fff":C.muted, transition:"all .2s" }}>Contrato</button>
                   </div>
                 </div>
                 <button onClick={()=>setPreviewRegId(null)} style={{ background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:26, height:26, cursor:"pointer", fontSize:14, fontWeight:700 }}>x</button>
@@ -362,7 +359,10 @@ export default function Registro({
             )}
             {rows.map((r, i) => {
               const isDel   = r.deleted
-              const nonDelIdx = isDel ? -1 : rows.filter(x => !x.deleted).indexOf(r)
+              const nonDelRows = rows.filter(x => !x.deleted)
+              const nonDelIdx = isDel ? -1 : nonDelRows.indexOf(r)
+              const isLast = !isDel && nonDelIdx === nonDelRows.length - 1
+              const isSel = selectedRow === r.id
               const canEdit = !isDel && (adm || nonDelIdx >= total - 3)
               const lock    = !canEdit ? { opacity:.45, pointerEvents:"none" } : {}
               const cc = getBg(r.canal,  { W:C.teal, F:C.purple })
@@ -370,9 +370,10 @@ export default function Registro({
               const pc = getBg(r.pirana, { S:C.red, P:C.yellow, N:C.muted })
               const ei = tags.indexOf(r.estado)
               const ec = ei >= 0 ? estadoColors[ei%estadoColors.length] : C.border
+              const rowBg = isDel ? C.red+"0a" : isSel ? C.accent+"12" : isLast ? C.accent+"08" : i%2 ? C.cardAlt+"44" : "transparent"
 
               return (
-                <tr key={r.id} style={{ borderBottom:`1px solid ${C.border}`, background:isDel?C.red+"0a":(i%2?C.cardAlt+"44":"transparent"), animation:"fadeIn .2s" }}>
+                <tr key={r.id} onClick={()=>setSelectedRow(isSel?null:r.id)} style={{ borderBottom:`1px solid ${C.border}`, background:rowBg, animation:"fadeIn .2s", cursor:"pointer", borderLeft:isLast?`3px solid ${C.accent}`:"3px solid transparent", transition:"background .15s" }}>
                   <td style={td}><span style={{ color:C.muted, ...(isDel?{textDecoration:"line-through"}:{}) }}>{i+1}</span></td>
                   <td style={{ ...td, ...(isDel?{opacity:.4}:{}) }}>{r.fecha}</td>
                   <td style={{ ...td, ...(isDel?{opacity:.5}:{}) }}>
