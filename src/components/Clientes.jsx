@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { C } from "../lib/colors"
 import { today, fmtDate } from "../lib/helpers"
-import { lbl, inp, mi, btn, td, ib } from "./shared"
+import { lbl, inp, mi, btn, td, ib, DInput } from "./shared"
 import LinkPopup from "./LinkPopup"
 
 export default function Clientes({
@@ -223,8 +223,8 @@ export default function Clientes({
 
             {/* Identidad */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-              <div><label style={lbl}>Nombre</label><input value={c.nombre} onChange={e=>onUpdateClient(c.id,"nombre",e.target.value)} style={inp} placeholder="Nombre completo" /></div>
-              <div><label style={lbl}>DNI</label><input value={c.dni||""} onChange={e=>onUpdateClient(c.id,"dni",e.target.value)} style={inp} placeholder="Documento" maxLength={15} /></div>
+              <div><label style={lbl}>Nombre</label><DInput value={c.nombre} onCommit={v=>onUpdateClient(c.id,"nombre",v)} style={inp} placeholder="Nombre completo" /></div>
+              <div><label style={lbl}>DNI</label><DInput value={c.dni||""} onCommit={v=>onUpdateClient(c.id,"dni",v)} style={inp} placeholder="Documento" maxLength={15} /></div>
             </div>
 
             {/* Celulares */}
@@ -245,8 +245,8 @@ export default function Clientes({
 
             {/* Dirección */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-              <div><label style={lbl}>Dirección</label><input value={c.direccion} onChange={e=>onUpdateClient(c.id,"direccion",e.target.value)} style={inp} placeholder="Dirección" /></div>
-              <div><label style={lbl}>Referencia</label><input value={c.referencia} onChange={e=>onUpdateClient(c.id,"referencia",e.target.value)} style={inp} placeholder="Cerca de..." /></div>
+              <div><label style={lbl}>Dirección</label><DInput value={c.direccion} onCommit={v=>onUpdateClient(c.id,"direccion",v)} style={inp} placeholder="Dirección" /></div>
+              <div><label style={lbl}>Referencia</label><DInput value={c.referencia} onCommit={v=>onUpdateClient(c.id,"referencia",v)} style={inp} placeholder="Cerca de..." /></div>
             </div>
 
             {/* ── Contrato ── */}
@@ -332,7 +332,7 @@ export default function Clientes({
                       {expandNotes===ct.id?"Cerrar":"Expandir"}
                     </button>
                   </div>
-                  <textarea value={ct.notas||""} onChange={e=>onUpdateContrato(c.id,ct.id,{notas:e.target.value})} style={{ ...inp, minHeight:80, resize:"vertical", fontFamily:"inherit" }} placeholder="Observaciones..." />
+                  <DInput tag="textarea" value={ct.notas||""} onCommit={v=>onUpdateContrato(c.id,ct.id,{notas:v})} style={{ ...inp, minHeight:80, resize:"vertical", fontFamily:"inherit" }} placeholder="Observaciones..." />
                 </div>
                 {expandNotes===ct.id && (
                   <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setExpandNotes(null)}>
@@ -341,7 +341,7 @@ export default function Clientes({
                         <h3 style={{ margin:0, fontSize:16, fontWeight:600, color:C.accent }}>Notas — {c.nombre||c.code}</h3>
                         <button onClick={()=>setExpandNotes(null)} style={{ background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:28, height:28, cursor:"pointer", fontSize:16, fontWeight:700 }}>×</button>
                       </div>
-                      <textarea value={ct.notas||""} onChange={e=>onUpdateContrato(c.id,ct.id,{notas:e.target.value})} style={{ ...inp, flex:1, minHeight:400, resize:"none", fontFamily:"inherit", fontSize:14, lineHeight:1.6 }} placeholder="Observaciones..." autoFocus />
+                      <DInput tag="textarea" value={ct.notas||""} onCommit={v=>onUpdateContrato(c.id,ct.id,{notas:v})} style={{ ...inp, flex:1, minHeight:400, resize:"none", fontFamily:"inherit", fontSize:14, lineHeight:1.6 }} placeholder="Observaciones..." autoFocus />
                     </div>
                   </div>
                 )}
@@ -385,7 +385,7 @@ export default function Clientes({
                 <label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:6 }}>Costo total del contrato</label>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                   <span style={{ fontSize:16, color:C.muted, fontWeight:600 }}>S/</span>
-                  <input type="number" value={ct.total||""} onChange={e=>onUpdateContrato(c.id,ct.id,{total:e.target.value})} style={{ ...inp, marginBottom:0, fontSize:20, fontWeight:700, flex:1 }} placeholder="Ej: 500" />
+                  <DInput type="number" value={ct.total||""} onCommit={v=>onUpdateContrato(c.id,ct.id,{total:v})} style={{ ...inp, marginBottom:0, fontSize:20, fontWeight:700, flex:1 }} placeholder="Ej: 500" />
                 </div>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
@@ -417,9 +417,9 @@ export default function Clientes({
                     <input type="date" value={a.fecha?a.fecha.split("/").length===3?`${a.fecha.split("/")[2]}-${a.fecha.split("/")[1]}-${a.fecha.split("/")[0]}`:(a.fecha||""):(a.fecha||"")} onChange={e=>{const p=e.target.value.split("-");onUpdateAdelanto(c.id,ct.id,a.id,{fecha:`${p[2]}/${p[1]}/${p[0]}`})}} style={{ ...mi, width:110, fontSize:11, ...((locked||inv)?{opacity:.5}:{}) }} disabled={locked||inv} />
                     <div style={{ display:"flex", alignItems:"center", gap:2 }}>
                       <span style={{ fontSize:11, color:C.muted, ...(inv?{textDecoration:"line-through"}:{}) }}>S/</span>
-                      <input type="number" value={a.monto||""} onChange={e=>onUpdateAdelanto(c.id,ct.id,a.id,{monto:e.target.value})} style={{ ...mi, width:65, fontWeight:600, ...((locked||inv)?{opacity:.5,textDecoration:inv?"line-through":"none"}:{}) }} placeholder="0" disabled={locked||inv} />
+                      <DInput type="number" value={a.monto||""} onCommit={v=>onUpdateAdelanto(c.id,ct.id,a.id,{monto:v})} style={{ ...mi, width:65, fontWeight:600, ...((locked||inv)?{opacity:.5,textDecoration:inv?"line-through":"none"}:{}) }} placeholder="0" disabled={locked||inv} />
                     </div>
-                    <input value={a.nota||""} onChange={e=>onUpdateAdelanto(c.id,ct.id,a.id,{nota:e.target.value})} style={{ ...mi, flex:1 }} placeholder="Nota..." />
+                    <DInput value={a.nota||""} onCommit={v=>onUpdateAdelanto(c.id,ct.id,a.id,{nota:v})} style={{ ...mi, flex:1 }} placeholder="Nota..." />
                     <div style={{ display:"flex", alignItems:"center", gap:3, flexShrink:0 }}>
                       {inv ? <>
                         <span style={{ padding:"2px 6px", borderRadius:4, fontSize:9, fontWeight:700, background:C.red+"33", color:C.red }}>INVÁLIDO</span>

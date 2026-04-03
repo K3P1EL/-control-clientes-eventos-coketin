@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { C } from "../lib/colors"
-import { inp, mi, btn, td, ib } from "./shared"
+import { inp, mi, btn, td, ib, DInput } from "./shared"
 import { nowFull } from "../lib/helpers"
 
 export default function Inventario({ inventario, user, adm, onAddInventario, onUpdateInventario, onDeleteInventario }) {
@@ -72,17 +72,17 @@ export default function Inventario({ inventario, user, adm, onAddInventario, onU
                   <tr key={item.id} style={{ borderBottom:`1px solid ${C.border}`, background:idx%2?C.cardAlt+"44":"transparent" }}>
                     <td style={td}>
                       {editing
-                        ? <input value={item.nombre} onChange={e=>upd(item.id,"nombre",e.target.value)} style={{ ...mi, width:180 }} placeholder="Nombre del producto" autoFocus />
+                        ? <DInput value={item.nombre} onCommit={v=>upd(item.id,"nombre",v)} style={{ ...mi, width:180 }} placeholder="Nombre del producto" autoFocus />
                         : <span style={{ fontWeight:600 }}>{item.nombre||"Sin nombre"}</span>}
                     </td>
                     <td style={td}>
                       {editing
-                        ? <input value={item.categoria||""} onChange={e=>upd(item.id,"categoria",e.target.value)} style={{ ...mi, width:120 }} placeholder="Ej: Toldos" />
+                        ? <DInput value={item.categoria||""} onCommit={v=>upd(item.id,"categoria",v)} style={{ ...mi, width:120 }} placeholder="Ej: Toldos" />
                         : <span style={{ color:C.muted }}>{item.categoria||"—"}</span>}
                     </td>
                     <td style={td}>
                       {editing
-                        ? <input type="number" value={item.cantidad||""} onChange={e=>upd(item.id,"cantidad",e.target.value)} style={{ ...mi, width:60 }} />
+                        ? <DInput type="number" value={item.cantidad||""} onCommit={v=>upd(item.id,"cantidad",v)} style={{ ...mi, width:60 }} />
                         : <span style={{ fontWeight:700, color:C.accent }}>{item.cantidad||0}</span>}
                     </td>
                     <td style={td}>
@@ -99,7 +99,7 @@ export default function Inventario({ inventario, user, adm, onAddInventario, onU
                     </td>
                     <td style={td}>
                       {editing
-                        ? <input value={item.notas||""} onChange={e=>upd(item.id,"notas",e.target.value)} style={{ ...mi, width:150 }} placeholder="Notas..." />
+                        ? <DInput value={item.notas||""} onCommit={v=>upd(item.id,"notas",v)} style={{ ...mi, width:150 }} placeholder="Notas..." />
                         : <span style={{ color:C.muted, fontSize:12 }}>{item.notas||"—"}</span>}
                     </td>
                     <td style={td}>

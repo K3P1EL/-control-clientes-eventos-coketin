@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import * as XLSX from "xlsx"
 import { C, estadoColors } from "../lib/colors"
 import { today, nowTime, genCode } from "../lib/helpers"
-import { Bdg, lbl, inp, mi, sel, btn, td, ib } from "./shared"
+import { Bdg, DInput, lbl, inp, mi, sel, btn, td, ib } from "./shared"
 
 function getBg(val, map) { return map[val] || C.border }
 
@@ -280,10 +280,10 @@ export default function Registro({
                   </td>
                   <td style={td}><div style={lock}><Bdg c={cc}><select value={r.canal} onChange={e=>upd(r.id,"canal",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option><option value="W">WhatsApp</option><option value="F">Físico</option></select></Bdg></div></td>
                   <td style={td}><div style={lock}><Bdg c={sc}><select value={r.sexo}  onChange={e=>upd(r.id,"sexo",e.target.value)}  style={sel} disabled={!canEdit}><option value="">--</option><option value="H">H</option><option value="M">M</option></select></Bdg></div></td>
-                  <td style={td}><div style={lock}><input type="number" value={r.edad} onChange={e=>upd(r.id,"edad",e.target.value)} style={{ ...mi, width:60 }} placeholder="--" disabled={!canEdit}/></div></td>
+                  <td style={td}><div style={lock}><DInput type="number" value={r.edad} onCommit={v=>upd(r.id,"edad",v)} style={{ ...mi, width:60 }} placeholder="--" disabled={!canEdit}/></div></td>
                   <td style={td}><div style={lock}><Bdg c={pc}><select value={r.pirana} onChange={e=>upd(r.id,"pirana",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option><option value="S">SI</option><option value="N">NO</option><option value="P">P</option></select></Bdg></div></td>
                   <td style={td}><div style={lock}><Bdg c={ec}><select value={r.estado} onChange={e=>upd(r.id,"estado",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option>{tags.map(t=><option key={t} value={t}>{t}</option>)}</select></Bdg></div></td>
-                  <td style={td}><div style={lock}><input value={r.observaciones} onChange={e=>upd(r.id,"observaciones",e.target.value)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
+                  <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   {/* Ficha */}
                   <td style={td}>{(() => {
                     const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))

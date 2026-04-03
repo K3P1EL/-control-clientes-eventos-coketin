@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { C } from '../lib/colors'
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -46,6 +47,31 @@ export function Stat({ l, v, c }) {
       <div style={{ fontSize:12, color:C.muted, marginTop:4 }}>{l}</div>
     </div>
   )
+}
+
+// Debounced input: edits locally, commits to DB after 400ms of no typing
+export function DInput({ value, onCommit, tag = "input", ...props }) {
+  const [local, setLocal] = useState(value ?? "")
+  const timer = useRef(null)
+  const mounted = useRef(true)
+
+  useEffect(() => { setLocal(value ?? "") }, [value])
+  useEffect(() => () => { mounted.current = false; clearTimeout(timer.current) }, [])
+
+  const handleChange = (e) => {
+    const v = e.target.value
+    setLocal(v)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => { if (mounted.current && onCommit) onCommit(v) }, 400)
+  }
+
+  const handleBlur = () => {
+    clearTimeout(timer.current)
+    if (local !== (value ?? "") && onCommit) onCommit(local)
+  }
+
+  const Tag = tag
+  return <Tag {...props} value={local} onChange={handleChange} onBlur={handleBlur} />
 }
 
 export function AuthWrap({ title, sub, icon, iconBg, children }) {

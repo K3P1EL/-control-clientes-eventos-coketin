@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { C } from "../lib/colors"
-import { inp, mi, btn, td, ib, sel } from "./shared"
+import { inp, mi, btn, td, ib, sel, DInput } from "./shared"
 import { Bdg } from "./shared"
 import { fmtDate } from "../lib/helpers"
 
@@ -71,8 +71,8 @@ export default function Almacen({
             {!(s.almacen_items||[]).length && <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:13, background:C.cardAlt, borderRadius:8 }}>Sin productos. Agrega lo que se llevan.</div>}
             {(s.almacen_items||[]).map((it,idx) => (
               <div key={it.id} style={{ display:"flex", gap:6, alignItems:"center", padding:"8px 10px", background:idx%2?C.cardAlt+"66":"transparent", borderRadius:6, marginBottom:2 }}>
-                <input value={it.nombre} onChange={e=>onUpdateItem(s.id,it.id,{nombre:e.target.value})} style={{ ...mi, flex:1 }} placeholder="Nombre del producto..." />
-                <input type="number" value={it.cantidad} onChange={e=>onUpdateItem(s.id,it.id,{cantidad:e.target.value})} style={{ ...mi, width:50 }} placeholder="1" />
+                <DInput value={it.nombre} onCommit={v=>onUpdateItem(s.id,it.id,{nombre:v})} style={{ ...mi, flex:1 }} placeholder="Nombre del producto..." />
+                <DInput type="number" value={it.cantidad} onCommit={v=>onUpdateItem(s.id,it.id,{cantidad:v})} style={{ ...mi, width:50 }} placeholder="1" />
                 <button onClick={()=>onUpdateItem(s.id,it.id,{devuelto:!it.devuelto})} style={{ padding:"3px 8px", borderRadius:6, border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:it.devuelto?C.green+"33":C.yellow+"33", color:it.devuelto?C.green:C.yellow }}>
                   {it.devuelto?"✓ Devuelto":"Pendiente"}
                 </button>
@@ -83,7 +83,7 @@ export default function Almacen({
             ))}
             <div style={{ marginTop:12 }}>
               <label style={{ fontSize:12, fontWeight:600, color:C.muted, marginBottom:4, display:"block" }}>Notas</label>
-              <textarea value={s.notas||""} onChange={e=>onUpdateSalida(s.id,{notas:e.target.value})} style={{ ...inp, minHeight:50, resize:"vertical", fontFamily:"inherit" }} placeholder="Observaciones..." />
+              <DInput tag="textarea" value={s.notas||""} onCommit={v=>onUpdateSalida(s.id,{notas:v})} style={{ ...inp, minHeight:50, resize:"vertical", fontFamily:"inherit" }} placeholder="Observaciones..." />
             </div>
             <div style={{ fontSize:11, color:C.muted, marginTop:10 }}>Creado por {s.created_by_name} — {fmtDate(s.created_at)}</div>
           </div>
