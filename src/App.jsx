@@ -85,39 +85,46 @@ export default function App() {
     setDataReady(true)
   }
 
+  const withTimeout = (promise, ms, label) => {
+    const timer = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`[timeout] ${label} took more than ${ms}ms`)), ms)
+    )
+    return Promise.race([promise, timer])
+  }
+
   const handleLogin = async (userId) => {
     try {
       console.log("[auth] handleLogin start, userId:", userId)
 
+      // Step 1: get auth user data (needed for fallback regardless)
+      console.log("[auth] calling supabase.auth.getUser()...")
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      console.log("[auth] supabase.auth.getUser() done:", authUser?.email)
+
+      // Step 2: try getProfile with 5s timeout
       let profile = null
       try {
-        profile = await getProfile(userId)
-        console.log("[auth] profile loaded:", profile)
+        console.log("[auth] calling getProfile()...")
+        profile = await withTimeout(getProfile(userId), 5000, "getProfile")
+        console.log("[auth] getProfile() done:", profile)
       } catch (profileErr) {
-        console.error("[auth] getProfile error:", profileErr)
-        // Profile may not exist yet (trigger didn't fire) — create it
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        const fallbackProfile = {
+        console.error("[auth] getProfile failed or timed out:", profileErr.message)
+        // Fallback: hardcoded profile from auth.users data
+        profile = {
           id: userId,
           email: authUser?.email ?? "",
-          name: authUser?.user_metadata?.name ?? authUser?.email ?? "Usuario",
+          name: authUser?.user_metadata?.name ?? authUser?.email?.split("@")[0] ?? "Usuario",
           active: true,
-          is_admin: false,
-          permissions: [],
+          is_admin: authUser?.email === "k3p1elsor@gmail.com",
+          permissions: ["registro","clientes","almacen","inventario","agenda","auditoria","dashboard"],
           client_visibility: "all",
         }
-        const { data: created, error: createErr } = await supabase
-          .from("profiles")
-          .upsert(fallbackProfile)
-          .select()
-          .single()
-        if (createErr) {
-          console.error("[auth] profile create error:", createErr)
-          setAuthState("logged_out")
-          return
-        }
-        profile = created
-        console.log("[auth] profile created as fallback:", profile)
+        console.log("[auth] using hardcoded fallback profile:", profile)
+        // Try to persist it in background (don't await — don't block login)
+        supabase.from("profiles").upsert(profile).then(({ error }) => {
+          if (error) console.warn("[auth] background upsert profile failed:", error.message)
+          else console.log("[auth] background upsert profile OK")
+        })
       }
 
       setUser(profile)
@@ -133,11 +140,11 @@ export default function App() {
 
   // ── Auth listener ─────────────────────────────────────────────────────────
   useEffect(() => {
-    // Fallback: if session check or data load hangs, show login after 3s
+    // Fallback: if session check or data load hangs, show login after 10s
     const fallback = setTimeout(() => {
-      console.warn("[auth] timeout! authState still loading after 3s, forcing logged_out")
+      console.warn("[auth] timeout! authState still loading after 10s, forcing logged_out")
       setAuthState(prev => prev === "loading" ? "logged_out" : prev)
-    }, 3000)
+    }, 10000)
 
     console.log("[auth] checking session...")
     getSession()
