@@ -40,6 +40,7 @@ export default function Clientes({
   const [expandNotes,    setExpandNotes]    = useState(null)
   const [viewContratoImg,setViewContratoImg]= useState(null)
   const [uploadingContrato, setUploadingContrato] = useState(0)
+  const [errorFiles, setErrorFiles] = useState(new Set())
   const fRef   = useRef(null)
   const ocrRef = useRef(null)
 
@@ -374,26 +375,37 @@ export default function Clientes({
                 {/* Archivos de contrato */}
                 <div style={{ marginTop:8 }}>
                   <label style={lbl}>Contrato (archivos)</label>
-                  <input ref={fRef} type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,application/pdf" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;setUploadingContrato(c=>c+1);try{await onAddContratoArchivo(c.id,ct.id,f)}catch(err){alert("Error subiendo archivo: "+err.message)}finally{setUploadingContrato(c=>c-1);e.target.value=""}}} />
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                  <input ref={fRef} type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingContrato(x=>x+files.length);await Promise.all(files.map(f=>onAddContratoArchivo(c.id,ct.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingContrato(x=>Math.max(0,x-files.length)))}} />
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}
+                    onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor=C.accent}} onDragLeave={e=>{e.currentTarget.style.borderColor="transparent"}}
+                    onDrop={async e=>{e.preventDefault();e.currentTarget.style.borderColor="transparent";const files=Array.from(e.dataTransfer.files||[]).filter(f=>/^(image|video|application\/pdf)/.test(f.type));if(!files.length)return;setUploadingContrato(x=>x+files.length);await Promise.all(files.map(f=>onAddContratoArchivo(c.id,ct.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingContrato(x=>Math.max(0,x-files.length)))}}>
                     <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>+ Subir archivo</button>
                     {uploadingContrato > 0 && <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:C.accent }}><span style={{ display:"inline-block", width:12, height:12, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} />{uploadingContrato} subiendo...</span>}
+                    <span style={{ fontSize:11, color:C.muted }}>o arrastra aqui</span>
                   </div>
                   {(ct.contrato_archivos||[]).length>0 && (
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(70px, 1fr))", gap:6 }}>
-                      {(ct.contrato_archivos||[]).map((item,idx)=>(
-                        <div key={item.id||idx} style={{ position:"relative", borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer", aspectRatio:"1" }} onClick={()=>setViewContratoImg(item)}>
-                          {item.tipo==="image"
-                            ? <img src={item.url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                            : item.tipo==="video"
-                            ? <div style={{ width:"100%", height:"100%", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
-                            : <div style={{ width:"100%", height:"100%", background:C.cardAlt, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4 }}>
-                                <svg width="24" height="24" fill="none" stroke={C.red} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                                <span style={{ fontSize:8, color:C.muted, textAlign:"center", padding:"0 4px" }}>PDF</span>
-                              </div>}
-                          {adm && <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este archivo?"))onDeleteContratoArchivo(c.id,ct.id,item.id)}} style={{ position:"absolute", top:2, right:2, background:C.danger, border:"none", borderRadius:4, color:"#fff", cursor:"pointer", padding:"0 4px", fontSize:10, lineHeight:"16px" }}>×</button>}
-                        </div>
-                      ))}
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(120px, 1fr))", gap:10 }}>
+                      {(ct.contrato_archivos||[]).map((item,idx)=>{
+                        const isErr = errorFiles.has(item.id)
+                        return (
+                          <div key={item.id||idx} style={{ borderRadius:12, overflow:"hidden", border:`2px solid ${isErr?C.red:C.border}`, opacity:isErr?.5:1, transition:"opacity .2s" }}>
+                            <div onClick={()=>setViewContratoImg(item)} style={{ cursor:"pointer", aspectRatio:"1" }}>
+                              {item.tipo==="image"
+                                ? <img src={item.url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                                : item.tipo==="video"
+                                ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="32" height="32" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg><span style={{ fontSize:10,color:C.muted }}>Video</span></div>
+                                : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="28" height="28" fill="none" stroke={C.red} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><span style={{ fontSize:10,color:C.muted }}>PDF</span></div>}
+                            </div>
+                            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"5px 8px", background:C.cardAlt }}>
+                              <span style={{ fontSize:9, color:isErr?C.red:C.muted, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{isErr?"Error":item.nombre||"Archivo"}</span>
+                              <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                                <button onClick={e=>{e.stopPropagation();setErrorFiles(prev=>{const s=new Set(prev);if(s.has(item.id))s.delete(item.id);else s.add(item.id);return s})}} style={{ background:isErr?C.yellow+"22":C.red+"22", border:"none", borderRadius:4, cursor:"pointer", padding:"2px 5px", fontSize:9, fontWeight:700, color:isErr?C.yellow:C.red }}>{isErr?"Restaurar":"Error"}</button>
+                                {adm && <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este archivo?"))onDeleteContratoArchivo(c.id,ct.id,item.id)}} style={{ background:C.danger+"22", border:"none", borderRadius:4, cursor:"pointer", padding:"2px 5px", fontSize:9, color:C.danger }}>x</button>}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
