@@ -20,7 +20,8 @@ export default function Registro({
   const [contractFiles, setContractFiles] = useState(null) // { regId, files[] }
   const [contractUploading, setContractUploading] = useState(new Set())
   const [previewRegId, setPreviewRegId] = useState(null)
-  const [viewFile, setViewFile] = useState(null) // archivo to view fullscreen
+  const [viewFile, setViewFile] = useState(null)
+  const tipoChanges = useRef({ hour: 0, count: 0 }) // max 3 toggles per hour
   const cRef = useRef(null)
 
   useEffect(() => {
@@ -291,7 +292,14 @@ export default function Registro({
         const archivos = (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[])
         if (!archivos.length) return null
         const tipo = lastCt?.tipo || "proforma"
-        const toggleTipo = () => { if (lastCt) onUpdateContrato(linked.id, lastCt.id, { tipo: tipo==="contrato"?"proforma":"contrato" }) }
+        const toggleTipo = () => {
+          if (!lastCt) return
+          const curHour = Math.floor(Date.now() / 3600000)
+          if (tipoChanges.current.hour !== curHour) tipoChanges.current = { hour: curHour, count: 0 }
+          if (tipoChanges.current.count >= 3) { alert("Limite de cambios alcanzado (3 por hora)"); return }
+          tipoChanges.current.count++
+          onUpdateContrato(linked.id, lastCt.id, { tipo: tipo==="contrato"?"proforma":"contrato" })
+        }
         return (
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={()=>setPreviewRegId(null)}>
             <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:24, maxWidth:440, width:"100%" }}>
@@ -395,7 +403,7 @@ export default function Registro({
                           ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:10, color:C.accent }}><span style={{ width:12,height:12,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",display:"inline-block" }} />Subiendo...</span>
                           : canEdit && <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir foto" style={{ background:n?C.green+"15":C.accent+"12", border:`1px solid ${n?C.green+"44":C.accent+"33"}`, borderRadius:8, cursor:"pointer", padding:"3px 10px", display:"flex", alignItems:"center", gap:5, fontSize:11, fontWeight:600, color:n?C.green:C.accent }}>
                               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg>
-                              {n > 0 ? n : "Subir"}
+                              Subir foto {n > 0 && <span style={{ background:C.green, color:"#fff", borderRadius:10, padding:"0 5px", fontSize:10, fontWeight:700, lineHeight:"16px" }}>{n}</span>}
                             </button>
                         }
                         {n > 0 && <button onClick={()=>setPreviewRegId(r.id)} title="Ver archivos" style={{ background:C.teal+"15", border:`1px solid ${C.teal}33`, borderRadius:8, cursor:"pointer", padding:"3px 6px", display:"flex", alignItems:"center" }}>
