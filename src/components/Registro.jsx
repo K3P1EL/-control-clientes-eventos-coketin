@@ -17,8 +17,9 @@ export default function Registro({
   const [selLocal,  setSelLocal]  = useState(locales[0] || "")
   const [dateRange, setDateRange] = useState("dia")
   const [contractUpId, setContractUpId] = useState(null)
-  const [contractFile,  setContractFile]  = useState(null)
+  const [contractFiles, setContractFiles] = useState(null) // { regId, files[] }
   const [contractUploading, setContractUploading] = useState(new Set())
+  const [previewRegId, setPreviewRegId] = useState(null)
   const cRef = useRef(null)
 
   useEffect(() => {
@@ -48,31 +49,29 @@ export default function Registro({
   const restore = (id) => onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
   const hardDel = (id) => { if (window.confirm("¿Eliminar este registro permanentemente?")) onHardDeleteReg(id) }
 
-  // File picked — show tipo modal
+  // Files picked — show tipo modal
   const onContractFile = (e) => {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files || [])
     e.target.value = ""
-    if (!file || !contractUpId) return
-    setContractFile({ regId: contractUpId, file })
+    if (!files.length || !contractUpId) return
+    setContractFiles({ regId: contractUpId, files })
     setContractUpId(null)
   }
 
-  // User picks proforma/contrato from modal
+  // User picks proforma/contrato from modal — upload all files
   const onContractTipo = async (tipo) => {
-    if (!contractFile) return
-    const { regId, file } = contractFile
-    setContractFile(null)
+    if (!contractFiles) return
+    const { regId, files } = contractFiles
+    setContractFiles(null)
     setContractUploading(prev => new Set(prev).add(regId))
     try {
       const linked = clients.find(c => (c.reg_ids||[]).includes(regId))
       let clientId, contratoId
       if (linked) {
-        // Already has ficha — upload to existing contrato
         clientId = linked.id
         const ct = (linked.contratos||[]).slice(-1)[0]
         contratoId = ct?.id
       } else {
-        // Create new ficha + contrato
         const nc = await onAddClient(
           { code: genCode(), reg_ids: [regId], created_by: user.id, created_by_name: user.name, nombre: "", dni: "", phones: [], direccion: "", referencia: "" },
           { tipo, estado: "activo" }
@@ -80,8 +79,9 @@ export default function Registro({
         clientId = nc.id
         contratoId = nc.contratos?.[0]?.id
       }
-      if (clientId && contratoId) await onAddContratoArchivo(clientId, contratoId, file)
-      // Mark foto as SI on the registro
+      if (clientId && contratoId) {
+        await Promise.all(files.map(f => onAddContratoArchivo(clientId, contratoId, f)))
+      }
       onUpdateReg(regId, { foto: "SI" })
     } catch (err) { alert("Error subiendo archivo: " + err.message) }
     finally { setContractUploading(prev => { const s = new Set(prev); s.delete(regId); return s }) }
@@ -249,19 +249,24 @@ export default function Registro({
         </div>
       </div>
 
-      <input ref={cRef} type="file" accept="image/jpeg,image/png,application/pdf,video/mp4,video/quicktime" style={{ display:"none" }} onChange={onContractFile} />
+      <input ref={cRef} type="file" accept="image/jpeg,image/png,application/pdf,video/mp4,video/quicktime" multiple style={{ display:"none" }} onChange={onContractFile} />
 
       {/* Mini modal: Proforma o Contrato? */}
-      {contractFile && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setContractFile(null)}>
-          <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:28, textAlign:"center", maxWidth:340 }}>
+      {contractFiles && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setContractFiles(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:28, textAlign:"center", maxWidth:360 }}>
             <h3 style={{ margin:"0 0 6px", fontSize:16, fontWeight:700, color:C.text }}>Tipo de documento</h3>
-            <p style={{ margin:"0 0 20px", fontSize:13, color:C.muted }}>Selecciona el tipo para este archivo:</p>
+            <p style={{ margin:"0 0 6px", fontSize:13, color:C.muted }}>{contractFiles.files.length} archivo{contractFiles.files.length>1?"s":""} seleccionado{contractFiles.files.length>1?"s":""}</p>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"center", marginBottom:16 }}>
+              {contractFiles.files.map((f,i) => (
+                <span key={i} style={{ fontSize:10, color:C.accent, background:C.accent+"15", padding:"3px 8px", borderRadius:6, maxWidth:120, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.name}</span>
+              ))}
+            </div>
             <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
               <button onClick={()=>onContractTipo("proforma")} style={{ padding:"10px 24px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.yellow+"33", color:C.yellow }}>Proforma</button>
               <button onClick={()=>onContractTipo("contrato")} style={{ padding:"10px 24px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.green+"33", color:C.green }}>Contrato</button>
             </div>
-            <button onClick={()=>setContractFile(null)} style={{ marginTop:14, background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:12 }}>Cancelar</button>
+            <button onClick={()=>setContractFiles(null)} style={{ marginTop:14, background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:12 }}>Cancelar</button>
           </div>
         </div>
       )}
@@ -312,17 +317,42 @@ export default function Registro({
                       <svg width="14" height="14" fill="none" stroke={C.muted} strokeWidth="2"><circle cx="7" cy="7" r="5.5"/><path d="M7 4.5V7l1.5 1.5"/></svg>
                     </div>
                   </td>
-                  <td style={td}>
-                    <div style={{ display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>
-                      {contractUploading.has(r.id)
-                        ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:10, color:C.accent }}><span style={{ display:"inline-block", width:10, height:10, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} /></span>
-                        : canEdit
-                          ? <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir archivo" style={ib}><svg width="16" height="16" fill="none" stroke={r.foto==="SI"?C.green:C.accent} strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3-3-7 7"/></svg></button>
-                          : r.foto==="SI" ? <svg width="14" height="14" fill="none" stroke={C.green} strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg> : <span style={{ color:C.muted, fontSize:11 }}>--</span>
-                      }
-                      {photos[r.id] && <button onClick={()=>window.open(photos[r.id])} title="Ver foto" style={ib}><svg width="16" height="16" fill="none" stroke={C.teal} strokeWidth="2"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg></button>}
-                    </div>
-                  </td>
+                  <td style={td}>{(() => {
+                    const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
+                    const archivos = linked ? (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[]) : []
+                    const fileCount = archivos.length
+                    const isUp = contractUploading.has(r.id)
+                    return (
+                      <div style={{ display:"flex", alignItems:"center", gap:5, justifyContent:"center", position:"relative" }}>
+                        {/* Upload button */}
+                        {isUp
+                          ? <span style={{ display:"inline-flex", alignItems:"center", fontSize:10, color:C.accent }}><span style={{ width:12,height:12,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",display:"inline-block" }} /></span>
+                          : canEdit && <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir archivo" style={{ background:fileCount?C.green+"18":C.accent+"15", border:`1px solid ${fileCount?C.green+"44":C.accent+"33"}`, borderRadius:8, cursor:"pointer", padding:"4px 8px", display:"flex", alignItems:"center", gap:5 }}>
+                              <svg width="14" height="14" fill="none" stroke={fileCount?C.green:C.accent} strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg>
+                              {fileCount > 0 && <span style={{ fontSize:10, fontWeight:700, color:C.green }}>{fileCount}</span>}
+                            </button>
+                        }
+                        {/* View files button */}
+                        {fileCount > 0 && <button onClick={()=>setPreviewRegId(previewRegId===r.id?null:r.id)} title="Ver archivos" style={{ background:C.teal+"18", border:`1px solid ${C.teal}33`, borderRadius:8, cursor:"pointer", padding:"4px 6px", display:"flex", alignItems:"center" }}>
+                          <svg width="14" height="14" fill="none" stroke={C.teal} strokeWidth="2"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z"/><circle cx="7" cy="7" r="1.5"/></svg>
+                        </button>}
+                        {/* Mini preview popup */}
+                        {previewRegId===r.id && fileCount > 0 && (
+                          <div style={{ position:"absolute", top:"100%", left:"50%", transform:"translateX(-50%)", marginTop:6, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:10, zIndex:50, display:"flex", gap:6, flexWrap:"wrap", minWidth:100, maxWidth:260, boxShadow:"0 8px 24px rgba(0,0,0,.4)" }}>
+                            {archivos.map(ar => (
+                              <div key={ar.id} onClick={()=>window.open(ar.url)} style={{ width:48, height:48, borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer", flexShrink:0 }}>
+                                {ar.tipo==="image" || ar.tipo?.startsWith("image")
+                                  ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                                  : ar.tipo==="video" || ar.tipo?.startsWith("video")
+                                  ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="16" height="16" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l10 6-10 6V3z"/></svg></div>
+                                  : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:C.yellow,fontWeight:700 }}>PDF</div>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}</td>
                   <td style={td}><div style={lock}><Bdg c={cc}><select value={r.canal} onChange={e=>upd(r.id,"canal",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option><option value="W">WhatsApp</option><option value="F">Físico</option></select></Bdg></div></td>
                   <td style={td}><div style={lock}><Bdg c={sc}><select value={r.sexo}  onChange={e=>upd(r.id,"sexo",e.target.value)}  style={sel} disabled={!canEdit}><option value="">--</option><option value="H">H</option><option value="M">M</option></select></Bdg></div></td>
                   <td style={td}><div style={lock}><DInput type="number" value={r.edad} onCommit={v=>upd(r.id,"edad",v)} style={{ ...mi, width:60 }} placeholder="--" disabled={!canEdit}/></div></td>
