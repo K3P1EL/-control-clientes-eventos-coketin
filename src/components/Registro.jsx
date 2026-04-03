@@ -270,7 +270,7 @@ export default function Registro({
         <table style={{ width:"100%", borderCollapse:"collapse", minWidth:1300, fontSize:13 }}>
           <thead>
             <tr style={{ background:C.cardAlt }}>
-              {["#","Fecha","Empleado","Local","Hora Ingreso","¿Foto?","Canal","Sexo","Edad","Piraña","Estado","Observaciones","Ficha","Acciones"].map(h =>
+              {["#","Fecha","Empleado","Local","Hora Ingreso","Archivo","Canal","Sexo","Edad","Piraña","Estado","Observaciones","Ficha","Acciones"].map(h =>
                 <th key={h} style={{ padding:"12px 10px", textAlign:"left", fontWeight:600, color:C.muted, fontSize:12, borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
               )}
             </tr>
@@ -284,7 +284,6 @@ export default function Registro({
               const nonDelIdx = isDel ? -1 : rows.filter(x => !x.deleted).indexOf(r)
               const canEdit = !isDel && (adm || nonDelIdx >= total - 3)
               const lock    = !canEdit ? { opacity:.45, pointerEvents:"none" } : {}
-              const fc = getBg(r.foto,   { SI:C.green, NO:C.red })
               const cc = getBg(r.canal,  { W:C.teal, F:C.purple })
               const sc = getBg(r.sexo,   { H:C.blue, M:C.pink })
               const pc = getBg(r.pirana, { S:C.red, P:C.yellow, N:C.muted })
@@ -314,12 +313,13 @@ export default function Registro({
                     </div>
                   </td>
                   <td style={td}>
-                    <div style={{ display:"flex", alignItems:"center", gap:4, ...lock }}>
-                      <Bdg c={fc}><select value={r.foto} onChange={e=>upd(r.id,"foto",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option><option value="SI">SI</option><option value="NO">NO</option></select></Bdg>
-                      {canEdit && (contractUploading.has(r.id)
+                    <div style={{ display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>
+                      {contractUploading.has(r.id)
                         ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:10, color:C.accent }}><span style={{ display:"inline-block", width:10, height:10, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} /></span>
-                        : <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir archivo" style={ib}><svg width="16" height="16" fill="none" stroke={C.accent} strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3-3-7 7"/></svg></button>
-                      )}
+                        : canEdit
+                          ? <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir archivo" style={ib}><svg width="16" height="16" fill="none" stroke={r.foto==="SI"?C.green:C.accent} strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3-3-7 7"/></svg></button>
+                          : r.foto==="SI" ? <svg width="14" height="14" fill="none" stroke={C.green} strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg> : <span style={{ color:C.muted, fontSize:11 }}>--</span>
+                      }
                       {photos[r.id] && <button onClick={()=>window.open(photos[r.id])} title="Ver foto" style={ib}><svg width="16" height="16" fill="none" stroke={C.teal} strokeWidth="2"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg></button>}
                     </div>
                   </td>
