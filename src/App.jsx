@@ -207,8 +207,8 @@ export default function App() {
     }
   }, [])
   const onUpdateReg = useCallback(async (id, patch) => {
-    await updateRegistro(id, patch)
     setRegs(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
+    updateRegistro(id, patch).catch(e => { console.error("updateRegistro failed:", e); alert("Error guardando registro") })
   }, [])
   const onUploadRegPhoto = useCallback(async (registroId, file) => {
     const localUrl = URL.createObjectURL(file)
@@ -229,8 +229,8 @@ export default function App() {
     } finally { uploadEnd() }
   }, [])
   const onHardDeleteReg = useCallback(async (id) => {
-    await deleteRegistro(id)
     setRegs(prev => prev.filter(r => r.id !== id))
+    deleteRegistro(id).catch(e => { console.error("deleteRegistro failed:", e); alert("Error eliminando registro") })
   }, [])
 
   // ── CLIENT ops ────────────────────────────────────────────────────────────
@@ -243,30 +243,43 @@ export default function App() {
   }, [])
   const onUpdateClient = useCallback(async (id, fieldOrPatch, val) => {
     const patch = typeof fieldOrPatch === "string" ? { [fieldOrPatch]: val } : fieldOrPatch
-    await updateClient(id, patch)
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
+    updateClient(id, patch).catch(e => { console.error("updateClient failed:", e); alert("Error guardando cliente") })
   }, [])
   const onDeleteClient = useCallback(async (id) => {
-    await deleteClient(id)
     setClients(prev => prev.filter(c => c.id !== id))
+    deleteClient(id).catch(e => { console.error("deleteClient failed:", e); alert("Error eliminando cliente") })
   }, [])
   const onUpdateContrato = useCallback(async (clientId, contratoId, patch) => {
-    await updateContrato(contratoId, patch)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, ...patch } : ct) }
     }))
+    updateContrato(contratoId, patch).catch(e => { console.error("updateContrato failed:", e); alert("Error guardando contrato") })
   }, [])
   const onAddAdelanto = useCallback(async (clientId, contratoId, payload) => {
-    const a = await createAdelanto({ contrato_id: contratoId, ...payload })
+    const tempId = `temp_${Date.now()}`
+    const optimistic = { id: tempId, contrato_id: contratoId, ...payload, created_at: new Date().toISOString() }
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
-      return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, adelantos: [...(ct.adelantos||[]), a] } : ct) }
+      return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, adelantos: [...(ct.adelantos||[]), optimistic] } : ct) }
     }))
-    return a
+    try {
+      const a = await createAdelanto({ contrato_id: contratoId, ...payload })
+      setClients(prev => prev.map(c => {
+        if (c.id !== clientId) return c
+        return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, adelantos: (ct.adelantos||[]).map(x => x.id === tempId ? a : x) } : ct) }
+      }))
+      return a
+    } catch (e) {
+      setClients(prev => prev.map(c => {
+        if (c.id !== clientId) return c
+        return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, adelantos: (ct.adelantos||[]).filter(x => x.id !== tempId) } : ct) }
+      }))
+      alert("Error agregando adelanto"); throw e
+    }
   }, [])
   const onUpdateAdelanto = useCallback(async (clientId, contratoId, adelantoId, patch) => {
-    await updateAdelanto(adelantoId, patch)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => {
@@ -274,9 +287,9 @@ export default function App() {
         return { ...ct, adelantos: (ct.adelantos||[]).map(a => a.id === adelantoId ? { ...a, ...patch } : a) }
       })}
     }))
+    updateAdelanto(adelantoId, patch).catch(e => { console.error("updateAdelanto failed:", e); alert("Error guardando adelanto") })
   }, [])
   const onDeleteAdelanto = useCallback(async (clientId, contratoId, adelantoId) => {
-    await deleteAdelanto(adelantoId)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => {
@@ -284,6 +297,7 @@ export default function App() {
         return { ...ct, adelantos: (ct.adelantos||[]).filter(a => a.id !== adelantoId) }
       })}
     }))
+    deleteAdelanto(adelantoId).catch(e => { console.error("deleteAdelanto failed:", e); alert("Error eliminando adelanto") })
   }, [])
   const onAddContratoArchivo = useCallback(async (clientId, contratoId, file) => {
     const localUrl = URL.createObjectURL(file)
@@ -322,7 +336,6 @@ export default function App() {
     } finally { uploadEnd() }
   }, [])
   const onDeleteContratoArchivo = useCallback(async (clientId, contratoId, archivoId) => {
-    await deleteContratoArchivo(archivoId)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => {
@@ -330,6 +343,7 @@ export default function App() {
         return { ...ct, contrato_archivos: (ct.contrato_archivos||[]).filter(a => a.id !== archivoId) }
       })}
     }))
+    deleteContratoArchivo(archivoId).catch(e => { console.error("deleteContratoArchivo failed:", e); alert("Error eliminando archivo") })
   }, [])
   const onMergeClients = useCallback(async (targetId, sourceId) => {
     setClients(prev => {
@@ -354,25 +368,33 @@ export default function App() {
     return data
   }, [user])
   const onUpdateSalida = useCallback(async (id, patch) => {
-    await updateSalida(id, patch)
     setAlmacen(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
+    updateSalida(id, patch).catch(e => { console.error("updateSalida failed:", e); alert("Error guardando salida") })
   }, [])
   const onDeleteSalida = useCallback(async (id) => {
-    await deleteSalida(id)
     setAlmacen(prev => prev.filter(s => s.id !== id))
+    deleteSalida(id).catch(e => { console.error("deleteSalida failed:", e); alert("Error eliminando salida") })
   }, [])
   const onAddItem = useCallback(async (salidaId, payload) => {
-    const item = await createItem({ salida_id: salidaId, ...payload })
-    setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: [...(s.almacen_items||[]), item] } : s))
-    return item
+    const tempId = `temp_${Date.now()}`
+    const optimistic = { id: tempId, salida_id: salidaId, ...payload, created_at: new Date().toISOString() }
+    setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: [...(s.almacen_items||[]), optimistic] } : s))
+    try {
+      const item = await createItem({ salida_id: salidaId, ...payload })
+      setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).map(it => it.id === tempId ? item : it) } : s))
+      return item
+    } catch (e) {
+      setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).filter(it => it.id !== tempId) } : s))
+      alert("Error agregando item"); throw e
+    }
   }, [])
   const onUpdateItem = useCallback(async (salidaId, itemId, patch) => {
-    await updateItem(itemId, patch)
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).map(it => it.id === itemId ? { ...it, ...patch } : it) } : s))
+    updateItem(itemId, patch).catch(e => { console.error("updateItem failed:", e); alert("Error guardando item") })
   }, [])
   const onDeleteItem = useCallback(async (salidaId, itemId) => {
-    await deleteItem(itemId)
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).filter(it => it.id !== itemId) } : s))
+    deleteItem(itemId).catch(e => { console.error("deleteItem failed:", e); alert("Error eliminando item") })
   }, [])
   const onAddAlmacenArchivo = useCallback(async (salidaId, file) => {
     const localUrl = URL.createObjectURL(file)
@@ -392,23 +414,41 @@ export default function App() {
     } finally { uploadEnd() }
   }, [])
   const onDeleteAlmacenArchivo = useCallback(async (salidaId, archivoId) => {
-    await deleteAlmacenArchivo(archivoId)
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: (s.almacen_archivos||[]).filter(a => a.id !== archivoId) } : s))
+    deleteAlmacenArchivo(archivoId).catch(e => { console.error("deleteAlmacenArchivo failed:", e); alert("Error eliminando archivo") })
   }, [])
 
   // ── INVENTARIO ops ────────────────────────────────────────────────────────
-  const onAddInventario    = useCallback(async (payload) => { const item = await createInventarioItem({ ...payload, created_by: user.name }); setInventario(prev=>[...prev,item]); return item }, [user])
-  const onUpdateInventario = useCallback(async (id, patch) => { await updateInventarioItem(id, patch); setInventario(prev=>prev.map(i=>i.id===id?{...i,...patch}:i)) }, [])
-  const onDeleteInventario = useCallback(async (id) => { await deleteInventarioItem(id); setInventario(prev=>prev.filter(i=>i.id!==id)) }, [])
+  const onAddInventario = useCallback(async (payload) => {
+    const tempId = `temp_${Date.now()}`
+    const optimistic = { id: tempId, ...payload, created_by: user.name, created_at: new Date().toISOString() }
+    setInventario(prev=>[...prev, optimistic])
+    try { const item = await createInventarioItem({ ...payload, created_by: user.name }); setInventario(prev=>prev.map(i=>i.id===tempId?item:i)); return item }
+    catch(e) { setInventario(prev=>prev.filter(i=>i.id!==tempId)); alert("Error agregando item"); throw e }
+  }, [user])
+  const onUpdateInventario = useCallback(async (id, patch) => {
+    setInventario(prev=>prev.map(i=>i.id===id?{...i,...patch}:i))
+    updateInventarioItem(id, patch).catch(e => { console.error("updateInventario failed:", e); alert("Error guardando item") })
+  }, [])
+  const onDeleteInventario = useCallback(async (id) => {
+    setInventario(prev=>prev.filter(i=>i.id!==id))
+    deleteInventarioItem(id).catch(e => { console.error("deleteInventario failed:", e); alert("Error eliminando item") })
+  }, [])
 
   // ── CONFIG ops ────────────────────────────────────────────────────────────
-  const onSetTags     = useCallback(async (v) => { await setConfig("estado_tags",   v); setTags(v) }, [])
-  const onSetLocales  = useCallback(async (v) => { await setConfig("locales",       v); setLocales(v) }, [])
-  const onSetProdTags = useCallback(async (v) => { await setConfig("producto_tags", v); setProdTags(v) }, [])
+  const onSetTags     = useCallback(async (v) => { setTags(v); setConfig("estado_tags", v).catch(()=>alert("Error guardando tags")) }, [])
+  const onSetLocales  = useCallback(async (v) => { setLocales(v); setConfig("locales", v).catch(()=>alert("Error guardando locales")) }, [])
+  const onSetProdTags = useCallback(async (v) => { setProdTags(v); setConfig("producto_tags", v).catch(()=>alert("Error guardando productos")) }, [])
 
   // ── PROFILES ops ─────────────────────────────────────────────────────────
-  const onUpdateProfile = useCallback(async (id, patch) => { await updateProfile(id, patch); setUsers(prev=>prev.map(u=>u.id===id?{...u,...patch}:u)) }, [])
-  const onDeleteProfile = useCallback(async (id) => { await updateProfile(id, { active: false }); setUsers(prev=>prev.filter(u=>u.id!==id)) }, [])
+  const onUpdateProfile = useCallback(async (id, patch) => {
+    setUsers(prev=>prev.map(u=>u.id===id?{...u,...patch}:u))
+    updateProfile(id, patch).catch(e => { console.error("updateProfile failed:", e); alert("Error guardando perfil") })
+  }, [])
+  const onDeleteProfile = useCallback(async (id) => {
+    setUsers(prev=>prev.filter(u=>u.id!==id))
+    updateProfile(id, { active: false }).catch(e => { console.error("deleteProfile failed:", e); alert("Error eliminando perfil") })
+  }, [])
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (authState === "loading") return <Loader />
