@@ -59,6 +59,7 @@ export default function App() {
   const [prodTags,   setProdTags]   = useState([])
   const [uploadCfg,  setUploadCfg]  = useState({ maxMB: 45, quality: 0.85, allowedTypes: ['image/jpeg','image/png','application/pdf','video/mp4','video/quicktime'] })
   const uploadCfgRef = useRef(uploadCfg)
+  const [visionKey,  setVisionKey]  = useState("")
   uploadCfgRef.current = uploadCfg
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -87,7 +88,7 @@ export default function App() {
   const loadData = async () => {
     if (dataLoaded.current) return
     dataLoaded.current = true
-    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData, upCfg] = await Promise.all([
+    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData, upCfg, gvKey] = await Promise.all([
       safe(listRegistros(),            []),
       safe(listRegistroFotos(),        []),
       safe(listClients(),              []),
@@ -98,6 +99,7 @@ export default function App() {
       safe(getConfig("producto_tags"), null),
       safe(listProfiles(),             []),
       safe(getConfig("upload_config"), null),
+      safe(getConfig("google_vision_key"), null),
     ])
     setRegs(regData)
     const photosObj = {}
@@ -111,6 +113,7 @@ export default function App() {
     setProdTags(ptData ?? [])
     setUsers(profileData)
     if (upCfg) setUploadCfg(upCfg)
+    if (gvKey) setVisionKey(gvKey)
     setDataReady(true)
   }
 
@@ -462,6 +465,7 @@ export default function App() {
   const onSetLocales  = useCallback(async (v) => { setLocales(v); setConfig("locales", v).catch(()=>alert("Error guardando locales")) }, [])
   const onSetProdTags = useCallback(async (v) => { setProdTags(v); setConfig("producto_tags", v).catch(()=>alert("Error guardando productos")) }, [])
   const onSetUploadCfg = useCallback(async (v) => { setUploadCfg(v); setConfig("upload_config", v).catch(()=>alert("Error guardando config de uploads")) }, [])
+  const onSetVisionKey = useCallback(async (v) => { setVisionKey(v); setConfig("google_vision_key", v).catch(()=>alert("Error guardando API key")) }, [])
 
   // ── PROFILES ops ─────────────────────────────────────────────────────────
   const onUpdateProfile = useCallback(async (id, patch) => {
@@ -515,7 +519,7 @@ export default function App() {
           )}
           {tab==="clientes" && (
             <Clientes
-              clients={clients} user={user} adm={adm} regs={regs} users={users} prodTags={prodTags}
+              clients={clients} user={user} adm={adm} regs={regs} users={users} prodTags={prodTags} visionKey={visionKey}
               navClientId={navClientId} clearNavClient={()=>setNavClientId(null)} changeTab={changeTab}
               goToReg={goToReg} goToAlmacen={goToAlmacen}
               onAddClient={onAddClient} onUpdateClient={onUpdateClient} onDeleteClient={onDeleteClient}
@@ -549,6 +553,7 @@ export default function App() {
             <Admin
               users={users} tags={tags} locales={locales} prodTags={prodTags}
               uploadCfg={uploadCfg} onSetUploadCfg={onSetUploadCfg}
+              visionKey={visionKey} onSetVisionKey={onSetVisionKey}
               onSetTags={onSetTags} onSetLocales={onSetLocales} onSetProdTags={onSetProdTags}
               onUpdateProfile={onUpdateProfile} onDeleteProfile={onDeleteProfile}
             />

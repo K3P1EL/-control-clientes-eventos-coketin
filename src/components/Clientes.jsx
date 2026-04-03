@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react"
-import Tesseract from "tesseract.js"
 import { C } from "../lib/colors"
 import { today, fmtDate } from "../lib/helpers"
 import { lbl, inp, mi, btn, td, ib, DInput } from "./shared"
 import LinkPopup from "./LinkPopup"
 
 export default function Clientes({
-  clients, user, adm, regs, users, prodTags,
+  clients, user, adm, regs, users, prodTags, visionKey,
   navClientId, clearNavClient, changeTab,
   goToReg, goToAlmacen,
   onAddClient, onUpdateClient, onDeleteClient,
@@ -53,15 +52,34 @@ export default function Clientes({
   }, [view, viewEmp, clients])
 
   // ── OCR ──────────────────────────────────────────────────────────────────
-  const [ocrProgress, setOcrProgress] = useState(0)
   const scanPhoto = async (clientId, file) => {
-    setOcrLoading(true); setOcrLines(null); setOcrAssign({}); setOcrClientId(clientId); setOcrProgress(0)
+    setOcrLoading(true); setOcrLines(null); setOcrAssign({}); setOcrClientId(clientId)
     try {
-      const { data } = await Tesseract.recognize(file, "spa+eng", {
-        logger: (m) => { if (m.status === "recognizing text") setOcrProgress(Math.round(m.progress * 100)) },
+      if (!visionKey) throw new Error("API key de Google Vision no configurada. Ve a Admin > Configuración del Sistema.")
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader()
+        r.onload = () => res(r.result.split(",")[1])
+        r.onerror = () => rej(new Error("Error leyendo archivo"))
+        r.readAsDataURL(file)
       })
-      const lines = data.text.split("\n").map(l => l.trim()).filter(l => l.length > 1)
-      if (!lines.length) throw new Error("No se detectó texto")
+      const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${visionKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requests: [{
+            image: { content: base64 },
+            features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
+          }],
+        }),
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error?.message || `Error ${response.status}`)
+      }
+      const data = await response.json()
+      const text = data.responses?.[0]?.fullTextAnnotation?.text || ""
+      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 1)
+      if (!lines.length) throw new Error("No se detectó texto en la imagen")
       setOcrLines(lines)
     } catch (err) {
       setOcrLines([]); setOcrAssign({ _error: err.message || "No se pudo leer la imagen" })
@@ -194,12 +212,11 @@ export default function Clientes({
             {/* OCR */}
             <input ref={ocrRef} type="file" accept="image/*" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(f) await scanPhoto(c.id,f);e.target.value=""}} />
             <div style={{ marginBottom:14 }}>
-              <button onClick={()=>ocrRef.current?.click()} disabled={ocrLoading} style={{ background:`linear-gradient(135deg,${C.purple}22,${C.blue}22)`, border:`1px solid ${C.purple}44`, borderRadius:8, color:C.purple, cursor:ocrLoading?"wait":"pointer", padding:"8px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:6, width:"100%" }}>
+              <button onClick={()=>ocrRef.current?.click()} disabled={ocrLoading || !visionKey} style={{ background:`linear-gradient(135deg,${C.purple}22,${C.blue}22)`, border:`1px solid ${C.purple}44`, borderRadius:8, color:visionKey?C.purple:C.muted, cursor:ocrLoading?"wait":visionKey?"pointer":"not-allowed", padding:"8px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:6, width:"100%" }}>
                 {ocrLoading
-                  ? <><div style={{ width:14,height:14,border:`2px solid ${C.purple}44`,borderTop:`2px solid ${C.purple}`,borderRadius:"50%",animation:"spin 1s linear infinite" }}/> Leyendo texto... {ocrProgress}%</>
-                  : <><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="8" cy="7" r="2"/><path d="M2 11l3-3 2 2 3-3 4 4"/></svg>Escanear DNI / Documento</>}
+                  ? <><div style={{ width:14,height:14,border:`2px solid ${C.purple}44`,borderTop:`2px solid ${C.purple}`,borderRadius:"50%",animation:"spin 1s linear infinite" }}/> Analizando documento...</>
+                  : <><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="8" cy="7" r="2"/><path d="M2 11l3-3 2 2 3-3 4 4"/></svg>{visionKey ? "Escanear DNI / Documento" : "OCR no configurado (Admin)"}</>}
               </button>
-              {ocrLoading && <div style={{ marginTop:6, height:4, borderRadius:2, background:C.border, overflow:"hidden" }}><div style={{ height:"100%", background:C.purple, borderRadius:2, width:`${ocrProgress}%`, transition:"width .3s" }} /></div>}
             </div>
 
             {/* OCR resultado */}
