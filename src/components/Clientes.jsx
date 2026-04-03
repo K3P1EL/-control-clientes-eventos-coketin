@@ -55,7 +55,7 @@ export default function Clientes({
   const [ocrDetected, setOcrDetected] = useState(null) // { nombre, dni, celular, direccion, referencia, total, adelanto, fecha_evento, _lines }
 
   const autoDetect = (lines) => {
-    const result = { nombre:"", dni:"", celular:"", direccion:"", referencia:"", total:"", adelanto:"", fecha_evento:"", _lines: lines }
+    const result = { nombre:"", dni:"", celular:"", direccion:"", referencia:"", total:"", adelanto:"", saldo:"", fecha_evento:"", _lines: lines }
     const up = lines.map(l => l.toUpperCase())
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i], u = up[i], next = lines[i+1] || ""
@@ -95,6 +95,11 @@ export default function Clientes({
       if (!result.adelanto && /\b(ADELANTO|YAPE|A\/C|ABONO)\b/.test(u)) {
         const m = line.match(/[\d,]+\.?\d*/)
         if (m) result.adelanto = m[0].replace(/,/g,"")
+      }
+      // Saldo
+      if (!result.saldo && /\bSALDO\b/.test(u)) {
+        const m = line.match(/[\d,]+\.?\d*/)
+        if (m) result.saldo = m[0].replace(/,/g,"")
       }
       // Fecha de evento
       if (!result.fecha_evento && /\bFECHA\s*(DE\s*)?(EVENTO|ENTREGA)\b/.test(u)) {
@@ -296,35 +301,59 @@ export default function Clientes({
               </button>
             </div>
 
-            {/* OCR resultado */}
+            {/* OCR modal */}
             {ocrLines && ocrClientId===c.id && (
-              <div style={{ background:C.cardAlt, border:`1px solid ${C.accent}44`, borderRadius:12, padding:16, marginBottom:14 }}>
-                {ocrAssign._error && <div style={{ color:C.red, fontSize:12, marginBottom:8 }}>{ocrAssign._error}</div>}
-                {!ocrLines.length && !ocrAssign._error && <div style={{ color:C.muted, fontSize:12 }}>No se detectó texto.</div>}
-                {ocrLines.length > 0 && <>
-                  <div style={{ fontWeight:600, color:C.accent, marginBottom:12, fontSize:13 }}>Datos detectados — edita y confirma:</div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
-                    {[["nombre","Nombre"],["dni","DNI"],["celular","Celular"],["direccion","Dirección"],["referencia","Referencia"],["fecha_evento","Fecha Evento"],["total","Total Contrato"],["adelanto","Adelanto"]].map(([k,label])=>(
-                      <div key={k}>
-                        <label style={{ fontSize:11, fontWeight:600, color: ocrDetected?.[k] ? C.green : C.muted, marginBottom:2, display:"block" }}>
-                          {label} {ocrDetected?.[k] ? "✓" : ""}
-                        </label>
-                        <input value={ocrAssign[k]||""} onChange={e=>setOcrAssign(prev=>({...prev,[k]:e.target.value}))}
-                          style={{ width:"100%", padding:"6px 10px", borderRadius:6, border:`1px solid ${ocrDetected?.[k]?C.green+"66":C.border}`, background:ocrDetected?.[k]?C.green+"08":C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
-                          placeholder={`Sin ${label.toLowerCase()}`} />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Raw text toggle */}
-                  <details style={{ marginBottom:10 }}>
-                    <summary style={{ cursor:"pointer", fontSize:11, color:C.muted, marginBottom:6 }}>Ver texto original ({ocrLines.length} líneas)</summary>
-                    <div style={{ background:C.card, borderRadius:6, padding:8, fontSize:11, color:C.muted, maxHeight:120, overflow:"auto", lineHeight:1.6, fontFamily:"monospace", whiteSpace:"pre-wrap" }}>{ocrLines.join("\n")}</div>
-                  </details>
-                  <div style={{ display:"flex", gap:8 }}>
-                    <button onClick={applyOcr} style={{ background:C.accent, border:"none", borderRadius:8, color:"#fff", cursor:"pointer", padding:"8px 20px", fontSize:12, fontWeight:700 }}>✓ Aplicar datos</button>
-                    <button onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"8px 16px", fontSize:12 }}>Cancelar</button>
-                  </div>
-                </>}
+              <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}}>
+                <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:16, border:`1px solid ${C.border}`, padding:28, width:"100%", maxWidth:560, maxHeight:"90vh", overflow:"auto", position:"relative" }}>
+                  <button onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}} style={{ position:"absolute", top:12, right:12, background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:28, height:28, cursor:"pointer", fontSize:16, fontWeight:700 }}>×</button>
+                  <h3 style={{ margin:"0 0 4px", fontSize:17, fontWeight:700, color:C.accent }}>Datos del documento</h3>
+                  <p style={{ margin:"0 0 16px", fontSize:12, color:C.muted }}>Revisa y edita antes de aplicar. Los campos con ✓ fueron detectados automáticamente.</p>
+
+                  {ocrAssign._error && <div style={{ color:C.red, fontSize:13, padding:12, background:C.red+"11", borderRadius:8, marginBottom:12 }}>{ocrAssign._error}</div>}
+                  {!ocrLines.length && !ocrAssign._error && <div style={{ color:C.muted, fontSize:13, padding:20, textAlign:"center" }}>No se detectó texto.</div>}
+                  {ocrLines.length > 0 && <>
+                    {/* Client fields */}
+                    <div style={{ fontSize:12, fontWeight:700, color:C.purple, marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>Datos del cliente</div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+                      {[["nombre","Nombre"],["dni","DNI"],["celular","Celular"],["direccion","Dirección"],["referencia","Referencia"]].map(([k,label])=>(
+                        <div key={k} style={k==="direccion"||k==="referencia"?{gridColumn:"span 1"}:{}}>
+                          <label style={{ fontSize:11, fontWeight:600, color: ocrDetected?.[k] ? C.green : C.muted, marginBottom:3, display:"flex", alignItems:"center", gap:4 }}>
+                            {label} {ocrDetected?.[k] && <span style={{ fontSize:9, background:C.green+"22", color:C.green, padding:"1px 5px", borderRadius:4 }}>auto</span>}
+                          </label>
+                          <input value={ocrAssign[k]||""} onChange={e=>setOcrAssign(prev=>({...prev,[k]:e.target.value}))}
+                            style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:`1px solid ${ocrDetected?.[k]?C.green+"66":C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
+                            placeholder={`Sin ${label.toLowerCase()}`} />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Contract fields */}
+                    <div style={{ fontSize:12, fontWeight:700, color:C.blue, marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>Datos del contrato</div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+                      {[["fecha_evento","Fecha de Evento"],["total","Total (S/)"],["adelanto","Adelanto (S/)"],["saldo","Saldo (S/)"]].map(([k,label])=>(
+                        <div key={k}>
+                          <label style={{ fontSize:11, fontWeight:600, color: ocrDetected?.[k] ? C.green : C.muted, marginBottom:3, display:"flex", alignItems:"center", gap:4 }}>
+                            {label} {ocrDetected?.[k] && <span style={{ fontSize:9, background:C.green+"22", color:C.green, padding:"1px 5px", borderRadius:4 }}>auto</span>}
+                          </label>
+                          <input type={k==="fecha_evento"?"date":"text"} value={ocrAssign[k]||""} onChange={e=>setOcrAssign(prev=>({...prev,[k]:e.target.value}))}
+                            style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:`1px solid ${ocrDetected?.[k]?C.green+"66":C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
+                            placeholder={k==="fecha_evento"?"":"0"} />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Raw text */}
+                    <details style={{ marginBottom:16 }}>
+                      <summary style={{ cursor:"pointer", fontSize:11, color:C.muted }}>Ver texto original ({ocrLines.length} líneas)</summary>
+                      <div style={{ background:C.cardAlt, borderRadius:8, padding:10, fontSize:11, color:C.muted, maxHeight:140, overflow:"auto", lineHeight:1.7, fontFamily:"monospace", whiteSpace:"pre-wrap", marginTop:6 }}>{ocrLines.join("\n")}</div>
+                    </details>
+
+                    <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+                      <button onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"10px 20px", fontSize:13 }}>Cancelar</button>
+                      <button onClick={applyOcr} style={{ background:C.accent, border:"none", borderRadius:8, color:"#fff", cursor:"pointer", padding:"10px 24px", fontSize:13, fontWeight:700 }}>✓ Aplicar datos</button>
+                    </div>
+                  </>}
+                </div>
               </div>
             )}
 
