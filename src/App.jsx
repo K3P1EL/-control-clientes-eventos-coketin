@@ -36,6 +36,16 @@ export default function App() {
   const [dataReady,  setDataReady]  = useState(false)
   const loginInProgress = useRef(false)
   const dataLoaded      = useRef(false)
+  const [uploadCount, setUploadCount] = useState(0)
+  const uploadStart = useCallback(() => setUploadCount(c => c + 1), [])
+  const uploadEnd   = useCallback(() => setUploadCount(c => Math.max(0, c - 1)), [])
+
+  // Warn before closing tab/browser while uploads are in progress
+  useEffect(() => {
+    const handler = (e) => { if (uploadCount > 0) { e.preventDefault(); e.returnValue = "" } }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [uploadCount])
 
   // ── App data ──────────────────────────────────────────────────────────────
   const [users,      setUsers]      = useState([])
@@ -201,10 +211,10 @@ export default function App() {
     setRegs(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
   }, [])
   const onUploadRegPhoto = useCallback(async (registroId, file) => {
-    // Optimistic: show local preview + mark as SI immediately
     const localUrl = URL.createObjectURL(file)
     setPhotos(prev => ({ ...prev, [registroId]: localUrl }))
     setRegs(prev => prev.map(r => r.id === registroId ? { ...r, foto: "SI" } : r))
+    uploadStart()
     try {
       const url = await uploadFile("registros", file.name, file)
       await createRegistroFoto(registroId, url)
@@ -216,7 +226,7 @@ export default function App() {
       setRegs(prev => prev.map(r => r.id === registroId ? { ...r, foto: "" } : r))
       URL.revokeObjectURL(localUrl)
       throw e
-    }
+    } finally { uploadEnd() }
   }, [])
   const onHardDeleteReg = useCallback(async (id) => {
     await deleteRegistro(id)
@@ -276,7 +286,6 @@ export default function App() {
     }))
   }, [])
   const onAddContratoArchivo = useCallback(async (clientId, contratoId, file) => {
-    // Optimistic: show local preview immediately
     const localUrl = URL.createObjectURL(file)
     const tipo    = file.type?.startsWith("image") ? "image" : "pdf"
     const tempId  = `temp_${Date.now()}`
@@ -288,6 +297,7 @@ export default function App() {
         return { ...ct, contrato_archivos: [...(ct.contrato_archivos||[]), optimistic] }
       })}
     }))
+    uploadStart()
     try {
       const url     = await uploadFile("contratos", file.name, file)
       const archivo = await createContratoArchivo({ contrato_id: contratoId, nombre: file.name, tipo, url })
@@ -309,7 +319,7 @@ export default function App() {
       }))
       URL.revokeObjectURL(localUrl)
       throw e
-    }
+    } finally { uploadEnd() }
   }, [])
   const onDeleteContratoArchivo = useCallback(async (clientId, contratoId, archivoId) => {
     await deleteContratoArchivo(archivoId)
@@ -365,11 +375,11 @@ export default function App() {
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).filter(it => it.id !== itemId) } : s))
   }, [])
   const onAddAlmacenArchivo = useCallback(async (salidaId, file) => {
-    // Optimistic: show local preview immediately
     const localUrl = URL.createObjectURL(file)
     const tempId = `temp_${Date.now()}`
     const optimistic = { id: tempId, salida_id: salidaId, nombre: file.name, tipo: file.type, url: localUrl }
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: [...(s.almacen_archivos||[]), optimistic] } : s))
+    uploadStart()
     try {
       const url = await uploadFile("almacen", file.name, file)
       const ar  = await createAlmacenArchivo({ salida_id: salidaId, nombre: file.name, tipo: file.type, url })
@@ -379,7 +389,7 @@ export default function App() {
       setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: (s.almacen_archivos||[]).filter(a => a.id !== tempId) } : s))
       URL.revokeObjectURL(localUrl)
       throw e
-    }
+    } finally { uploadEnd() }
   }, [])
   const onDeleteAlmacenArchivo = useCallback(async (salidaId, archivoId) => {
     await deleteAlmacenArchivo(archivoId)
@@ -409,7 +419,10 @@ export default function App() {
   }
   if (!user?.active && !adm) return <Pending />
 
-  const changeTab = (t) => { setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null) }
+  const changeTab = (t) => {
+    if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
+    setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null)
+  }
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Segoe UI',system-ui,sans-serif" }}>
@@ -418,6 +431,12 @@ export default function App() {
       <Side tab={tab} set={changeTab} adm={adm} open={mobSide} perms={user?.permissions||[]} />
       <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
         <Head user={user} menu={()=>setMobSide(true)} />
+        {uploadCount > 0 && (
+          <div style={{ background:"#1a3a5c", borderBottom:`1px solid ${C.accent}`, padding:"8px 24px", display:"flex", alignItems:"center", gap:10, fontSize:13, color:C.accent }}>
+            <span style={{ display:"inline-block", width:14, height:14, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} />
+            Subiendo {uploadCount} archivo{uploadCount > 1 ? "s" : ""}...
+          </div>
+        )}
         <main style={{ flex:1, padding:24, overflow:"auto" }}>
           {tab==="registro" && (
             <Registro
