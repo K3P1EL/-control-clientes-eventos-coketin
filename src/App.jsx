@@ -514,7 +514,7 @@ export default function App() {
               clearNavReg={()=>{setNavRegId(null);setNavRegDate(null)}}
               onAddReg={onAddReg} onUpdateReg={onUpdateReg} onUploadRegPhoto={onUploadRegPhoto}
               onHardDeleteReg={onHardDeleteReg}
-              onAddClient={onAddClient} goToClient={goToClient}
+              onAddClient={onAddClient} onAddContratoArchivo={onAddContratoArchivo} goToClient={goToClient}
             />
           )}
           {tab==="clientes" && (

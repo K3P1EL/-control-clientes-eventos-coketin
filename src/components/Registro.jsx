@@ -9,7 +9,7 @@ function getBg(val, map) { return map[val] || C.border }
 export default function Registro({
   regs, user, adm, tags, photos, clients, locales, users,
   navRegId, navRegDate, clearNavReg,
-  onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, goToClient,
+  onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onAddContratoArchivo, goToClient,
 }) {
   const [date,      setDate]      = useState(today())
   const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; try { return localStorage.getItem("reg_viewUser") || null } catch { return null } })
@@ -18,7 +18,11 @@ export default function Registro({
   const [dateRange, setDateRange] = useState("dia")
   const [upId,      setUpId]      = useState(null)
   const [uploadingIds, setUploadingIds] = useState(new Set())
+  const [contractUpId, setContractUpId] = useState(null) // reg id for contract upload
+  const [contractFile,  setContractFile]  = useState(null) // pending file waiting for tipo selection
+  const [contractUploading, setContractUploading] = useState(new Set())
   const fRef = useRef(null)
+  const cRef = useRef(null) // contract file input
 
   useEffect(() => {
     if (navRegId) {
@@ -37,7 +41,7 @@ export default function Registro({
   const shift= n => { const p=date.split("/"); const d=new Date(+p[2],+p[1]-1,+p[0]); d.setDate(d.getDate()+n); setDate(`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`) }
 
   const add = async () => {
-    await onAddReg({ fecha:today(), user_id:user.id, empleado:user.name, local:selLocal, hora:nowTime(), foto:"", canal:"", sexo:"", edad:"", pirana:"", estado:"", observaciones:"" })
+    await onAddReg({ fecha:today(), user_id:user.id, empleado:user.name, local:selLocal, hora:nowTime(), foto:"", canal:"F", sexo:"", edad:"", pirana:"", estado:"", observaciones:"" })
     if (adm && date !== today()) setDate(today())
   }
 
@@ -57,6 +61,43 @@ export default function Registro({
     try { await onUploadRegPhoto(rid, file) }
     catch (err) { alert("Error subiendo foto: " + err.message) }
     finally { setUploadingIds(prev => { const s = new Set(prev); s.delete(rid); return s }) }
+  }
+
+  // Contract file picked — show tipo modal
+  const onContractFile = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file || !contractUpId) return
+    setContractFile({ regId: contractUpId, file })
+    setContractUpId(null)
+  }
+
+  // User picks proforma/contrato from modal
+  const onContractTipo = async (tipo) => {
+    if (!contractFile) return
+    const { regId, file } = contractFile
+    setContractFile(null)
+    setContractUploading(prev => new Set(prev).add(regId))
+    try {
+      const linked = clients.find(c => (c.reg_ids||[]).includes(regId))
+      let clientId, contratoId
+      if (linked) {
+        // Already has ficha — upload to existing contrato
+        clientId = linked.id
+        const ct = (linked.contratos||[]).slice(-1)[0]
+        contratoId = ct?.id
+      } else {
+        // Create new ficha + contrato
+        const nc = await onAddClient(
+          { code: genCode(), reg_ids: [regId], created_by: user.id, created_by_name: user.name, nombre: "", dni: "", phones: [], direccion: "", referencia: "" },
+          { tipo, estado: "activo" }
+        )
+        clientId = nc.id
+        contratoId = nc.contratos?.[0]?.id
+      }
+      if (clientId && contratoId) await onAddContratoArchivo(clientId, contratoId, file)
+    } catch (err) { alert("Error subiendo contrato: " + err.message) }
+    finally { setContractUploading(prev => { const s = new Set(prev); s.delete(regId); return s }) }
   }
 
   // ── ADMIN: employee grid ──────────────────────────────────────────────────
@@ -222,6 +263,22 @@ export default function Registro({
       </div>
 
       <input ref={fRef} type="file" accept="image/*" style={{ display:"none" }} onChange={onPhoto} />
+      <input ref={cRef} type="file" accept="image/jpeg,image/png,application/pdf,video/mp4,video/quicktime" style={{ display:"none" }} onChange={onContractFile} />
+
+      {/* Mini modal: Proforma o Contrato? */}
+      {contractFile && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setContractFile(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:28, textAlign:"center", maxWidth:340 }}>
+            <h3 style={{ margin:"0 0 6px", fontSize:16, fontWeight:700, color:C.text }}>Tipo de documento</h3>
+            <p style={{ margin:"0 0 20px", fontSize:13, color:C.muted }}>Selecciona el tipo para este archivo:</p>
+            <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
+              <button onClick={()=>onContractTipo("proforma")} style={{ padding:"10px 24px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.yellow+"33", color:C.yellow }}>Proforma</button>
+              <button onClick={()=>onContractTipo("contrato")} style={{ padding:"10px 24px", borderRadius:10, border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.green+"33", color:C.green }}>Contrato</button>
+            </div>
+            <button onClick={()=>setContractFile(null)} style={{ marginTop:14, background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:12 }}>Cancelar</button>
+          </div>
+        </div>
+      )}
 
       <div style={{ overflowX:"auto", borderRadius:12, border:`1px solid ${C.border}` }}>
         <table style={{ width:"100%", borderCollapse:"collapse", minWidth:1300, fontSize:13 }}>
@@ -289,15 +346,24 @@ export default function Registro({
                   {/* Ficha */}
                   <td style={td}>{(() => {
                     const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
-                    return linked
-                      ? <div style={{ display:"flex", gap:4, alignItems:"center" }}>
-                          <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:12, fontWeight:700 }}>→ Ver ficha</button>
-                          {(() => { const lct=(linked.contratos||[]).slice(-1)[0]; return lct?.tipo?<span style={{ fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:lct.tipo==="contrato"?C.green+"22":C.yellow+"22",color:lct.tipo==="contrato"?C.green:C.yellow }}>{lct.tipo==="contrato"?"C":"P"}</span>:null })()}
-                        </div>
-                      : <button onClick={async()=>{
+                    const isUploading = contractUploading.has(r.id)
+                    return <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
+                      {linked ? <>
+                        <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:12, fontWeight:700 }}>→ Ver ficha</button>
+                        {(() => { const lct=(linked.contratos||[]).slice(-1)[0]; return lct?.tipo?<span style={{ fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:lct.tipo==="contrato"?C.green+"22":C.yellow+"22",color:lct.tipo==="contrato"?C.green:C.yellow }}>{lct.tipo==="contrato"?"C":"P"}</span>:null })()}
+                      </> : (
+                        <button onClick={async()=>{
                           const nc = await onAddClient({ code:genCode(), reg_ids:[r.id], created_by:user.id, created_by_name:user.name, nombre:"", dni:"", phones:[], direccion:"", referencia:"" }, { reg_id:r.id })
                           goToClient(nc.id)
                         }} style={{ background:C.purple+"22", border:`1px solid ${C.purple}44`, borderRadius:6, color:C.purple, cursor:"pointer", padding:"2px 8px", fontSize:12, fontWeight:700 }}>+ Ficha</button>
+                      )}
+                      {isUploading
+                        ? <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:10, color:C.accent }}><span style={{ width:10,height:10,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",display:"inline-block" }} /></span>
+                        : canEdit && <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir contrato" style={{ background:C.cyan+"22", border:"none", borderRadius:6, color:C.cyan, cursor:"pointer", padding:"2px 6px", fontSize:10, fontWeight:700, display:"flex", alignItems:"center", gap:3 }}>
+                            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16"/><path d="M4 7V3a1 1 0 011-1h5l4 4v1"/><path d="M6 12v-2m0 0l2 2m-2-2l-2 2"/></svg>
+                          </button>
+                      }
+                    </div>
                   })()}</td>
                   {/* Acciones */}
                   <td style={td}>
