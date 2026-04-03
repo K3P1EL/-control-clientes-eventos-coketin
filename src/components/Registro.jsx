@@ -307,9 +307,10 @@ export default function Registro({
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                   <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:C.text }}>{archivos.length} archivo{archivos.length>1?"s":""}</h3>
-                  <button onClick={toggleTipo} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:tipo==="contrato"?C.green+"33":C.yellow+"33", color:tipo==="contrato"?C.green:C.yellow }}>
-                    {tipo==="contrato"?"Contrato":"Proforma"}
-                  </button>
+                  <div style={{ display:"flex", borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}` }}>
+                    <button onClick={()=>{if(tipo!=="proforma")toggleTipo()}} style={{ padding:"3px 10px", border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:tipo!=="contrato"?C.yellow+"33":"transparent", color:tipo!=="contrato"?C.yellow:C.muted }}>Proforma</button>
+                    <button onClick={()=>{if(tipo!=="contrato")toggleTipo()}} style={{ padding:"3px 10px", border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:tipo==="contrato"?C.green+"33":"transparent", color:tipo==="contrato"?C.green:C.muted }}>Contrato</button>
+                  </div>
                 </div>
                 <button onClick={()=>setPreviewRegId(null)} style={{ background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:26, height:26, cursor:"pointer", fontSize:14, fontWeight:700 }}>x</button>
               </div>
@@ -422,8 +423,8 @@ export default function Registro({
                   <td style={td}>{(() => {
                     const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
                     return linked
-                      ? <div style={{ display:"flex", gap:4, alignItems:"center" }}>
-                          <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:12, fontWeight:700 }}>→ Ver ficha</button>
+                      ? <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
+                          <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:11, fontWeight:700 }}>→ {linked.code||"Ver ficha"}</button>
                           {(() => { const lct=(linked.contratos||[]).slice(-1)[0]; return lct?.tipo?<span style={{ fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:lct.tipo==="contrato"?C.green+"22":C.yellow+"22",color:lct.tipo==="contrato"?C.green:C.yellow }}>{lct.tipo==="contrato"?"C":"P"}</span>:null })()}
                         </div>
                       : <button onClick={async()=>{
