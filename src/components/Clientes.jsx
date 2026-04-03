@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import Tesseract from "tesseract.js"
 import { C } from "../lib/colors"
 import { today, fmtDate } from "../lib/helpers"
 import { lbl, inp, mi, btn, td, ib, DInput } from "./shared"
@@ -52,35 +53,14 @@ export default function Clientes({
   }, [view, viewEmp, clients])
 
   // ── OCR ──────────────────────────────────────────────────────────────────
+  const [ocrProgress, setOcrProgress] = useState(0)
   const scanPhoto = async (clientId, file) => {
-    setOcrLoading(true); setOcrLines(null); setOcrAssign({}); setOcrClientId(clientId)
+    setOcrLoading(true); setOcrLines(null); setOcrAssign({}); setOcrClientId(clientId); setOcrProgress(0)
     try {
-      const base64 = await new Promise((res,rej) => {
-        const r = new FileReader()
-        r.onload  = () => res(r.result.split(",")[1])
-        r.onerror = () => rej(new Error("Error leyendo archivo"))
-        r.readAsDataURL(file)
+      const { data } = await Tesseract.recognize(file, "spa+eng", {
+        logger: (m) => { if (m.status === "recognizing text") setOcrProgress(Math.round(m.progress * 100)) },
       })
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY || "",
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 500,
-          messages: [{ role:"user", content:[
-            { type:"image", source:{ type:"base64", media_type:file.type||"image/jpeg", data:base64 } },
-            { type:"text",  text:"Lee todo el texto visible en esta imagen. Responde SOLO con las líneas de texto que ves, una por línea. No agregues explicaciones." }
-          ]}],
-        }),
-      })
-      if (!response.ok) throw new Error("Error " + response.status)
-      const data = await response.json()
-      const text = (data.content||[]).filter(i=>i.type==="text").map(i=>i.text).join("\n")
-      const lines = text.split("\n").map(l=>l.trim()).filter(l=>l.length>0)
+      const lines = data.text.split("\n").map(l => l.trim()).filter(l => l.length > 1)
       if (!lines.length) throw new Error("No se detectó texto")
       setOcrLines(lines)
     } catch (err) {
@@ -211,13 +191,14 @@ export default function Clientes({
             <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:16, color:C.accent }}>Datos del Cliente</h3>
 
             {/* OCR */}
-            <input ref={ocrRef} type="file" accept="image/*" capture="environment" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(f) await scanPhoto(c.id,f);e.target.value=""}} />
+            <input ref={ocrRef} type="file" accept="image/*" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(f) await scanPhoto(c.id,f);e.target.value=""}} />
             <div style={{ marginBottom:14 }}>
               <button onClick={()=>ocrRef.current?.click()} disabled={ocrLoading} style={{ background:`linear-gradient(135deg,${C.purple}22,${C.blue}22)`, border:`1px solid ${C.purple}44`, borderRadius:8, color:C.purple, cursor:ocrLoading?"wait":"pointer", padding:"8px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:6, width:"100%" }}>
                 {ocrLoading
-                  ? <><div style={{ width:14,height:14,border:`2px solid ${C.purple}44`,borderTop:`2px solid ${C.purple}`,borderRadius:"50%",animation:"spin 1s linear infinite" }}/> Leyendo texto...</>
+                  ? <><div style={{ width:14,height:14,border:`2px solid ${C.purple}44`,borderTop:`2px solid ${C.purple}`,borderRadius:"50%",animation:"spin 1s linear infinite" }}/> Leyendo texto... {ocrProgress}%</>
                   : <><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="8" cy="7" r="2"/><path d="M2 11l3-3 2 2 3-3 4 4"/></svg>Escanear DNI / Documento</>}
               </button>
+              {ocrLoading && <div style={{ marginTop:6, height:4, borderRadius:2, background:C.border, overflow:"hidden" }}><div style={{ height:"100%", background:C.purple, borderRadius:2, width:`${ocrProgress}%`, transition:"width .3s" }} /></div>}
             </div>
 
             {/* OCR resultado */}
