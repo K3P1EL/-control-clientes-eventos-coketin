@@ -201,11 +201,22 @@ export default function App() {
     setRegs(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
   }, [])
   const onUploadRegPhoto = useCallback(async (registroId, file) => {
-    const url = await uploadFile("registros", file.name, file)
-    await createRegistroFoto(registroId, url)
-    await updateRegistro(registroId, { foto: "SI" })
-    setPhotos(prev => ({ ...prev, [registroId]: url }))
+    // Optimistic: show local preview + mark as SI immediately
+    const localUrl = URL.createObjectURL(file)
+    setPhotos(prev => ({ ...prev, [registroId]: localUrl }))
     setRegs(prev => prev.map(r => r.id === registroId ? { ...r, foto: "SI" } : r))
+    try {
+      const url = await uploadFile("registros", file.name, file)
+      await createRegistroFoto(registroId, url)
+      await updateRegistro(registroId, { foto: "SI" })
+      setPhotos(prev => ({ ...prev, [registroId]: url }))
+      URL.revokeObjectURL(localUrl)
+    } catch (e) {
+      setPhotos(prev => { const p = { ...prev }; delete p[registroId]; return p })
+      setRegs(prev => prev.map(r => r.id === registroId ? { ...r, foto: "" } : r))
+      URL.revokeObjectURL(localUrl)
+      throw e
+    }
   }, [])
   const onHardDeleteReg = useCallback(async (id) => {
     await deleteRegistro(id)
@@ -265,16 +276,40 @@ export default function App() {
     }))
   }, [])
   const onAddContratoArchivo = useCallback(async (clientId, contratoId, file) => {
-    const url     = await uploadFile("contratos", file.name, file)
+    // Optimistic: show local preview immediately
+    const localUrl = URL.createObjectURL(file)
     const tipo    = file.type?.startsWith("image") ? "image" : "pdf"
-    const archivo = await createContratoArchivo({ contrato_id: contratoId, nombre: file.name, tipo, url })
+    const tempId  = `temp_${Date.now()}`
+    const optimistic = { id: tempId, contrato_id: contratoId, nombre: file.name, tipo, url: localUrl }
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => {
         if (ct.id !== contratoId) return ct
-        return { ...ct, contrato_archivos: [...(ct.contrato_archivos||[]), archivo] }
+        return { ...ct, contrato_archivos: [...(ct.contrato_archivos||[]), optimistic] }
       })}
     }))
+    try {
+      const url     = await uploadFile("contratos", file.name, file)
+      const archivo = await createContratoArchivo({ contrato_id: contratoId, nombre: file.name, tipo, url })
+      setClients(prev => prev.map(c => {
+        if (c.id !== clientId) return c
+        return { ...c, contratos: (c.contratos||[]).map(ct => {
+          if (ct.id !== contratoId) return ct
+          return { ...ct, contrato_archivos: (ct.contrato_archivos||[]).map(a => a.id === tempId ? archivo : a) }
+        })}
+      }))
+      URL.revokeObjectURL(localUrl)
+    } catch (e) {
+      setClients(prev => prev.map(c => {
+        if (c.id !== clientId) return c
+        return { ...c, contratos: (c.contratos||[]).map(ct => {
+          if (ct.id !== contratoId) return ct
+          return { ...ct, contrato_archivos: (ct.contrato_archivos||[]).filter(a => a.id !== tempId) }
+        })}
+      }))
+      URL.revokeObjectURL(localUrl)
+      throw e
+    }
   }, [])
   const onDeleteContratoArchivo = useCallback(async (clientId, contratoId, archivoId) => {
     await deleteContratoArchivo(archivoId)
@@ -330,9 +365,21 @@ export default function App() {
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).filter(it => it.id !== itemId) } : s))
   }, [])
   const onAddAlmacenArchivo = useCallback(async (salidaId, file) => {
-    const url = await uploadFile("almacen", file.name, file)
-    const ar  = await createAlmacenArchivo({ salida_id: salidaId, nombre: file.name, tipo: file.type, url })
-    setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: [...(s.almacen_archivos||[]), ar] } : s))
+    // Optimistic: show local preview immediately
+    const localUrl = URL.createObjectURL(file)
+    const tempId = `temp_${Date.now()}`
+    const optimistic = { id: tempId, salida_id: salidaId, nombre: file.name, tipo: file.type, url: localUrl }
+    setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: [...(s.almacen_archivos||[]), optimistic] } : s))
+    try {
+      const url = await uploadFile("almacen", file.name, file)
+      const ar  = await createAlmacenArchivo({ salida_id: salidaId, nombre: file.name, tipo: file.type, url })
+      setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: (s.almacen_archivos||[]).map(a => a.id === tempId ? ar : a) } : s))
+      URL.revokeObjectURL(localUrl)
+    } catch (e) {
+      setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: (s.almacen_archivos||[]).filter(a => a.id !== tempId) } : s))
+      URL.revokeObjectURL(localUrl)
+      throw e
+    }
   }, [])
   const onDeleteAlmacenArchivo = useCallback(async (salidaId, archivoId) => {
     await deleteAlmacenArchivo(archivoId)
