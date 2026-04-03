@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react"
 import { C } from "../lib/colors"
 import { today, fmtDate } from "../lib/helpers"
 import { lbl, inp, mi, btn, td, ib, DInput } from "./shared"
+import { parseOCRText } from "../services/ocr"
+import { incrementOCRCount } from "../services/config"
+import OCRPreviewModal from "./OCRPreviewModal"
 import LinkPopup from "./LinkPopup"
 
 export default function Clientes({
@@ -31,8 +34,8 @@ export default function Clientes({
   })
   const setViewEmp = (v) => { setViewEmp_(v); try { if (v) localStorage.setItem("client_viewEmp", v); else localStorage.removeItem("client_viewEmp") } catch {} }
   const [ocrLoading,     setOcrLoading]     = useState(false)
-  const [ocrLines,       setOcrLines]       = useState(null)
-  const [ocrAssign,      setOcrAssign]      = useState({})
+  const [ocrParsed,      setOcrParsed]      = useState(null) // parseOCRText result
+  const [ocrRawText,     setOcrRawText]     = useState("")
   const [ocrClientId,    setOcrClientId]    = useState(null)
   const [expandNotes,    setExpandNotes]    = useState(null)
   const [viewContratoImg,setViewContratoImg]= useState(null)
@@ -52,71 +55,10 @@ export default function Clientes({
   }, [view, viewEmp, clients])
 
   // ── OCR ──────────────────────────────────────────────────────────────────
-  const [ocrDetected, setOcrDetected] = useState(null) // { nombre, dni, celular, direccion, referencia, total, adelanto, fecha_evento, _lines }
-
-  const autoDetect = (lines) => {
-    const result = { nombre:"", dni:"", celular:"", direccion:"", referencia:"", total:"", adelanto:"", saldo:"", fecha_evento:"", _lines: lines }
-    const up = lines.map(l => l.toUpperCase())
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i], u = up[i], next = lines[i+1] || ""
-      // DNI: line contains "DNI" or is exactly 8 digits
-      if (!result.dni && (/\bDNI\b/.test(u))) {
-        const m = line.match(/\d{8}/)
-        if (m) result.dni = m[0]
-        else if (next.match(/^\d{8}$/)) result.dni = next.trim()
-      }
-      if (!result.dni && /^\d{8}$/.test(line.replace(/\s/g,""))) result.dni = line.replace(/\s/g,"")
-      // Phone: 9 digits starting with 9
-      if (!result.celular && /\b9\d{8}\b/.test(line.replace(/\s/g,""))) {
-        const m = line.replace(/\s/g,"").match(/9\d{8}/)
-        if (m) result.celular = m[0]
-      }
-      // Name: after SEÑOR, NOMBRE, CLIENTE
-      if (!result.nombre && /\b(SE[ÑN]OR|NOMBRE|CLIENTE)\b/.test(u)) {
-        const after = line.replace(/^.*?(SE[ÑN]OR|NOMBRE|CLIENTE)\s*:?\s*/i, "").trim()
-        result.nombre = after || next
-      }
-      // Address
-      if (!result.direccion && /\bDIRECCI[OÓ]N\b/.test(u)) {
-        const after = line.replace(/^.*?DIRECCI[OÓ]N\s*:?\s*/i, "").trim()
-        result.direccion = after || next
-      }
-      // Reference
-      if (!result.referencia && /\bREFERENCIA\b/.test(u)) {
-        const after = line.replace(/^.*?REFERENCIA\s*:?\s*/i, "").trim()
-        result.referencia = after || next
-      }
-      // Total
-      if (!result.total && /\bTOTAL\b/.test(u)) {
-        const m = line.match(/[\d,]+\.?\d*/)
-        if (m) result.total = m[0].replace(/,/g,"")
-      }
-      // Adelanto / Yape
-      if (!result.adelanto && /\b(ADELANTO|YAPE|A\/C|ABONO)\b/.test(u)) {
-        const m = line.match(/[\d,]+\.?\d*/)
-        if (m) result.adelanto = m[0].replace(/,/g,"")
-      }
-      // Saldo
-      if (!result.saldo && /\bSALDO\b/.test(u)) {
-        const m = line.match(/[\d,]+\.?\d*/)
-        if (m) result.saldo = m[0].replace(/,/g,"")
-      }
-      // Fecha de evento
-      if (!result.fecha_evento && /\bFECHA\s*(DE\s*)?(EVENTO|ENTREGA)\b/.test(u)) {
-        const m = line.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/)
-        if (m) {
-          const y = m[3].length === 2 ? "20"+m[3] : m[3]
-          result.fecha_evento = `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`
-        }
-      }
-    }
-    return result
-  }
-
   const scanPhoto = async (clientId, file) => {
-    setOcrLoading(true); setOcrLines(null); setOcrAssign({}); setOcrClientId(clientId); setOcrDetected(null)
+    setOcrLoading(true); setOcrParsed(null); setOcrRawText(""); setOcrClientId(clientId)
     try {
-      if (!visionKey) throw new Error("API key de Google Vision no configurada. Ve a Admin > Configuración del Sistema.")
+      if (!visionKey) throw new Error("API key de Google Vision no configurada. Ve a Admin > Configuracion del Sistema.")
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader()
         r.onload = () => res(r.result.split(",")[1])
@@ -133,55 +75,52 @@ export default function Clientes({
         throw new Error(err.error?.message || `Error ${response.status}`)
       }
       const data = await response.json()
-      const text = data.responses?.[0]?.fullTextAnnotation?.text || ""
-      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 1)
-      if (!lines.length) throw new Error("No se detectó texto en la imagen")
-      setOcrLines(lines)
-      // Auto-detect fields
-      const detected = autoDetect(lines)
-      setOcrDetected(detected)
-      setOcrAssign(detected)
-      // Increment OCR counter
-      import("../services/config").then(({ getConfig, setConfig }) => {
-        getConfig("ocr_usage").then(v => {
-          const usage = v || { month: new Date().toISOString().slice(0,7), count: 0 }
-          const curMonth = new Date().toISOString().slice(0,7)
-          const count = usage.month === curMonth ? usage.count + 1 : 1
-          setConfig("ocr_usage", { month: curMonth, count })
-        })
-      })
+      const rawText = data.responses?.[0]?.fullTextAnnotation?.text || ""
+      if (!rawText.trim()) throw new Error("No se detecto texto en la imagen")
+      setOcrRawText(rawText)
+      setOcrParsed(parseOCRText(rawText))
+      incrementOCRCount().catch(() => {})
     } catch (err) {
-      setOcrLines([]); setOcrAssign({ _error: err.message || "No se pudo leer la imagen" }); setOcrDetected(null)
+      alert(err.message || "Error en OCR")
+      setOcrParsed(null)
     }
     setOcrLoading(false)
   }
 
-  const applyOcr = async () => {
-    if (!ocrClientId || !ocrAssign) return
-    const c = clients.find(x=>x.id===ocrClientId)
-    if (!c) return
+  const closeOcr = () => { setOcrParsed(null); setOcrRawText(""); setOcrClientId(null) }
+
+  const handleOCRApply = async (fields) => {
+    const c = clients.find(x => x.id === ocrClientId)
+    if (!c) { closeOcr(); return }
     // Client fields
     const updates = {}
-    if (ocrAssign.nombre)    updates.nombre    = ocrAssign.nombre
-    if (ocrAssign.dni)       updates.dni       = ocrAssign.dni
-    if (ocrAssign.direccion) updates.direccion = ocrAssign.direccion
-    if (ocrAssign.referencia)updates.referencia= ocrAssign.referencia
+    if (fields.nombre)    updates.nombre    = fields.nombre
+    if (fields.dni)       updates.dni       = fields.dni
+    if (fields.direccion) updates.direccion = fields.direccion
+    if (fields.referencia)updates.referencia= fields.referencia
     let phones = [...(c.phones||[])]
-    if (ocrAssign.celular && !phones.includes(ocrAssign.celular)) phones.push(ocrAssign.celular)
+    if (fields.telefono && !phones.includes(fields.telefono)) phones.push(fields.telefono)
     if (phones.length !== (c.phones||[]).length) updates.phones = phones
     if (Object.keys(updates).length) await onUpdateClient(ocrClientId, updates)
     // Contract fields
     const ct = (c.contratos||[])[activeContrato] || (c.contratos||[])[0]
     if (ct) {
       const ctPatch = {}
-      if (ocrAssign.total)        ctPatch.total        = Number(ocrAssign.total) || 0
-      if (ocrAssign.fecha_evento) ctPatch.fecha_evento  = ocrAssign.fecha_evento
+      if (fields.total)        ctPatch.total       = Number(fields.total) || 0
+      if (fields.fecha_evento) ctPatch.fecha_evento = fields.fecha_evento
+      if (fields.tipo_documento) ctPatch.tipo       = fields.tipo_documento
+      // Append descripcion to notas
+      if (fields.descripcion_servicios) {
+        const curr = ct.notas || ""
+        const stamp = `--- OCR ${new Date().toLocaleDateString()} ---`
+        ctPatch.notas = curr ? `${curr}\n\n${stamp}\n${fields.descripcion_servicios}` : fields.descripcion_servicios
+      }
       if (Object.keys(ctPatch).length) await onUpdateContrato(ocrClientId, ct.id, ctPatch)
-      if (ocrAssign.adelanto && Number(ocrAssign.adelanto) > 0) {
-        await onAddAdelanto(ocrClientId, ct.id, { monto: Number(ocrAssign.adelanto), fecha: today(), nota: "OCR" })
+      if (fields.adelanto && Number(fields.adelanto) > 0) {
+        await onAddAdelanto(ocrClientId, ct.id, { monto: Number(fields.adelanto), fecha: today(), nota: "OCR - Adelanto/Yape" })
       }
     }
-    setOcrLines(null); setOcrAssign({}); setOcrClientId(null); setOcrDetected(null)
+    closeOcr()
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -301,60 +240,9 @@ export default function Clientes({
               </button>
             </div>
 
-            {/* OCR modal */}
-            {ocrLines && ocrClientId===c.id && (
-              <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}}>
-                <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:16, border:`1px solid ${C.border}`, padding:28, width:"100%", maxWidth:560, maxHeight:"90vh", overflow:"auto", position:"relative" }}>
-                  <button onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}} style={{ position:"absolute", top:12, right:12, background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:28, height:28, cursor:"pointer", fontSize:16, fontWeight:700 }}>×</button>
-                  <h3 style={{ margin:"0 0 4px", fontSize:17, fontWeight:700, color:C.accent }}>Datos del documento</h3>
-                  <p style={{ margin:"0 0 16px", fontSize:12, color:C.muted }}>Revisa y edita antes de aplicar. Los campos con ✓ fueron detectados automáticamente.</p>
-
-                  {ocrAssign._error && <div style={{ color:C.red, fontSize:13, padding:12, background:C.red+"11", borderRadius:8, marginBottom:12 }}>{ocrAssign._error}</div>}
-                  {!ocrLines.length && !ocrAssign._error && <div style={{ color:C.muted, fontSize:13, padding:20, textAlign:"center" }}>No se detectó texto.</div>}
-                  {ocrLines.length > 0 && <>
-                    {/* Client fields */}
-                    <div style={{ fontSize:12, fontWeight:700, color:C.purple, marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>Datos del cliente</div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
-                      {[["nombre","Nombre"],["dni","DNI"],["celular","Celular"],["direccion","Dirección"],["referencia","Referencia"]].map(([k,label])=>(
-                        <div key={k} style={k==="direccion"||k==="referencia"?{gridColumn:"span 1"}:{}}>
-                          <label style={{ fontSize:11, fontWeight:600, color: ocrDetected?.[k] ? C.green : C.muted, marginBottom:3, display:"flex", alignItems:"center", gap:4 }}>
-                            {label} {ocrDetected?.[k] && <span style={{ fontSize:9, background:C.green+"22", color:C.green, padding:"1px 5px", borderRadius:4 }}>auto</span>}
-                          </label>
-                          <input value={ocrAssign[k]||""} onChange={e=>setOcrAssign(prev=>({...prev,[k]:e.target.value}))}
-                            style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:`1px solid ${ocrDetected?.[k]?C.green+"66":C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
-                            placeholder={`Sin ${label.toLowerCase()}`} />
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Contract fields */}
-                    <div style={{ fontSize:12, fontWeight:700, color:C.blue, marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>Datos del contrato</div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
-                      {[["fecha_evento","Fecha de Evento"],["total","Total (S/)"],["adelanto","Adelanto (S/)"],["saldo","Saldo (S/)"]].map(([k,label])=>(
-                        <div key={k}>
-                          <label style={{ fontSize:11, fontWeight:600, color: ocrDetected?.[k] ? C.green : C.muted, marginBottom:3, display:"flex", alignItems:"center", gap:4 }}>
-                            {label} {ocrDetected?.[k] && <span style={{ fontSize:9, background:C.green+"22", color:C.green, padding:"1px 5px", borderRadius:4 }}>auto</span>}
-                          </label>
-                          <input type={k==="fecha_evento"?"date":"text"} value={ocrAssign[k]||""} onChange={e=>setOcrAssign(prev=>({...prev,[k]:e.target.value}))}
-                            style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:`1px solid ${ocrDetected?.[k]?C.green+"66":C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
-                            placeholder={k==="fecha_evento"?"":"0"} />
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Raw text */}
-                    <details style={{ marginBottom:16 }}>
-                      <summary style={{ cursor:"pointer", fontSize:11, color:C.muted }}>Ver texto original ({ocrLines.length} líneas)</summary>
-                      <div style={{ background:C.cardAlt, borderRadius:8, padding:10, fontSize:11, color:C.muted, maxHeight:140, overflow:"auto", lineHeight:1.7, fontFamily:"monospace", whiteSpace:"pre-wrap", marginTop:6 }}>{ocrLines.join("\n")}</div>
-                    </details>
-
-                    <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
-                      <button onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"10px 20px", fontSize:13 }}>Cancelar</button>
-                      <button onClick={applyOcr} style={{ background:C.accent, border:"none", borderRadius:8, color:"#fff", cursor:"pointer", padding:"10px 24px", fontSize:13, fontWeight:700 }}>✓ Aplicar datos</button>
-                    </div>
-                  </>}
-                </div>
-              </div>
+            {/* OCR preview modal */}
+            {ocrParsed && ocrClientId===c.id && (
+              <OCRPreviewModal parsed={ocrParsed} rawText={ocrRawText} onApply={handleOCRApply} onCancel={closeOcr} />
             )}
 
             {/* Identidad */}
