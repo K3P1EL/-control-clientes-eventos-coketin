@@ -87,12 +87,16 @@ export default function App() {
 
   const handleLogin = async (userId) => {
     try {
+      console.log("[auth] handleLogin start, userId:", userId)
       const profile = await getProfile(userId)
+      console.log("[auth] profile loaded:", profile)
       setUser(profile)
+      console.log("[auth] loading app data...")
       await loadData()
+      console.log("[auth] data loaded, setting logged_in")
       setAuthState("logged_in")
     } catch (e) {
-      console.error("Login error:", e)
+      console.error("[auth] handleLogin error:", e)
       setAuthState("logged_out")
     }
   }
@@ -101,15 +105,18 @@ export default function App() {
   useEffect(() => {
     // Fallback: if session check or data load hangs, show login after 3s
     const fallback = setTimeout(() => {
+      console.warn("[auth] timeout! authState still loading after 3s, forcing logged_out")
       setAuthState(prev => prev === "loading" ? "logged_out" : prev)
     }, 3000)
 
+    console.log("[auth] checking session...")
     getSession()
       .then(session => {
+        console.log("[auth] session result:", session)
         if (session?.user) return handleLogin(session.user.id)
         else setAuthState("logged_out")
       })
-      .catch(() => setAuthState("logged_out"))
+      .catch(e => { console.error("[auth] getSession error:", e); setAuthState("logged_out") })
       .finally(() => clearTimeout(fallback))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
