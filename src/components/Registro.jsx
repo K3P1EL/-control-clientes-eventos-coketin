@@ -430,8 +430,9 @@ export default function Registro({
                     const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
                     return linked
                       ? <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
-                          <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:11, fontWeight:700 }}>→ {linked.code||"Ver ficha"}</button>
+                          <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:11, fontWeight:700 }}>→ Ver ficha</button>
                           {(() => { const lct=(linked.contratos||[]).slice(-1)[0]; return lct?.tipo?<span style={{ fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:lct.tipo==="contrato"?C.green+"22":C.yellow+"22",color:lct.tipo==="contrato"?C.green:C.yellow }}>{lct.tipo==="contrato"?"C":"P"}</span>:null })()}
+                          {linked.code && <button onClick={e=>{e.stopPropagation();navigator.clipboard.writeText(linked.code);e.currentTarget.textContent="Copiado!";setTimeout(()=>{e.currentTarget.textContent=linked.code},1200)}} title="Copiar codigo" style={{ background:C.cyan+"15", border:`1px solid ${C.cyan}33`, borderRadius:5, color:C.cyan, cursor:"pointer", padding:"1px 6px", fontSize:9, fontWeight:600, fontFamily:"monospace" }}>{linked.code}</button>}
                         </div>
                       : <button onClick={async()=>{
                           const nc = await onAddClient({ code:genCode(), reg_ids:[r.id], created_by:user.id, created_by_name:user.name, nombre:"", dni:"", phones:[], direccion:"", referencia:"" }, { reg_id:r.id })
