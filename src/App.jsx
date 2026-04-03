@@ -88,8 +88,38 @@ export default function App() {
   const handleLogin = async (userId) => {
     try {
       console.log("[auth] handleLogin start, userId:", userId)
-      const profile = await getProfile(userId)
-      console.log("[auth] profile loaded:", profile)
+
+      let profile = null
+      try {
+        profile = await getProfile(userId)
+        console.log("[auth] profile loaded:", profile)
+      } catch (profileErr) {
+        console.error("[auth] getProfile error:", profileErr)
+        // Profile may not exist yet (trigger didn't fire) — create it
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        const fallbackProfile = {
+          id: userId,
+          email: authUser?.email ?? "",
+          name: authUser?.user_metadata?.name ?? authUser?.email ?? "Usuario",
+          active: true,
+          is_admin: false,
+          permissions: [],
+          client_visibility: "all",
+        }
+        const { data: created, error: createErr } = await supabase
+          .from("profiles")
+          .upsert(fallbackProfile)
+          .select()
+          .single()
+        if (createErr) {
+          console.error("[auth] profile create error:", createErr)
+          setAuthState("logged_out")
+          return
+        }
+        profile = created
+        console.log("[auth] profile created as fallback:", profile)
+      }
+
       setUser(profile)
       console.log("[auth] loading app data...")
       await loadData()
