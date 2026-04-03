@@ -1,0 +1,64 @@
+import { C } from '../lib/colors'
+
+// ─── Shared styles ────────────────────────────────────────────────────────────
+export const lbl = { display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:4, marginTop:12 }
+export const inp = { width:"100%", padding:"10px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:14, outline:"none", boxSizing:"border-box", marginBottom:4 }
+export const mi  = { padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }
+export const sel = { background:"transparent", border:"none", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", outline:"none", padding:"4px 8px", width:"100%", textAlign:"center" }
+export const btn = { padding:"10px 20px", borderRadius:8, border:"none", background:C.accent, color:"#fff", fontSize:14, fontWeight:600, cursor:"pointer" }
+export const btnD= { padding:"10px 20px", borderRadius:8, border:"none", background:C.danger, color:"#fff", fontSize:14, fontWeight:600, cursor:"pointer" }
+export const td  = { padding:10, verticalAlign:"middle" }
+export const ib  = { background:"none", border:"none", cursor:"pointer", padding:2 }
+
+export const CSS = `
+  select option { background:#1e3045; color:#e0e6ed; padding:6px 10px }
+  select option:checked { background:#00d4aa; color:#fff }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(0.7) }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  @media(max-width:768px){.desk-side{display:none !important}.mob-side{display:flex !important}.mob-btn{display:block !important}}
+`
+
+// ─── Small components ─────────────────────────────────────────────────────────
+export function Loader() {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background:C.bg, color:C.accent, fontFamily:"sans-serif" }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ width:40, height:40, border:`3px solid ${C.border}`, borderTop:`3px solid ${C.accent}`, borderRadius:"50%", animation:"spin 1s linear infinite", margin:"0 auto 16px" }} />
+        Cargando...
+      </div>
+    </div>
+  )
+}
+
+export function Bdg({ c, children }) {
+  return (
+    <div style={{ display:"inline-flex", alignItems:"center", borderRadius:20, background:c, minWidth:44, justifyContent:"center" }}>
+      {children}
+    </div>
+  )
+}
+
+export function Stat({ l, v, c }) {
+  return (
+    <div style={{ background:C.card, borderRadius:12, padding:"16px 24px", flex:"1 1 140px", minWidth:140, border:`1px solid ${C.border}`, borderLeft:`4px solid ${c}` }}>
+      <div style={{ fontSize:28, fontWeight:700, color:c }}>{v}</div>
+      <div style={{ fontSize:12, color:C.muted, marginTop:4 }}>{l}</div>
+    </div>
+  )
+}
+
+export function AuthWrap({ title, sub, icon, iconBg, children }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:C.bg, fontFamily:"'Segoe UI',sans-serif" }}>
+      <div style={{ background:C.card, borderRadius:16, padding:"40px 36px", width:380, border:`1px solid ${C.border}` }}>
+        <div style={{ textAlign:"center", marginBottom:28 }}>
+          <div style={{ width:48, height:48, background:iconBg||C.accent, borderRadius:12, display:"inline-flex", alignItems:"center", justifyContent:"center", marginBottom:12 }}>{icon}</div>
+          <h1 style={{ color:C.text, fontSize:22, margin:"0 0 4px", fontWeight:700 }}>{title}</h1>
+          {sub && <p style={{ color:C.muted, fontSize:14, margin:0 }}>{sub}</p>}
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
