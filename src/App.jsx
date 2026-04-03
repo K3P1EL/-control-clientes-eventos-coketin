@@ -62,18 +62,28 @@ export default function App() {
   const goToAlmacen = (id)        => { setNavAlmClientId(id); setTab("almacen") }
 
   // ── Load all data ─────────────────────────────────────────────────────────
-  const loadData = async () => {
-    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData] = await Promise.all([
-      listRegistros(),
-      listRegistroFotos(),
-      listClients(),
-      listAlmacen(),
-      listInventario(),
-      getConfig("estado_tags"),
-      getConfig("locales"),
-      getConfig("producto_tags"),
-      listProfiles(),
+  const safe = (promise, label, fallback) => {
+    const timer = new Promise(resolve => setTimeout(() => { console.warn(`[data] TIMEOUT: ${label}`); resolve(fallback) }, 3000))
+    return Promise.race([
+      promise.then(r => { console.log(`[data] OK: ${label}`, r); return r }).catch(e => { console.error(`[data] ERROR: ${label}`, e.message); return fallback }),
+      timer
     ])
+  }
+
+  const loadData = async () => {
+    console.log("[data] starting loadData...")
+    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData] = await Promise.all([
+      safe(listRegistros(),            "listRegistros",    []),
+      safe(listRegistroFotos(),        "listRegistroFotos",[]),
+      safe(listClients(),              "listClients",      []),
+      safe(listAlmacen(),              "listAlmacen",      []),
+      safe(listInventario(),           "listInventario",   []),
+      safe(getConfig("estado_tags"),   "config:estado_tags", null),
+      safe(getConfig("locales"),       "config:locales",     null),
+      safe(getConfig("producto_tags"), "config:producto_tags",null),
+      safe(listProfiles(),             "listProfiles",     []),
+    ])
+    console.log("[data] all fetches done, setting state...")
     setRegs(regData)
     const photosObj = {}
     fotosData.forEach(f => { photosObj[f.registro_id] = f.url })
@@ -86,6 +96,7 @@ export default function App() {
     setProdTags(ptData ?? [])
     setUsers(profileData)
     setDataReady(true)
+    console.log("[data] loadData complete")
   }
 
   const withTimeout = (promise, ms, label) => {
@@ -147,10 +158,9 @@ export default function App() {
       }
 
       setUser(profile)
-      console.log("[auth] loading app data...")
-      await loadData()
-      console.log("[auth] data loaded, setting logged_in")
-      setAuthState("logged_in")
+      setAuthState("logged_in")   // show UI immediately
+      console.log("[auth] UI shown, loading app data in background...")
+      loadData()                  // no await — runs in background
     } catch (e) {
       console.error("[auth] handleLogin error:", e)
       setAuthState("logged_out")
@@ -348,7 +358,7 @@ export default function App() {
   const onDeleteProfile = async (id) => { await updateProfile(id, { active: false }); setUsers(prev=>prev.filter(u=>u.id!==id)) }
 
   // ── Render ────────────────────────────────────────────────────────────────
-  if (authState === "loading" || (authState === "logged_in" && !dataReady)) return <Loader />
+  if (authState === "loading") return <Loader />
   if (authState === "logged_out") {
     return authView === "login"
       ? <Login go={() => setAuthView("register")} />
