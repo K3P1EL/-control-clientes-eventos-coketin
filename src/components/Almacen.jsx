@@ -37,7 +37,10 @@ export default function Almacen({
   // ── Detail view ───────────────────────────────────────────────────────────
   if (view) {
     const s = almacen.find(x=>x.id===view)
-    if (!s) { if (almacen.length > 0) setView(null); return null }
+    if (!s) {
+      if (almacen.length > 0) { setView(null); return null }
+      return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:60, color:C.muted }}><div style={{ textAlign:"center" }}><div style={{ width:28, height:28, border:`3px solid ${C.border}`, borderTop:`3px solid ${C.accent}`, borderRadius:"50%", animation:"spin 1s linear infinite", margin:"0 auto 12px" }} />Cargando salida...</div></div>
+    }
     const totalItems = (s.almacen_items||[]).length
     const devueltos  = (s.almacen_items||[]).filter(it=>it.devuelto).length
 
