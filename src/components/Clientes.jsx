@@ -52,8 +52,64 @@ export default function Clientes({
   }, [view, viewEmp, clients])
 
   // ── OCR ──────────────────────────────────────────────────────────────────
+  const [ocrDetected, setOcrDetected] = useState(null) // { nombre, dni, celular, direccion, referencia, total, adelanto, fecha_evento, _lines }
+
+  const autoDetect = (lines) => {
+    const result = { nombre:"", dni:"", celular:"", direccion:"", referencia:"", total:"", adelanto:"", fecha_evento:"", _lines: lines }
+    const up = lines.map(l => l.toUpperCase())
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i], u = up[i], next = lines[i+1] || ""
+      // DNI: line contains "DNI" or is exactly 8 digits
+      if (!result.dni && (/\bDNI\b/.test(u))) {
+        const m = line.match(/\d{8}/)
+        if (m) result.dni = m[0]
+        else if (next.match(/^\d{8}$/)) result.dni = next.trim()
+      }
+      if (!result.dni && /^\d{8}$/.test(line.replace(/\s/g,""))) result.dni = line.replace(/\s/g,"")
+      // Phone: 9 digits starting with 9
+      if (!result.celular && /\b9\d{8}\b/.test(line.replace(/\s/g,""))) {
+        const m = line.replace(/\s/g,"").match(/9\d{8}/)
+        if (m) result.celular = m[0]
+      }
+      // Name: after SEÑOR, NOMBRE, CLIENTE
+      if (!result.nombre && /\b(SE[ÑN]OR|NOMBRE|CLIENTE)\b/.test(u)) {
+        const after = line.replace(/^.*?(SE[ÑN]OR|NOMBRE|CLIENTE)\s*:?\s*/i, "").trim()
+        result.nombre = after || next
+      }
+      // Address
+      if (!result.direccion && /\bDIRECCI[OÓ]N\b/.test(u)) {
+        const after = line.replace(/^.*?DIRECCI[OÓ]N\s*:?\s*/i, "").trim()
+        result.direccion = after || next
+      }
+      // Reference
+      if (!result.referencia && /\bREFERENCIA\b/.test(u)) {
+        const after = line.replace(/^.*?REFERENCIA\s*:?\s*/i, "").trim()
+        result.referencia = after || next
+      }
+      // Total
+      if (!result.total && /\bTOTAL\b/.test(u)) {
+        const m = line.match(/[\d,]+\.?\d*/)
+        if (m) result.total = m[0].replace(/,/g,"")
+      }
+      // Adelanto / Yape
+      if (!result.adelanto && /\b(ADELANTO|YAPE|A\/C|ABONO)\b/.test(u)) {
+        const m = line.match(/[\d,]+\.?\d*/)
+        if (m) result.adelanto = m[0].replace(/,/g,"")
+      }
+      // Fecha de evento
+      if (!result.fecha_evento && /\bFECHA\s*(DE\s*)?(EVENTO|ENTREGA)\b/.test(u)) {
+        const m = line.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/)
+        if (m) {
+          const y = m[3].length === 2 ? "20"+m[3] : m[3]
+          result.fecha_evento = `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`
+        }
+      }
+    }
+    return result
+  }
+
   const scanPhoto = async (clientId, file) => {
-    setOcrLoading(true); setOcrLines(null); setOcrAssign({}); setOcrClientId(clientId)
+    setOcrLoading(true); setOcrLines(null); setOcrAssign({}); setOcrClientId(clientId); setOcrDetected(null)
     try {
       if (!visionKey) throw new Error("API key de Google Vision no configurada. Ve a Admin > Configuración del Sistema.")
       const base64 = await new Promise((res, rej) => {
@@ -65,12 +121,7 @@ export default function Clientes({
       const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${visionKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requests: [{
-            image: { content: base64 },
-            features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
-          }],
-        }),
+        body: JSON.stringify({ requests: [{ image: { content: base64 }, features: [{ type: "DOCUMENT_TEXT_DETECTION" }] }] }),
       })
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
@@ -81,25 +132,51 @@ export default function Clientes({
       const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 1)
       if (!lines.length) throw new Error("No se detectó texto en la imagen")
       setOcrLines(lines)
+      // Auto-detect fields
+      const detected = autoDetect(lines)
+      setOcrDetected(detected)
+      setOcrAssign(detected)
+      // Increment OCR counter
+      import("../services/config").then(({ getConfig, setConfig }) => {
+        getConfig("ocr_usage").then(v => {
+          const usage = v || { month: new Date().toISOString().slice(0,7), count: 0 }
+          const curMonth = new Date().toISOString().slice(0,7)
+          const count = usage.month === curMonth ? usage.count + 1 : 1
+          setConfig("ocr_usage", { month: curMonth, count })
+        })
+      })
     } catch (err) {
-      setOcrLines([]); setOcrAssign({ _error: err.message || "No se pudo leer la imagen" })
+      setOcrLines([]); setOcrAssign({ _error: err.message || "No se pudo leer la imagen" }); setOcrDetected(null)
     }
     setOcrLoading(false)
   }
 
   const applyOcr = async () => {
-    if (!ocrClientId) return
+    if (!ocrClientId || !ocrAssign) return
     const c = clients.find(x=>x.id===ocrClientId)
     if (!c) return
+    // Client fields
     const updates = {}
-    if (ocrAssign.nombre)   updates.nombre    = ocrAssign.nombre
-    if (ocrAssign.dni)      updates.dni       = ocrAssign.dni
-    if (ocrAssign.direccion)updates.direccion = ocrAssign.direccion
+    if (ocrAssign.nombre)    updates.nombre    = ocrAssign.nombre
+    if (ocrAssign.dni)       updates.dni       = ocrAssign.dni
+    if (ocrAssign.direccion) updates.direccion = ocrAssign.direccion
+    if (ocrAssign.referencia)updates.referencia= ocrAssign.referencia
     let phones = [...(c.phones||[])]
     if (ocrAssign.celular && !phones.includes(ocrAssign.celular)) phones.push(ocrAssign.celular)
     if (phones.length !== (c.phones||[]).length) updates.phones = phones
     if (Object.keys(updates).length) await onUpdateClient(ocrClientId, updates)
-    setOcrLines(null); setOcrAssign({}); setOcrClientId(null)
+    // Contract fields
+    const ct = (c.contratos||[])[activeContrato] || (c.contratos||[])[0]
+    if (ct) {
+      const ctPatch = {}
+      if (ocrAssign.total)        ctPatch.total        = Number(ocrAssign.total) || 0
+      if (ocrAssign.fecha_evento) ctPatch.fecha_evento  = ocrAssign.fecha_evento
+      if (Object.keys(ctPatch).length) await onUpdateContrato(ocrClientId, ct.id, ctPatch)
+      if (ocrAssign.adelanto && Number(ocrAssign.adelanto) > 0) {
+        await onAddAdelanto(ocrClientId, ct.id, { monto: Number(ocrAssign.adelanto), fecha: today(), nota: "OCR" })
+      }
+    }
+    setOcrLines(null); setOcrAssign({}); setOcrClientId(null); setOcrDetected(null)
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -222,27 +299,32 @@ export default function Clientes({
             {/* OCR resultado */}
             {ocrLines && ocrClientId===c.id && (
               <div style={{ background:C.cardAlt, border:`1px solid ${C.accent}44`, borderRadius:12, padding:16, marginBottom:14 }}>
-                <div style={{ fontWeight:600, color:C.accent, marginBottom:10, fontSize:13 }}>Texto detectado — asigna cada línea:</div>
                 {ocrAssign._error && <div style={{ color:C.red, fontSize:12, marginBottom:8 }}>{ocrAssign._error}</div>}
                 {!ocrLines.length && !ocrAssign._error && <div style={{ color:C.muted, fontSize:12 }}>No se detectó texto.</div>}
-                {ocrLines.map((line,idx) => {
-                  const assignedTo = Object.entries(ocrAssign).find(([k,v])=>v===line&&k!=="_error")?.[0]
-                  return (
-                    <div key={idx} style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6, padding:"6px 8px", background:assignedTo?C.green+"11":C.card, borderRadius:6, border:`1px solid ${assignedTo?C.green+"44":C.border}` }}>
-                      <span style={{ flex:1, fontSize:13, color:C.text, fontWeight:500, userSelect:"all" }}>{line}</span>
-                      {assignedTo && <span style={{ fontSize:10, color:C.green, fontWeight:700, padding:"2px 6px", background:C.green+"22", borderRadius:4 }}>✓ {assignedTo}</span>}
-                      <div style={{ display:"flex", gap:3, flexShrink:0 }}>
-                        {[["nombre","Nombre"],["dni","DNI"],["celular","Cel"],["direccion","Dir"]].map(([k,l])=>(
-                          <button key={k} onClick={()=>setOcrAssign(prev=>({...prev,[k]:prev[k]===line?"":line}))} style={{ padding:"3px 7px", borderRadius:5, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:ocrAssign[k]===line?C.accent:C.border, color:ocrAssign[k]===line?"#fff":C.muted }}>{l}</button>
-                        ))}
+                {ocrLines.length > 0 && <>
+                  <div style={{ fontWeight:600, color:C.accent, marginBottom:12, fontSize:13 }}>Datos detectados — edita y confirma:</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+                    {[["nombre","Nombre"],["dni","DNI"],["celular","Celular"],["direccion","Dirección"],["referencia","Referencia"],["fecha_evento","Fecha Evento"],["total","Total Contrato"],["adelanto","Adelanto"]].map(([k,label])=>(
+                      <div key={k}>
+                        <label style={{ fontSize:11, fontWeight:600, color: ocrDetected?.[k] ? C.green : C.muted, marginBottom:2, display:"block" }}>
+                          {label} {ocrDetected?.[k] ? "✓" : ""}
+                        </label>
+                        <input value={ocrAssign[k]||""} onChange={e=>setOcrAssign(prev=>({...prev,[k]:e.target.value}))}
+                          style={{ width:"100%", padding:"6px 10px", borderRadius:6, border:`1px solid ${ocrDetected?.[k]?C.green+"66":C.border}`, background:ocrDetected?.[k]?C.green+"08":C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }}
+                          placeholder={`Sin ${label.toLowerCase()}`} />
                       </div>
-                    </div>
-                  )
-                })}
-                <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                  <button onClick={applyOcr} disabled={!Object.keys(ocrAssign).filter(k=>k!=="_error"&&ocrAssign[k]).length} style={{ background:C.accent, border:"none", borderRadius:8, color:"#fff", cursor:"pointer", padding:"8px 16px", fontSize:12, fontWeight:700, opacity:Object.keys(ocrAssign).filter(k=>k!=="_error"&&ocrAssign[k]).length?1:.4 }}>✓ Aplicar</button>
-                  <button onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null)}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"8px 16px", fontSize:12 }}>Cancelar</button>
-                </div>
+                    ))}
+                  </div>
+                  {/* Raw text toggle */}
+                  <details style={{ marginBottom:10 }}>
+                    <summary style={{ cursor:"pointer", fontSize:11, color:C.muted, marginBottom:6 }}>Ver texto original ({ocrLines.length} líneas)</summary>
+                    <div style={{ background:C.card, borderRadius:6, padding:8, fontSize:11, color:C.muted, maxHeight:120, overflow:"auto", lineHeight:1.6, fontFamily:"monospace", whiteSpace:"pre-wrap" }}>{ocrLines.join("\n")}</div>
+                  </details>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button onClick={applyOcr} style={{ background:C.accent, border:"none", borderRadius:8, color:"#fff", cursor:"pointer", padding:"8px 20px", fontSize:12, fontWeight:700 }}>✓ Aplicar datos</button>
+                    <button onClick={()=>{setOcrLines(null);setOcrAssign({});setOcrClientId(null);setOcrDetected(null)}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"8px 16px", fontSize:12 }}>Cancelar</button>
+                  </div>
+                </>}
               </div>
             )}
 

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
+import { getConfig } from "../services/config"
 import { C } from "../lib/colors"
 import { Stat } from "./shared"
 import { today } from "../lib/helpers"
 
 const BUCKET_LIMIT = 1 * 1024 * 1024 * 1024 // 1GB free tier
+const OCR_FREE = 1000
 
 function StorageUsage() {
   const [usage, setUsage] = useState(null)
@@ -49,6 +51,33 @@ function StorageUsage() {
   )
 }
 
+function OcrUsage() {
+  const [usage, setUsage] = useState(null)
+  useEffect(() => {
+    getConfig("ocr_usage").then(v => setUsage(v)).catch(() => {})
+  }, [])
+
+  const curMonth = new Date().toISOString().slice(0,7)
+  const count = usage?.month === curMonth ? usage.count : 0
+  const pct = Math.min((count / OCR_FREE) * 100, 100)
+  const barColor = pct >= 80 ? C.red : pct >= 50 ? C.yellow : C.green
+  const monthLabel = new Date().toLocaleDateString("es", { month:"long", year:"numeric" })
+
+  return (
+    <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, marginTop:24 }}>
+      <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:12 }}>Escaneos OCR</h3>
+      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+        <span style={{ fontSize:22, fontWeight:700, color:barColor }}>{count}</span>
+        <span style={{ fontSize:14, color:C.muted, alignSelf:"flex-end" }}>/ {OCR_FREE} gratis</span>
+      </div>
+      <div style={{ height:10, borderRadius:5, background:C.border, overflow:"hidden" }}>
+        <div style={{ height:"100%", width:`${pct}%`, background:barColor, borderRadius:5, transition:"width .5s" }} />
+      </div>
+      <div style={{ fontSize:11, color:C.muted, marginTop:6 }}>{monthLabel} — {pct >= 100 ? "Límite gratis alcanzado" : `${(OCR_FREE-count)} escaneos restantes`}</div>
+    </div>
+  )
+}
+
 export default function Dash({ regs, adm }) {
   const r = regs.filter(x => x.fecha === today())
   const est = {}
@@ -84,6 +113,7 @@ export default function Dash({ regs, adm }) {
         </div>
       </div>
       {adm && <StorageUsage />}
+      {adm && <OcrUsage />}
     </div>
   )
 }
