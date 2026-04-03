@@ -5,7 +5,12 @@ import { inp, btn, td } from "./shared"
 const ALL_PERMS = ["registro","clientes","almacen","inventario","agenda","pagos","auditoria","dashboard"]
 const VIS_OPTS  = [["always","Siempre"],["month","1 mes"],["week","1 semana"],["3days","3 días"],["today","Solo hoy"],["none","Ninguno"]]
 
-export default function Admin({ users, tags, locales, prodTags, onSetTags, onSetLocales, onSetProdTags, onUpdateProfile, onDeleteProfile }) {
+const ALL_TYPES = [
+  { value:"image/jpeg", label:"JPG" }, { value:"image/png", label:"PNG" },
+  { value:"application/pdf", label:"PDF" }, { value:"video/mp4", label:"MP4" }, { value:"video/quicktime", label:"MOV" },
+]
+
+export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSetUploadCfg, onSetTags, onSetLocales, onSetProdTags, onUpdateProfile, onDeleteProfile }) {
   const [nt,  setNt]  = useState("")
   const [nl,  setNl]  = useState("")
   const [npt, setNpt] = useState("")
@@ -118,6 +123,48 @@ export default function Admin({ users, tags, locales, prodTags, onSetTags, onSet
               <button onClick={()=>remL(l)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", padding:0, lineHeight:1, fontSize:16 }}>×</button>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Configuración del sistema */}
+      <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, marginBottom:24 }}>
+        <h3 style={{ fontSize:16, fontWeight:600, marginTop:0, marginBottom:16 }}>Configuración del Sistema</h3>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
+          <div>
+            <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:6 }}>Tamaño máximo de archivos (MB)</label>
+            <input type="number" value={uploadCfg?.maxMB ?? 45} min={1} max={200}
+              onChange={e => onSetUploadCfg({ ...uploadCfg, maxMB: Number(e.target.value) || 45 })}
+              style={{ ...inp, marginBottom:0, width:120 }} />
+          </div>
+          <div>
+            <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:6 }}>Calidad de compresión de fotos</label>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <input type="range" min={0.1} max={1} step={0.05} value={uploadCfg?.quality ?? 0.85}
+                onChange={e => onSetUploadCfg({ ...uploadCfg, quality: Number(e.target.value) })}
+                style={{ flex:1, accentColor:C.accent }} />
+              <span style={{ fontSize:14, fontWeight:700, color:C.accent, minWidth:40 }}>{Math.round((uploadCfg?.quality ?? 0.85) * 100)}%</span>
+            </div>
+            <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>Menor = más pequeño pero menos calidad. Las imágenes se redimensionan a máx 1920px.</div>
+          </div>
+        </div>
+        <div>
+          <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:6 }}>Tipos de archivo permitidos</label>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+            {ALL_TYPES.map(t => {
+              const active = (uploadCfg?.allowedTypes || []).includes(t.value)
+              return (
+                <button key={t.value} onClick={() => {
+                  const types = uploadCfg?.allowedTypes || []
+                  const next = active ? types.filter(x => x !== t.value) : [...types, t.value]
+                  if (next.length === 0) return // al menos 1
+                  onSetUploadCfg({ ...uploadCfg, allowedTypes: next })
+                }} style={{
+                  padding:"6px 16px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600,
+                  background: active ? C.accent+"33" : C.border, color: active ? C.accent : C.muted,
+                }}>{t.label}</button>
+              )
+            })}
+          </div>
         </div>
       </div>
 

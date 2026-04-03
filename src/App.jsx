@@ -57,6 +57,9 @@ export default function App() {
   const [tags,       setTags]       = useState([])
   const [locales,    setLocales]    = useState(["Local 1"])
   const [prodTags,   setProdTags]   = useState([])
+  const [uploadCfg,  setUploadCfg]  = useState({ maxMB: 45, quality: 0.85, allowedTypes: ['image/jpeg','image/png','application/pdf','video/mp4','video/quicktime'] })
+  const uploadCfgRef = useRef(uploadCfg)
+  uploadCfgRef.current = uploadCfg
 
   // ── Navigation ────────────────────────────────────────────────────────────
   const [tab,            setTab_]           = useState(() => { try { return localStorage.getItem("app_tab") || "registro" } catch { return "registro" } })
@@ -84,7 +87,7 @@ export default function App() {
   const loadData = async () => {
     if (dataLoaded.current) return
     dataLoaded.current = true
-    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData] = await Promise.all([
+    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData, upCfg] = await Promise.all([
       safe(listRegistros(),            []),
       safe(listRegistroFotos(),        []),
       safe(listClients(),              []),
@@ -94,6 +97,7 @@ export default function App() {
       safe(getConfig("locales"),       null),
       safe(getConfig("producto_tags"), null),
       safe(listProfiles(),             []),
+      safe(getConfig("upload_config"), null),
     ])
     setRegs(regData)
     const photosObj = {}
@@ -106,6 +110,7 @@ export default function App() {
     setLocales(locData ?? ["Local 1"])
     setProdTags(ptData ?? [])
     setUsers(profileData)
+    if (upCfg) setUploadCfg(upCfg)
     setDataReady(true)
   }
 
@@ -220,7 +225,7 @@ export default function App() {
     setRegs(prev => prev.map(r => r.id === registroId ? { ...r, foto: "SI" } : r))
     uploadStart()
     try {
-      const url = await uploadFile("registros", file.name, file)
+      const url = await uploadFile("registros", file.name, file, uploadCfgRef.current)
       await createRegistroFoto(registroId, url)
       await updateRegistro(registroId, { foto: "SI" })
       setPhotos(prev => ({ ...prev, [registroId]: url }))
@@ -330,7 +335,7 @@ export default function App() {
     }))
     uploadStart()
     try {
-      const url     = await uploadFile("contratos", file.name, file)
+      const url     = await uploadFile("contratos", file.name, file, uploadCfgRef.current)
       const archivo = await createContratoArchivo({ contrato_id: contratoId, nombre: file.name, tipo, url })
       setClients(prev => prev.map(c => {
         if (c.id !== clientId) return c
@@ -420,7 +425,7 @@ export default function App() {
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: [...(s.almacen_archivos||[]), optimistic] } : s))
     uploadStart()
     try {
-      const url = await uploadFile("almacen", file.name, file)
+      const url = await uploadFile("almacen", file.name, file, uploadCfgRef.current)
       const ar  = await createAlmacenArchivo({ salida_id: salidaId, nombre: file.name, tipo: file.type, url })
       setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: (s.almacen_archivos||[]).map(a => a.id === tempId ? ar : a) } : s))
       URL.revokeObjectURL(localUrl)
@@ -456,6 +461,7 @@ export default function App() {
   const onSetTags     = useCallback(async (v) => { setTags(v); setConfig("estado_tags", v).catch(()=>alert("Error guardando tags")) }, [])
   const onSetLocales  = useCallback(async (v) => { setLocales(v); setConfig("locales", v).catch(()=>alert("Error guardando locales")) }, [])
   const onSetProdTags = useCallback(async (v) => { setProdTags(v); setConfig("producto_tags", v).catch(()=>alert("Error guardando productos")) }, [])
+  const onSetUploadCfg = useCallback(async (v) => { setUploadCfg(v); setConfig("upload_config", v).catch(()=>alert("Error guardando config de uploads")) }, [])
 
   // ── PROFILES ops ─────────────────────────────────────────────────────────
   const onUpdateProfile = useCallback(async (id, patch) => {
@@ -542,6 +548,7 @@ export default function App() {
           {tab==="admin" && adm && (
             <Admin
               users={users} tags={tags} locales={locales} prodTags={prodTags}
+              uploadCfg={uploadCfg} onSetUploadCfg={onSetUploadCfg}
               onSetTags={onSetTags} onSetLocales={onSetLocales} onSetProdTags={onSetProdTags}
               onUpdateProfile={onUpdateProfile} onDeleteProfile={onDeleteProfile}
             />
