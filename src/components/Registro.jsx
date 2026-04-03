@@ -16,6 +16,7 @@ export default function Registro({
   const setViewUser = (v) => { setViewUser_(v); try { if (v) localStorage.setItem("reg_viewUser", v); else localStorage.removeItem("reg_viewUser") } catch {} }
   const [selLocal,  setSelLocal]  = useState(locales[0] || "")
   const [dateRange, setDateRange] = useState("dia")
+  const [showAll,   setShowAll]   = useState(true) // true=todo el dia, false=ultimos 3
   const [contractUpId, setContractUpId] = useState(null)
   const [contractFiles, setContractFiles] = useState(null) // { regId, files[] }
   const [contractUploading, setContractUploading] = useState(new Set())
@@ -252,6 +253,10 @@ export default function Registro({
               {locales.map(l => <option key={l} value={l} style={{ background:C.card, color:C.text }}>{l}</option>)}
             </select>
           </div>
+          <div style={{ display:"inline-flex", borderRadius:8, background:C.bg, padding:2, border:`1px solid ${C.border}` }}>
+            <button onClick={()=>setShowAll(true)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:showAll?C.accent:C.bg, color:showAll?"#fff":C.muted, transition:"all .2s" }}>Todo el dia</button>
+            <button onClick={()=>setShowAll(false)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:!showAll?C.accent:C.bg, color:!showAll?"#fff":C.muted, transition:"all .2s" }}>Ultimos 3</button>
+          </div>
           <button onClick={add} style={btn}>+ Agregar Registro</button>
           {adm && (
             <button onClick={exportExcel} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:8, color:C.green, cursor:"pointer", padding:"6px 12px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
@@ -357,11 +362,11 @@ export default function Registro({
             {rows.length === 0 && (
               <tr><td colSpan={14} style={{ padding:40, textAlign:"center", color:C.muted }}>No hay registros. Haz clic en "+ Agregar Registro".</td></tr>
             )}
-            {rows.map((r, i) => {
+            {(() => {
+              const visibleRows = showAll ? rows : (() => { const nd = rows.filter(x=>!x.deleted); return nd.length > 3 ? nd.slice(-3) : nd })()
+              return visibleRows.map((r, i) => {
               const isDel   = r.deleted
-              const nonDelRows = rows.filter(x => !x.deleted)
-              const nonDelIdx = isDel ? -1 : nonDelRows.indexOf(r)
-              const isLast = !isDel && nonDelIdx === nonDelRows.length - 1
+              const nonDelIdx = isDel ? -1 : rows.filter(x => !x.deleted).indexOf(r)
               const isSel = selectedRow === r.id
               const canEdit = !isDel && (adm || nonDelIdx >= total - 3)
               const lock    = !canEdit ? { opacity:.45, pointerEvents:"none" } : {}
@@ -370,10 +375,10 @@ export default function Registro({
               const pc = getBg(r.pirana, { S:C.red, P:C.yellow, N:C.muted })
               const ei = tags.indexOf(r.estado)
               const ec = ei >= 0 ? estadoColors[ei%estadoColors.length] : C.border
-              const rowBg = isDel ? C.red+"0a" : isSel ? C.accent+"12" : isLast ? C.accent+"08" : i%2 ? C.cardAlt+"44" : "transparent"
+              const rowBg = isDel ? C.red+"0a" : isSel ? C.accent+"15" : i%2 ? C.cardAlt+"44" : "transparent"
 
               return (
-                <tr key={r.id} onClick={()=>setSelectedRow(isSel?null:r.id)} style={{ borderBottom:`1px solid ${C.border}`, background:rowBg, animation:"fadeIn .2s", cursor:"pointer", borderLeft:isLast?`3px solid ${C.accent}`:"3px solid transparent", transition:"background .15s" }}>
+                <tr key={r.id} onClick={()=>setSelectedRow(isSel?null:r.id)} style={{ borderBottom:`1px solid ${C.border}`, background:rowBg, animation:"fadeIn .2s", cursor:"pointer", transition:"background .15s" }}>
                   <td style={td}><span style={{ color:C.muted, ...(isDel?{textDecoration:"line-through"}:{}) }}>{i+1}</span></td>
                   <td style={{ ...td, ...(isDel?{opacity:.4}:{}) }}>{r.fecha}</td>
                   <td style={{ ...td, ...(isDel?{opacity:.5}:{}) }}>
@@ -452,7 +457,7 @@ export default function Registro({
                   </td>
                 </tr>
               )
-            })}
+            })})()}
           </tbody>
         </table>
       </div>
