@@ -59,7 +59,8 @@ export default function App() {
   const [prodTags,   setProdTags]   = useState([])
 
   // ── Navigation ────────────────────────────────────────────────────────────
-  const [tab,            setTab]            = useState("registro")
+  const [tab,            setTab_]           = useState(() => sessionStorage.getItem("tab") || "registro")
+  const setTab = useCallback((t) => { setTab_(t); sessionStorage.setItem("tab", t) }, [])
   const [mobSide,        setMobSide]        = useState(false)
   const [navClientId,    setNavClientId]    = useState(null)
   const [navRegId,       setNavRegId]       = useState(null)
