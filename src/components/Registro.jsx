@@ -23,6 +23,7 @@ export default function Registro({
   const [previewRegId, setPreviewRegId] = useState(null)
   const [viewFile, setViewFile] = useState(null)
   const [selectedRow, setSelectedRow] = useState(null)
+  const [dragOverRow, setDragOverRow] = useState(null)
   const cRef = useRef(null)
 
   useEffect(() => {
@@ -99,6 +100,21 @@ export default function Registro({
       onUpdateReg(regId, { foto: "SI" })
     } catch (err) { alert("Error subiendo archivo: " + err.message) }
     finally { setContractUploading(prev => { const s = new Set(prev); s.delete(regId); return s }) }
+  }
+
+  // Drag & drop on row
+  const onRowDragOver = (e, regId) => { e.preventDefault(); e.stopPropagation(); setDragOverRow(regId) }
+  const onRowDragLeave = () => setDragOverRow(null)
+  const onRowDrop = (e, regId) => {
+    e.preventDefault(); e.stopPropagation(); setDragOverRow(null)
+    const files = Array.from(e.dataTransfer.files || []).filter(f => /^(image|video|application\/pdf)/.test(f.type))
+    if (!files.length) return
+    const linked = clients.find(c => (c.reg_ids||[]).includes(regId))
+    if (linked) {
+      doUpload(regId, files, null, linked)
+    } else {
+      setContractFiles({ regId, files })
+    }
   }
 
   // ── ADMIN: employee grid ──────────────────────────────────────────────────
@@ -375,10 +391,15 @@ export default function Registro({
               const pc = getBg(r.pirana, { S:C.red, P:C.yellow, N:C.muted })
               const ei = tags.indexOf(r.estado)
               const ec = ei >= 0 ? estadoColors[ei%estadoColors.length] : C.border
-              const rowBg = isDel ? C.red+"0a" : isSel ? C.accent+"15" : i%2 ? C.cardAlt+"44" : "transparent"
+              const isDrag = dragOverRow === r.id
+              const rowBg = isDrag ? C.accent+"22" : isDel ? C.red+"0a" : isSel ? C.accent+"15" : i%2 ? C.cardAlt+"44" : "transparent"
 
               return (
-                <tr key={r.id} onClick={()=>setSelectedRow(isSel?null:r.id)} style={{ borderBottom:`1px solid ${C.border}`, background:rowBg, animation:"fadeIn .2s", cursor:"pointer", transition:"background .15s" }}>
+                <tr key={r.id} onClick={()=>setSelectedRow(isSel?null:r.id)}
+                  onDragOver={canEdit ? e=>onRowDragOver(e,r.id) : undefined}
+                  onDragLeave={canEdit ? onRowDragLeave : undefined}
+                  onDrop={canEdit ? e=>onRowDrop(e,r.id) : undefined}
+                  style={{ borderBottom:`1px solid ${isDrag?C.accent:C.border}`, background:rowBg, animation:"fadeIn .2s", cursor:"pointer", transition:"background .15s, border .15s" }}>
                   <td style={td}><span style={{ color:C.muted, ...(isDel?{textDecoration:"line-through"}:{}) }}>{i+1}</span></td>
                   <td style={{ ...td, ...(isDel?{opacity:.4}:{}) }}>{r.fecha}</td>
                   <td style={{ ...td, ...(isDel?{opacity:.5}:{}) }}>
