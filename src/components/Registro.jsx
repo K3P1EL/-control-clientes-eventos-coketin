@@ -9,7 +9,7 @@ function getBg(val, map) { return map[val] || C.border }
 export default function Registro({
   regs, user, adm, tags, photos, clients, locales, users,
   navRegId, navRegDate, clearNavReg,
-  onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onAddContratoArchivo, goToClient,
+  onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onAddContratoArchivo, onUpdateContrato, goToClient,
 }) {
   const [date,      setDate]      = useState(today())
   const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; try { return localStorage.getItem("reg_viewUser") || null } catch { return null } })
@@ -50,28 +50,39 @@ export default function Registro({
   const restore = (id) => onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
   const hardDel = (id) => { if (window.confirm("¿Eliminar este registro permanentemente?")) onHardDeleteReg(id) }
 
-  // Files picked — show tipo modal
+  // Files picked — if ficha exists, upload directly. If not, ask tipo first.
   const onContractFile = (e) => {
     const files = Array.from(e.target.files || [])
     e.target.value = ""
     if (!files.length || !contractUpId) return
-    setContractFiles({ regId: contractUpId, files })
+    const regId = contractUpId
     setContractUpId(null)
+    const linked = clients.find(c => (c.reg_ids||[]).includes(regId))
+    if (linked) {
+      // Already has ficha — upload directly, no tipo modal needed
+      doUpload(regId, files, null, linked)
+    } else {
+      // No ficha — ask tipo first
+      setContractFiles({ regId, files })
+    }
   }
 
-  // User picks proforma/contrato from modal — upload all files
-  const onContractTipo = async (tipo) => {
+  // User picks proforma/contrato from modal (only for new fichas)
+  const onContractTipo = (tipo) => {
     if (!contractFiles) return
     const { regId, files } = contractFiles
     setContractFiles(null)
+    doUpload(regId, files, tipo, null)
+  }
+
+  // Actual upload logic
+  const doUpload = async (regId, files, tipo, existingClient) => {
     setContractUploading(prev => new Set(prev).add(regId))
     try {
-      const linked = clients.find(c => (c.reg_ids||[]).includes(regId))
       let clientId, contratoId
-      if (linked) {
-        clientId = linked.id
-        const ct = (linked.contratos||[]).slice(-1)[0]
-        contratoId = ct?.id
+      if (existingClient) {
+        clientId = existingClient.id
+        contratoId = (existingClient.contratos||[]).slice(-1)[0]?.id
       } else {
         const nc = await onAddClient(
           { code: genCode(), reg_ids: [regId], created_by: user.id, created_by_name: user.name, nombre: "", dni: "", phones: [], direccion: "", referencia: "" },
@@ -275,15 +286,26 @@ export default function Registro({
       {/* File preview modal */}
       {previewRegId && (() => {
         const linked = clients.find(c => (c.reg_ids||[]).includes(previewRegId))
-        const archivos = linked ? (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[]) : []
+        if (!linked) return null
+        const lastCt = (linked.contratos||[]).slice(-1)[0]
+        const archivos = (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[])
         if (!archivos.length) return null
+        const tipo = lastCt?.tipo || "proforma"
+        const toggleTipo = () => { if (lastCt) onUpdateContrato(linked.id, lastCt.id, { tipo: tipo==="contrato"?"proforma":"contrato" }) }
         return (
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={()=>setPreviewRegId(null)}>
-            <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:24, maxWidth:420, width:"100%" }}>
+            <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:24, maxWidth:440, width:"100%" }}>
+              {/* Header with tipo toggle */}
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:C.text }}>{archivos.length} archivo{archivos.length>1?"s":""}</h3>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:C.text }}>{archivos.length} archivo{archivos.length>1?"s":""}</h3>
+                  <button onClick={toggleTipo} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:tipo==="contrato"?C.green+"33":C.yellow+"33", color:tipo==="contrato"?C.green:C.yellow }}>
+                    {tipo==="contrato"?"Contrato":"Proforma"}
+                  </button>
+                </div>
                 <button onClick={()=>setPreviewRegId(null)} style={{ background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:26, height:26, cursor:"pointer", fontSize:14, fontWeight:700 }}>x</button>
               </div>
+              {/* File grid */}
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(90px, 1fr))", gap:10 }}>
                 {archivos.map(ar => (
                   <div key={ar.id} onClick={()=>{setPreviewRegId(null);setViewFile(ar)}} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer", aspectRatio:"1", position:"relative" }}>
@@ -296,6 +318,8 @@ export default function Registro({
                   </div>
                 ))}
               </div>
+              {/* Add more button */}
+              <button onClick={()=>{setPreviewRegId(null);setContractUpId(previewRegId);cRef.current?.click()}} style={{ marginTop:12, width:"100%", padding:"8px", borderRadius:8, border:`1px dashed ${C.border}`, background:"transparent", color:C.accent, cursor:"pointer", fontSize:12, fontWeight:600 }}>+ Subir mas fotos</button>
             </div>
           </div>
         )
@@ -368,13 +392,13 @@ export default function Registro({
                     return (
                       <div style={{ display:"flex", alignItems:"center", gap:5, justifyContent:"center" }}>
                         {isUp
-                          ? <span style={{ display:"inline-flex", alignItems:"center", fontSize:10, color:C.accent }}><span style={{ width:12,height:12,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",display:"inline-block" }} /></span>
-                          : canEdit && <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir archivo" style={{ background:n?C.green+"18":C.accent+"15", border:`1px solid ${n?C.green+"44":C.accent+"33"}`, borderRadius:8, cursor:"pointer", padding:"4px 8px", display:"flex", alignItems:"center", gap:5 }}>
-                              <svg width="14" height="14" fill="none" stroke={n?C.green:C.accent} strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg>
-                              {n > 0 && <span style={{ fontSize:10, fontWeight:700, color:C.green }}>{n}</span>}
+                          ? <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:10, color:C.accent }}><span style={{ width:12,height:12,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",display:"inline-block" }} />Subiendo...</span>
+                          : canEdit && <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir foto" style={{ background:n?C.green+"15":C.accent+"12", border:`1px solid ${n?C.green+"44":C.accent+"33"}`, borderRadius:8, cursor:"pointer", padding:"3px 10px", display:"flex", alignItems:"center", gap:5, fontSize:11, fontWeight:600, color:n?C.green:C.accent }}>
+                              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg>
+                              {n > 0 ? n : "Subir"}
                             </button>
                         }
-                        {n > 0 && <button onClick={()=>setPreviewRegId(r.id)} title="Ver archivos" style={{ background:C.teal+"18", border:`1px solid ${C.teal}33`, borderRadius:8, cursor:"pointer", padding:"4px 6px", display:"flex", alignItems:"center" }}>
+                        {n > 0 && <button onClick={()=>setPreviewRegId(r.id)} title="Ver archivos" style={{ background:C.teal+"15", border:`1px solid ${C.teal}33`, borderRadius:8, cursor:"pointer", padding:"3px 6px", display:"flex", alignItems:"center" }}>
                           <svg width="14" height="14" fill="none" stroke={C.teal} strokeWidth="2"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z"/><circle cx="7" cy="7" r="1.5"/></svg>
                         </button>}
                       </div>
