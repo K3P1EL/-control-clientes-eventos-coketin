@@ -1,7 +1,7 @@
 console.log("SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL)
 console.log("SUPABASE KEY:", import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20))
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { supabase } from "./lib/supabase"
 import { C } from "./lib/colors"
 import { today } from "./lib/helpers"
@@ -37,6 +37,8 @@ export default function App() {
   const [authView,   setAuthView]   = useState("login")
   const [user,       setUser]       = useState(null)
   const [dataReady,  setDataReady]  = useState(false)
+  const loginInProgress = useRef(false)
+  const dataLoaded      = useRef(false)
 
   // ── App data ──────────────────────────────────────────────────────────────
   const [users,      setUsers]      = useState([])
@@ -63,25 +65,32 @@ export default function App() {
 
   // ── Load all data ─────────────────────────────────────────────────────────
   const safe = (promise, label, fallback) => {
-    const timer = new Promise(resolve => setTimeout(() => { console.warn(`[data] TIMEOUT: ${label}`); resolve(fallback) }, 3000))
+    let timerId
+    const timer = new Promise(resolve => {
+      timerId = setTimeout(() => { console.warn(`[data] TIMEOUT: ${label}`); resolve(fallback) }, 5000)
+    })
     return Promise.race([
-      promise.then(r => { console.log(`[data] OK: ${label}`, r); return r }).catch(e => { console.error(`[data] ERROR: ${label}`, e.message); return fallback }),
+      promise
+        .then(r  => { clearTimeout(timerId); console.log(`[data] OK: ${label}`); return r })
+        .catch(e => { clearTimeout(timerId); console.error(`[data] ERROR: ${label}`, e.message); return fallback }),
       timer
     ])
   }
 
   const loadData = async () => {
+    if (dataLoaded.current) { console.log("[data] already loaded, skipping"); return }
+    dataLoaded.current = true
     console.log("[data] starting loadData...")
     const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData] = await Promise.all([
-      safe(listRegistros(),            "listRegistros",    []),
-      safe(listRegistroFotos(),        "listRegistroFotos",[]),
-      safe(listClients(),              "listClients",      []),
-      safe(listAlmacen(),              "listAlmacen",      []),
-      safe(listInventario(),           "listInventario",   []),
-      safe(getConfig("estado_tags"),   "config:estado_tags", null),
-      safe(getConfig("locales"),       "config:locales",     null),
+      safe(listRegistros(),            "listRegistros",       []),
+      safe(listRegistroFotos(),        "listRegistroFotos",   []),
+      safe(listClients(),              "listClients",         []),
+      safe(listAlmacen(),              "listAlmacen",         []),
+      safe(listInventario(),           "listInventario",      []),
+      safe(getConfig("estado_tags"),   "config:estado_tags",  null),
+      safe(getConfig("locales"),       "config:locales",      null),
       safe(getConfig("producto_tags"), "config:producto_tags",null),
-      safe(listProfiles(),             "listProfiles",     []),
+      safe(listProfiles(),             "listProfiles",        []),
     ])
     console.log("[data] all fetches done, setting state...")
     setRegs(regData)
@@ -108,6 +117,8 @@ export default function App() {
 
   // handleLogin receives the full session.user object to avoid any extra network calls
   const handleLogin = async (sessionUser) => {
+    if (loginInProgress.current) { console.log("[auth] handleLogin already in progress, skipping"); return }
+    loginInProgress.current = true
     try {
       const userId = sessionUser.id
       const userEmail = sessionUser.email ?? ""
@@ -163,6 +174,7 @@ export default function App() {
       loadData()                  // no await — runs in background
     } catch (e) {
       console.error("[auth] handleLogin error:", e)
+      loginInProgress.current = false
       setAuthState("logged_out")
     }
   }
