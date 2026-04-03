@@ -1,7 +1,4 @@
-console.log("SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL)
-console.log("SUPABASE KEY:", import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20))
-
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { supabase } from "./lib/supabase"
 import { C } from "./lib/colors"
 import { today } from "./lib/helpers"
@@ -9,7 +6,7 @@ import { CSS, Loader } from "./components/shared"
 
 import { getSession } from "./services/auth"
 import { getProfile, listProfiles, updateProfile } from "./services/profiles"
-import { listRegistros, createRegistro, updateRegistro, listRegistroFotos, createRegistroFoto } from "./services/registros"
+import { listRegistros, createRegistro, updateRegistro, listRegistroFotos, createRegistroFoto, deleteRegistro } from "./services/registros"
 import { listClients, createClient, updateClient, deleteClient } from "./services/clients"
 import { createContrato, updateContrato, createAdelanto, updateAdelanto, deleteAdelanto, createContratoArchivo, deleteContratoArchivo } from "./services/contratos"
 import { listAlmacen, createSalida, updateSalida, deleteSalida, createItem, updateItem, deleteItem, createAlmacenArchivo, deleteAlmacenArchivo } from "./services/almacen"
@@ -59,40 +56,34 @@ export default function App() {
   const [navRegDate,     setNavRegDate]     = useState(null)
   const [navAlmClientId, setNavAlmClientId] = useState(null)
 
-  const goToClient  = (id)        => { setNavClientId(id); setTab("clientes") }
-  const goToReg     = (uid, date) => { setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }
-  const goToAlmacen = (id)        => { setNavAlmClientId(id); setTab("almacen") }
+  const goToClient  = useCallback((id)        => { setNavClientId(id); setTab("clientes") }, [])
+  const goToReg     = useCallback((uid, date) => { setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }, [])
+  const goToAlmacen = useCallback((id)        => { setNavAlmClientId(id); setTab("almacen") }, [])
 
   // ── Load all data ─────────────────────────────────────────────────────────
-  const safe = (promise, label, fallback) => {
+  const safe = (promise, fallback) => {
     let timerId
-    const timer = new Promise(resolve => {
-      timerId = setTimeout(() => { console.warn(`[data] TIMEOUT: ${label}`); resolve(fallback) }, 5000)
-    })
+    const timer = new Promise(resolve => { timerId = setTimeout(() => resolve(fallback), 5000) })
     return Promise.race([
-      promise
-        .then(r  => { clearTimeout(timerId); console.log(`[data] OK: ${label}`); return r })
-        .catch(e => { clearTimeout(timerId); console.error(`[data] ERROR: ${label}`, e.message); return fallback }),
+      promise.then(r => { clearTimeout(timerId); return r }).catch(e => { clearTimeout(timerId); console.error("[data]", e.message); return fallback }),
       timer
     ])
   }
 
   const loadData = async () => {
-    if (dataLoaded.current) { console.log("[data] already loaded, skipping"); return }
+    if (dataLoaded.current) return
     dataLoaded.current = true
-    console.log("[data] starting loadData...")
     const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData] = await Promise.all([
-      safe(listRegistros(),            "listRegistros",       []),
-      safe(listRegistroFotos(),        "listRegistroFotos",   []),
-      safe(listClients(),              "listClients",         []),
-      safe(listAlmacen(),              "listAlmacen",         []),
-      safe(listInventario(),           "listInventario",      []),
-      safe(getConfig("estado_tags"),   "config:estado_tags",  null),
-      safe(getConfig("locales"),       "config:locales",      null),
-      safe(getConfig("producto_tags"), "config:producto_tags",null),
-      safe(listProfiles(),             "listProfiles",        []),
+      safe(listRegistros(),            []),
+      safe(listRegistroFotos(),        []),
+      safe(listClients(),              []),
+      safe(listAlmacen(),              []),
+      safe(listInventario(),           []),
+      safe(getConfig("estado_tags"),   null),
+      safe(getConfig("locales"),       null),
+      safe(getConfig("producto_tags"), null),
+      safe(listProfiles(),             []),
     ])
-    console.log("[data] all fetches done, setting state...")
     setRegs(regData)
     const photosObj = {}
     fotosData.forEach(f => { photosObj[f.registro_id] = f.url })
@@ -105,34 +96,23 @@ export default function App() {
     setProdTags(ptData ?? [])
     setUsers(profileData)
     setDataReady(true)
-    console.log("[data] loadData complete")
-  }
-
-  const withTimeout = (promise, ms, label) => {
-    const timer = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`[timeout] ${label} took more than ${ms}ms`)), ms)
-    )
-    return Promise.race([promise, timer])
   }
 
   // handleLogin receives the full session.user object to avoid any extra network calls
   const handleLogin = async (sessionUser) => {
-    if (loginInProgress.current) { console.log("[auth] handleLogin already in progress, skipping"); return }
+    if (loginInProgress.current) return
     loginInProgress.current = true
     try {
       const userId = sessionUser.id
       const userEmail = sessionUser.email ?? ""
       const userName = sessionUser.user_metadata?.name ?? userEmail.split("@")[0] ?? "Usuario"
-      console.log("[auth] handleLogin start, userId:", userId, "email:", userEmail)
 
       // Fetch profile via direct fetch with 3s timeout — avoids supabase client hanging
       let profile = null
       try {
-        console.log("[auth] fetching profile via direct fetch...")
         const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), 3000)
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`
-        const res = await fetch(url, {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`, {
           signal: controller.signal,
           headers: {
             "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -142,11 +122,9 @@ export default function App() {
         })
         clearTimeout(timer)
         const rows = await res.json()
-        console.log("[auth] profile fetch result:", rows)
         if (Array.isArray(rows) && rows.length > 0) profile = rows[0]
-        else console.warn("[auth] profile row not found, using fallback")
       } catch (fetchErr) {
-        console.error("[auth] profile fetch error:", fetchErr.message)
+        console.error("Profile fetch error:", fetchErr.message)
       }
 
       // Fallback: build profile from session data
@@ -160,20 +138,16 @@ export default function App() {
           permissions: ["registro","clientes","almacen","inventario","agenda","auditoria","dashboard"],
           client_visibility: "all",
         }
-        console.log("[auth] using fallback profile:", profile)
-        // Persist in background
         supabase.from("profiles").upsert(profile).then(({ error }) => {
-          if (error) console.warn("[auth] background upsert failed:", error.message)
-          else console.log("[auth] background upsert OK")
+          if (error) console.error("Profile upsert error:", error.message)
         })
       }
 
       setUser(profile)
-      setAuthState("logged_in")   // show UI immediately
-      console.log("[auth] UI shown, loading app data in background...")
-      loadData()                  // no await — runs in background
+      setAuthState("logged_in")
+      loadData()
     } catch (e) {
-      console.error("[auth] handleLogin error:", e)
+      console.error("handleLogin error:", e)
       loginInProgress.current = false
       setAuthState("logged_out")
     }
@@ -181,20 +155,16 @@ export default function App() {
 
   // ── Auth listener ─────────────────────────────────────────────────────────
   useEffect(() => {
-    // Fallback: if session check or data load hangs, show login after 10s
     const fallback = setTimeout(() => {
-      console.warn("[auth] timeout! authState still loading after 10s, forcing logged_out")
       setAuthState(prev => prev === "loading" ? "logged_out" : prev)
     }, 10000)
 
-    console.log("[auth] checking session...")
     getSession()
       .then(session => {
-        console.log("[auth] session result:", session)
         if (session?.user) return handleLogin(session.user)
         else setAuthState("logged_out")
       })
-      .catch(e => { console.error("[auth] getSession error:", e); setAuthState("logged_out") })
+      .catch(e => { console.error("getSession error:", e); setAuthState("logged_out") })
       .finally(() => clearTimeout(fallback))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -212,56 +182,60 @@ export default function App() {
   const adm = user?.is_admin === true
 
   // ── REGISTRO ops ──────────────────────────────────────────────────────────
-  const onAddReg = async (payload) => {
+  const onAddReg = useCallback(async (payload) => {
     const data = await createRegistro(payload)
     setRegs(prev => [...prev, data])
     return data
-  }
-  const onUpdateReg = async (id, patch) => {
+  }, [])
+  const onUpdateReg = useCallback(async (id, patch) => {
     await updateRegistro(id, patch)
     setRegs(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
-  }
-  const onUploadRegPhoto = async (registroId, file) => {
+  }, [])
+  const onUploadRegPhoto = useCallback(async (registroId, file) => {
     const url = await uploadFile("registros", file.name, file)
     await createRegistroFoto(registroId, url)
     await updateRegistro(registroId, { foto: "SI" })
     setPhotos(prev => ({ ...prev, [registroId]: url }))
     setRegs(prev => prev.map(r => r.id === registroId ? { ...r, foto: "SI" } : r))
-  }
+  }, [])
+  const onHardDeleteReg = useCallback(async (id) => {
+    await deleteRegistro(id)
+    setRegs(prev => prev.filter(r => r.id !== id))
+  }, [])
 
   // ── CLIENT ops ────────────────────────────────────────────────────────────
-  const onAddClient = async (clientPayload, contratoPayload = {}) => {
+  const onAddClient = useCallback(async (clientPayload, contratoPayload = {}) => {
     const data = await createClient({ ...clientPayload, reg_ids: clientPayload.reg_ids || [] })
     const ct   = await createContrato({ client_id: data.id, fecha: today(), tipo: "proforma", estado: "activo", total: 0, producto_interes: [], ...contratoPayload })
     const full = { ...data, contratos: [ct] }
     setClients(prev => [...prev, full])
     return full
-  }
-  const onUpdateClient = async (id, fieldOrPatch, val) => {
+  }, [])
+  const onUpdateClient = useCallback(async (id, fieldOrPatch, val) => {
     const patch = typeof fieldOrPatch === "string" ? { [fieldOrPatch]: val } : fieldOrPatch
     await updateClient(id, patch)
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
-  }
-  const onDeleteClient = async (id) => {
+  }, [])
+  const onDeleteClient = useCallback(async (id) => {
     await deleteClient(id)
     setClients(prev => prev.filter(c => c.id !== id))
-  }
-  const onUpdateContrato = async (clientId, contratoId, patch) => {
+  }, [])
+  const onUpdateContrato = useCallback(async (clientId, contratoId, patch) => {
     await updateContrato(contratoId, patch)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, ...patch } : ct) }
     }))
-  }
-  const onAddAdelanto = async (clientId, contratoId, payload) => {
+  }, [])
+  const onAddAdelanto = useCallback(async (clientId, contratoId, payload) => {
     const a = await createAdelanto({ contrato_id: contratoId, ...payload })
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, adelantos: [...(ct.adelantos||[]), a] } : ct) }
     }))
     return a
-  }
-  const onUpdateAdelanto = async (clientId, contratoId, adelantoId, patch) => {
+  }, [])
+  const onUpdateAdelanto = useCallback(async (clientId, contratoId, adelantoId, patch) => {
     await updateAdelanto(adelantoId, patch)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
@@ -270,8 +244,8 @@ export default function App() {
         return { ...ct, adelantos: (ct.adelantos||[]).map(a => a.id === adelantoId ? { ...a, ...patch } : a) }
       })}
     }))
-  }
-  const onDeleteAdelanto = async (clientId, contratoId, adelantoId) => {
+  }, [])
+  const onDeleteAdelanto = useCallback(async (clientId, contratoId, adelantoId) => {
     await deleteAdelanto(adelantoId)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
@@ -280,8 +254,8 @@ export default function App() {
         return { ...ct, adelantos: (ct.adelantos||[]).filter(a => a.id !== adelantoId) }
       })}
     }))
-  }
-  const onAddContratoArchivo = async (clientId, contratoId, file) => {
+  }, [])
+  const onAddContratoArchivo = useCallback(async (clientId, contratoId, file) => {
     const url     = await uploadFile("contratos", file.name, file)
     const tipo    = file.type?.startsWith("image") ? "image" : "pdf"
     const archivo = await createContratoArchivo({ contrato_id: contratoId, nombre: file.name, tipo, url })
@@ -292,8 +266,8 @@ export default function App() {
         return { ...ct, contrato_archivos: [...(ct.contrato_archivos||[]), archivo] }
       })}
     }))
-  }
-  const onDeleteContratoArchivo = async (clientId, contratoId, archivoId) => {
+  }, [])
+  const onDeleteContratoArchivo = useCallback(async (clientId, contratoId, archivoId) => {
     await deleteContratoArchivo(archivoId)
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
@@ -302,72 +276,73 @@ export default function App() {
         return { ...ct, contrato_archivos: (ct.contrato_archivos||[]).filter(a => a.id !== archivoId) }
       })}
     }))
-  }
-  const onMergeClients = async (targetId, sourceId) => {
-    const target = clients.find(c => c.id === targetId)
-    const source = clients.find(c => c.id === sourceId)
-    if (!target || !source) return
-    const newRegIds = [...new Set([...(target.reg_ids||[]), ...(source.reg_ids||[])])]
-    const newPhones = [...new Set([...(target.phones||[]), ...(source.phones||[])])]
-    await updateClient(targetId, { reg_ids: newRegIds, phones: newPhones })
-    for (const ct of (source.contratos||[])) { await updateContrato(ct.id, { client_id: targetId }) }
-    await deleteClient(sourceId)
-    setClients(prev => prev
-      .map(c => c.id === targetId ? { ...c, reg_ids: newRegIds, phones: newPhones, contratos: [...(c.contratos||[]), ...(source.contratos||[])] } : c)
-      .filter(c => c.id !== sourceId)
-    )
-  }
+  }, [])
+  const onMergeClients = useCallback(async (targetId, sourceId) => {
+    setClients(prev => {
+      const target = prev.find(c => c.id === targetId)
+      const source = prev.find(c => c.id === sourceId)
+      if (!target || !source) return prev
+      const newRegIds = [...new Set([...(target.reg_ids||[]), ...(source.reg_ids||[])])]
+      const newPhones = [...new Set([...(target.phones||[]), ...(source.phones||[])])]
+      updateClient(targetId, { reg_ids: newRegIds, phones: newPhones })
+      Promise.all((source.contratos||[]).map(ct => updateContrato(ct.id, { client_id: targetId })))
+        .then(() => deleteClient(sourceId))
+      return prev
+        .map(c => c.id === targetId ? { ...c, reg_ids: newRegIds, phones: newPhones, contratos: [...(c.contratos||[]), ...(source.contratos||[])] } : c)
+        .filter(c => c.id !== sourceId)
+    })
+  }, [])
 
   // ── ALMACEN ops ───────────────────────────────────────────────────────────
-  const onAddSalida = async (clientId, clientName, clientCode) => {
+  const onAddSalida = useCallback(async (clientId, clientName, clientCode) => {
     const data = await createSalida({ client_id: clientId, client_name: clientName, client_code: clientCode, created_by: user.id, created_by_name: user.name, estado: "por_recoger", notas: "" })
     setAlmacen(prev => [...prev, data])
     return data
-  }
-  const onUpdateSalida = async (id, patch) => {
+  }, [user])
+  const onUpdateSalida = useCallback(async (id, patch) => {
     await updateSalida(id, patch)
     setAlmacen(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
-  }
-  const onDeleteSalida = async (id) => {
+  }, [])
+  const onDeleteSalida = useCallback(async (id) => {
     await deleteSalida(id)
     setAlmacen(prev => prev.filter(s => s.id !== id))
-  }
-  const onAddItem = async (salidaId, payload) => {
+  }, [])
+  const onAddItem = useCallback(async (salidaId, payload) => {
     const item = await createItem({ salida_id: salidaId, ...payload })
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: [...(s.almacen_items||[]), item] } : s))
     return item
-  }
-  const onUpdateItem = async (salidaId, itemId, patch) => {
+  }, [])
+  const onUpdateItem = useCallback(async (salidaId, itemId, patch) => {
     await updateItem(itemId, patch)
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).map(it => it.id === itemId ? { ...it, ...patch } : it) } : s))
-  }
-  const onDeleteItem = async (salidaId, itemId) => {
+  }, [])
+  const onDeleteItem = useCallback(async (salidaId, itemId) => {
     await deleteItem(itemId)
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).filter(it => it.id !== itemId) } : s))
-  }
-  const onAddAlmacenArchivo = async (salidaId, file) => {
+  }, [])
+  const onAddAlmacenArchivo = useCallback(async (salidaId, file) => {
     const url = await uploadFile("almacen", file.name, file)
     const ar  = await createAlmacenArchivo({ salida_id: salidaId, nombre: file.name, tipo: file.type, url })
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: [...(s.almacen_archivos||[]), ar] } : s))
-  }
-  const onDeleteAlmacenArchivo = async (salidaId, archivoId) => {
+  }, [])
+  const onDeleteAlmacenArchivo = useCallback(async (salidaId, archivoId) => {
     await deleteAlmacenArchivo(archivoId)
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: (s.almacen_archivos||[]).filter(a => a.id !== archivoId) } : s))
-  }
+  }, [])
 
   // ── INVENTARIO ops ────────────────────────────────────────────────────────
-  const onAddInventario     = async (payload) => { const item = await createInventarioItem({ ...payload, created_by: user.name }); setInventario(prev=>[...prev,item]); return item }
-  const onUpdateInventario  = async (id, patch) => { await updateInventarioItem(id, patch); setInventario(prev=>prev.map(i=>i.id===id?{...i,...patch}:i)) }
-  const onDeleteInventario  = async (id) => { await deleteInventarioItem(id); setInventario(prev=>prev.filter(i=>i.id!==id)) }
+  const onAddInventario    = useCallback(async (payload) => { const item = await createInventarioItem({ ...payload, created_by: user.name }); setInventario(prev=>[...prev,item]); return item }, [user])
+  const onUpdateInventario = useCallback(async (id, patch) => { await updateInventarioItem(id, patch); setInventario(prev=>prev.map(i=>i.id===id?{...i,...patch}:i)) }, [])
+  const onDeleteInventario = useCallback(async (id) => { await deleteInventarioItem(id); setInventario(prev=>prev.filter(i=>i.id!==id)) }, [])
 
   // ── CONFIG ops ────────────────────────────────────────────────────────────
-  const onSetTags     = async (v) => { await setConfig("estado_tags",   v); setTags(v) }
-  const onSetLocales  = async (v) => { await setConfig("locales",       v); setLocales(v) }
-  const onSetProdTags = async (v) => { await setConfig("producto_tags", v); setProdTags(v) }
+  const onSetTags     = useCallback(async (v) => { await setConfig("estado_tags",   v); setTags(v) }, [])
+  const onSetLocales  = useCallback(async (v) => { await setConfig("locales",       v); setLocales(v) }, [])
+  const onSetProdTags = useCallback(async (v) => { await setConfig("producto_tags", v); setProdTags(v) }, [])
 
   // ── PROFILES ops ─────────────────────────────────────────────────────────
-  const onUpdateProfile = async (id, patch) => { await updateProfile(id, patch); setUsers(prev=>prev.map(u=>u.id===id?{...u,...patch}:u)) }
-  const onDeleteProfile = async (id) => { await updateProfile(id, { active: false }); setUsers(prev=>prev.filter(u=>u.id!==id)) }
+  const onUpdateProfile = useCallback(async (id, patch) => { await updateProfile(id, patch); setUsers(prev=>prev.map(u=>u.id===id?{...u,...patch}:u)) }, [])
+  const onDeleteProfile = useCallback(async (id) => { await updateProfile(id, { active: false }); setUsers(prev=>prev.filter(u=>u.id!==id)) }, [])
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (authState === "loading") return <Loader />
@@ -395,6 +370,7 @@ export default function App() {
               navRegId={navRegId} navRegDate={navRegDate}
               clearNavReg={()=>{setNavRegId(null);setNavRegDate(null)}}
               onAddReg={onAddReg} onUpdateReg={onUpdateReg} onUploadRegPhoto={onUploadRegPhoto}
+              onHardDeleteReg={onHardDeleteReg}
               onAddClient={onAddClient} goToClient={goToClient}
             />
           )}

@@ -44,3 +44,8 @@ export async function createRegistroFoto(registroId, url) {
     .insert({ registro_id: registroId, url })
   if (error) throw error
 }
+
+export async function deleteRegistro(id) {
+  const { error } = await supabase.from('registros').delete().eq('id', id)
+  if (error) throw error
+}

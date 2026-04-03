@@ -9,7 +9,7 @@ function getBg(val, map) { return map[val] || C.border }
 export default function Registro({
   regs, user, adm, tags, photos, clients, locales, users,
   navRegId, navRegDate, clearNavReg,
-  onAddReg, onUpdateReg, onUploadRegPhoto, onAddClient, goToClient,
+  onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, goToClient,
 }) {
   const [date,      setDate]      = useState(today())
   const [viewUser,  setViewUser]  = useState(adm ? null : user.id)
@@ -43,7 +43,7 @@ export default function Registro({
 
   const del = (id) => onUpdateReg(id, { deleted:true, deleted_by:user.name, deleted_at:new Date().toISOString() })
   const restore = (id) => onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
-  const hardDel = (id) => onUpdateReg(id, { deleted:true })  // el admin puede hacer hard-delete real desde App
+  const hardDel = (id) => onHardDeleteReg(id)
 
   const onPhoto = async (e) => {
     const file = e.target.files?.[0]
@@ -216,7 +216,7 @@ export default function Registro({
         </div>
       </div>
 
-      <input ref={fRef} type="file" accept="image/*" capture="environment" style={{ display:"none" }} onChange={onPhoto} />
+      <input ref={fRef} type="file" accept="image/*" style={{ display:"none" }} onChange={onPhoto} />
 
       <div style={{ overflowX:"auto", borderRadius:12, border:`1px solid ${C.border}` }}>
         <table style={{ width:"100%", borderCollapse:"collapse", minWidth:1300, fontSize:13 }}>

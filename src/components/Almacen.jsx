@@ -90,7 +90,7 @@ export default function Almacen({
           {/* Archivos */}
           <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
             <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:12, color:C.accent }}>Archivos / Grabaciones</h3>
-            <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" style={{ display:"none" }} onChange={e=>{const f=e.target.files?.[0];if(f)onAddAlmacenArchivo(s.id,f);e.target.value=""}} />
+            <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;try{await onAddAlmacenArchivo(s.id,f)}catch(err){alert("Error subiendo archivo: "+err.message)}e.target.value=""}} />
             <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"8px 16px", fontSize:12, fontWeight:600, marginBottom:12 }}>Subir archivo</button>
             {!(s.almacen_archivos||[]).length && <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:13, background:C.cardAlt, borderRadius:8 }}>Sin archivos.</div>}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(80px, 1fr))", gap:8 }}>
