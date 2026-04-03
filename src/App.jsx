@@ -463,6 +463,7 @@ export default function App() {
   const changeTab = (t) => {
     if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
     setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null)
+    try { localStorage.removeItem("client_view"); localStorage.removeItem("client_viewEmp"); localStorage.removeItem("almacen_view") } catch {}
   }
 
   return (
