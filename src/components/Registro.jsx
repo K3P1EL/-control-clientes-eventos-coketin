@@ -20,6 +20,7 @@ export default function Registro({
   const [contractFiles, setContractFiles] = useState(null) // { regId, files[] }
   const [contractUploading, setContractUploading] = useState(new Set())
   const [previewRegId, setPreviewRegId] = useState(null)
+  const [viewFile, setViewFile] = useState(null) // archivo to view fullscreen
   const cRef = useRef(null)
 
   useEffect(() => {
@@ -271,6 +272,48 @@ export default function Registro({
         </div>
       )}
 
+      {/* File preview modal */}
+      {previewRegId && (() => {
+        const linked = clients.find(c => (c.reg_ids||[]).includes(previewRegId))
+        const archivos = linked ? (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[]) : []
+        if (!archivos.length) return null
+        return (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={()=>setPreviewRegId(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:24, maxWidth:420, width:"100%" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:C.text }}>{archivos.length} archivo{archivos.length>1?"s":""}</h3>
+                <button onClick={()=>setPreviewRegId(null)} style={{ background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:26, height:26, cursor:"pointer", fontSize:14, fontWeight:700 }}>x</button>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(90px, 1fr))", gap:10 }}>
+                {archivos.map(ar => (
+                  <div key={ar.id} onClick={()=>{setPreviewRegId(null);setViewFile(ar)}} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer", aspectRatio:"1", position:"relative" }}>
+                    {ar.tipo==="image" || ar.tipo?.startsWith("image")
+                      ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                      : ar.tipo==="video" || ar.tipo?.startsWith("video")
+                      ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="28" height="28" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg><span style={{ fontSize:9,color:C.muted }}>Video</span></div>
+                      : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="24" height="24" fill="none" stroke={C.red} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><span style={{ fontSize:9,color:C.muted }}>PDF</span></div>}
+                    <div style={{ position:"absolute", bottom:0, left:0, right:0, background:"rgba(0,0,0,.6)", padding:"3px 6px", fontSize:9, color:"#fff", textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap" }}>{ar.nombre||"Archivo"}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Fullscreen file viewer */}
+      {viewFile && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.88)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }} onClick={()=>setViewFile(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ maxWidth:"92vw", maxHeight:"92vh", position:"relative" }}>
+            <button onClick={()=>setViewFile(null)} style={{ position:"absolute", top:-14, right:-14, background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:32, height:32, cursor:"pointer", fontSize:18, fontWeight:700, zIndex:1 }}>x</button>
+            {(viewFile.tipo==="image"||viewFile.tipo?.startsWith("image")) && <img src={viewFile.url} alt="" style={{ maxWidth:"90vw", maxHeight:"85vh", borderRadius:10, objectFit:"contain" }} />}
+            {(viewFile.tipo==="video"||viewFile.tipo?.startsWith("video")) && <video src={viewFile.url} controls autoPlay style={{ maxWidth:"90vw", maxHeight:"85vh", borderRadius:10 }} />}
+            {viewFile.tipo==="pdf"||viewFile.tipo==="application/pdf" ? <embed src={viewFile.url} type="application/pdf" style={{ width:"85vw", height:"85vh", borderRadius:10 }} /> : null}
+            <div style={{ textAlign:"center", marginTop:8, color:"#fff", fontSize:12 }}>{viewFile.nombre||"Archivo"}</div>
+          </div>
+        </div>
+      )}
+
       <div style={{ overflowX:"auto", borderRadius:12, border:`1px solid ${C.border}` }}>
         <table style={{ width:"100%", borderCollapse:"collapse", minWidth:1300, fontSize:13 }}>
           <thead>
@@ -320,36 +363,20 @@ export default function Registro({
                   <td style={td}>{(() => {
                     const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
                     const archivos = linked ? (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[]) : []
-                    const fileCount = archivos.length
+                    const n = archivos.length
                     const isUp = contractUploading.has(r.id)
                     return (
-                      <div style={{ display:"flex", alignItems:"center", gap:5, justifyContent:"center", position:"relative" }}>
-                        {/* Upload button */}
+                      <div style={{ display:"flex", alignItems:"center", gap:5, justifyContent:"center" }}>
                         {isUp
                           ? <span style={{ display:"inline-flex", alignItems:"center", fontSize:10, color:C.accent }}><span style={{ width:12,height:12,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .8s linear infinite",display:"inline-block" }} /></span>
-                          : canEdit && <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir archivo" style={{ background:fileCount?C.green+"18":C.accent+"15", border:`1px solid ${fileCount?C.green+"44":C.accent+"33"}`, borderRadius:8, cursor:"pointer", padding:"4px 8px", display:"flex", alignItems:"center", gap:5 }}>
-                              <svg width="14" height="14" fill="none" stroke={fileCount?C.green:C.accent} strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg>
-                              {fileCount > 0 && <span style={{ fontSize:10, fontWeight:700, color:C.green }}>{fileCount}</span>}
+                          : canEdit && <button onClick={()=>{setContractUpId(r.id);cRef.current?.click()}} title="Subir archivo" style={{ background:n?C.green+"18":C.accent+"15", border:`1px solid ${n?C.green+"44":C.accent+"33"}`, borderRadius:8, cursor:"pointer", padding:"4px 8px", display:"flex", alignItems:"center", gap:5 }}>
+                              <svg width="14" height="14" fill="none" stroke={n?C.green:C.accent} strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/><circle cx="5" cy="5" r="1"/><path d="M12 9l-2.5-2.5-6 6"/></svg>
+                              {n > 0 && <span style={{ fontSize:10, fontWeight:700, color:C.green }}>{n}</span>}
                             </button>
                         }
-                        {/* View files button */}
-                        {fileCount > 0 && <button onClick={()=>setPreviewRegId(previewRegId===r.id?null:r.id)} title="Ver archivos" style={{ background:C.teal+"18", border:`1px solid ${C.teal}33`, borderRadius:8, cursor:"pointer", padding:"4px 6px", display:"flex", alignItems:"center" }}>
+                        {n > 0 && <button onClick={()=>setPreviewRegId(r.id)} title="Ver archivos" style={{ background:C.teal+"18", border:`1px solid ${C.teal}33`, borderRadius:8, cursor:"pointer", padding:"4px 6px", display:"flex", alignItems:"center" }}>
                           <svg width="14" height="14" fill="none" stroke={C.teal} strokeWidth="2"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z"/><circle cx="7" cy="7" r="1.5"/></svg>
                         </button>}
-                        {/* Mini preview popup */}
-                        {previewRegId===r.id && fileCount > 0 && (
-                          <div style={{ position:"absolute", top:"100%", left:"50%", transform:"translateX(-50%)", marginTop:6, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:10, zIndex:50, display:"flex", gap:6, flexWrap:"wrap", minWidth:100, maxWidth:260, boxShadow:"0 8px 24px rgba(0,0,0,.4)" }}>
-                            {archivos.map(ar => (
-                              <div key={ar.id} onClick={()=>window.open(ar.url)} style={{ width:48, height:48, borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer", flexShrink:0 }}>
-                                {ar.tipo==="image" || ar.tipo?.startsWith("image")
-                                  ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
-                                  : ar.tipo==="video" || ar.tipo?.startsWith("video")
-                                  ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="16" height="16" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l10 6-10 6V3z"/></svg></div>
-                                  : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:C.yellow,fontWeight:700 }}>PDF</div>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     )
                   })()}</td>
