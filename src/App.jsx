@@ -538,7 +538,7 @@ export default function App() {
           )}
           {tab==="agenda"    && <Agenda clients={clients} user={user} adm={adm} goToClient={goToClient} />}
           {tab==="auditoria" && <Audit regs={regs} photos={photos} />}
-          {tab==="dashboard" && <Dash regs={regs} />}
+          {tab==="dashboard" && <Dash regs={regs} adm={adm} />}
           {tab==="admin" && adm && (
             <Admin
               users={users} tags={tags} locales={locales} prodTags={prodTags}

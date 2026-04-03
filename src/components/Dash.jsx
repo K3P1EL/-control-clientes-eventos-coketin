@@ -1,8 +1,55 @@
+import { useState, useEffect } from "react"
+import { supabase } from "../lib/supabase"
 import { C } from "../lib/colors"
 import { Stat } from "./shared"
 import { today } from "../lib/helpers"
 
-export default function Dash({ regs }) {
+const BUCKET_LIMIT = 1 * 1024 * 1024 * 1024 // 1GB free tier
+
+function StorageUsage() {
+  const [usage, setUsage] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let totalSize = 0
+        for (const folder of ["registros", "contratos", "almacen"]) {
+          const { data, error: listErr } = await supabase.storage.from("archivos").list(folder, { limit: 1000 })
+          if (listErr) throw listErr
+          if (data) totalSize += data.reduce((sum, f) => sum + (f.metadata?.size || 0), 0)
+        }
+        setUsage(totalSize)
+      } catch (e) {
+        console.error("Storage usage error:", e)
+        setError(e.message)
+      }
+    })()
+  }, [])
+
+  if (error) return <div style={{ color: C.muted, fontSize: 12 }}>No se pudo obtener el uso de storage</div>
+  if (usage === null) return <div style={{ color: C.muted, fontSize: 12 }}>Calculando storage...</div>
+
+  const pct = Math.min((usage / BUCKET_LIMIT) * 100, 100)
+  const barColor = pct >= 80 ? C.red : pct >= 50 ? C.yellow : C.green
+  const fmtSize = (b) => b < 1024*1024 ? `${(b/1024).toFixed(0)}KB` : b < 1024*1024*1024 ? `${(b/(1024*1024)).toFixed(1)}MB` : `${(b/(1024*1024*1024)).toFixed(2)}GB`
+
+  return (
+    <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20, marginTop: 24 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 600, marginTop: 0, marginBottom: 12 }}>Storage</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 22, fontWeight: 700, color: barColor }}>{fmtSize(usage)}</span>
+        <span style={{ fontSize: 14, color: C.muted, alignSelf: "flex-end" }}>/ {fmtSize(BUCKET_LIMIT)}</span>
+      </div>
+      <div style={{ height: 10, borderRadius: 5, background: C.border, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 5, transition: "width .5s, background .5s" }} />
+      </div>
+      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{pct.toFixed(1)}% usado</div>
+    </div>
+  )
+}
+
+export default function Dash({ regs, adm }) {
   const r = regs.filter(x => x.fecha === today())
   const est = {}
   r.forEach(x => { if (x.estado) est[x.estado] = (est[x.estado]||0) + 1 })
@@ -36,6 +83,7 @@ export default function Dash({ regs }) {
           ))}
         </div>
       </div>
+      {adm && <StorageUsage />}
     </div>
   )
 }
