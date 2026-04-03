@@ -342,7 +342,7 @@ export default function Registro({
                   return (
                     <div key={ar.id} style={{ borderRadius:12, overflow:"hidden", border:`2px solid ${isErr?C.red:C.border}`, position:"relative", opacity:isErr?.5:1, transition:"opacity .2s" }}>
                       {/* Thumbnail */}
-                      <div onClick={()=>{setPreviewRegId(null);setViewFile(ar)}} style={{ cursor:"pointer", aspectRatio:"1" }}>
+                      <div onClick={()=>{setViewFile(ar)}} style={{ cursor:"pointer", aspectRatio:"1" }}>
                         {ar.tipo==="image" || ar.tipo?.startsWith("image")
                           ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
                           : ar.tipo==="video" || ar.tipo?.startsWith("video")
