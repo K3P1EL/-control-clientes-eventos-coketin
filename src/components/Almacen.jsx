@@ -175,8 +175,13 @@ export default function Almacen({
         {searchCl.trim() && (
           <div style={{ marginTop:10, maxHeight:220, overflow:"auto", borderTop:`1px solid ${C.border}`, paddingTop:10 }}>
             {!searchResults.length && <div style={{ padding:16, textAlign:"center", color:C.muted, fontSize:13 }}>No se encontró ningún cliente.</div>}
-            {searchResults.map(c => (
-              <button key={c.id} onClick={async()=>{await onAddSalida(c.id,c.nombre||"",c.code||"");setSearchCl("")}} style={{
+            {searchResults.map(c => {
+              const existing = almacen.find(s=>s.client_id===c.id && s.estado!=="devuelto")
+              return (
+              <button key={c.id} onClick={async()=>{
+                if (existing) { setView(existing.id); setSearchCl(""); return }
+                const ns = await onAddSalida(c.id,c.nombre||"",c.code||""); setView(ns.id); setSearchCl("")
+              }} style={{
                 width:"100%", padding:"10px 14px", border:`1px solid ${C.border}`, borderRadius:8, background:C.cardAlt,
                 cursor:"pointer", textAlign:"left", color:C.text, fontSize:13, marginBottom:6,
                 display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all .15s",
@@ -191,9 +196,9 @@ export default function Almacen({
                     {c.dni && <span style={{ fontSize:10, color:C.yellow }}>DNI: {c.dni}</span>}
                   </div>
                 </div>
-                <div style={{ background:C.accent+"22", borderRadius:6, padding:"4px 10px", fontSize:11, fontWeight:700, color:C.accent, whiteSpace:"nowrap" }}>+ Crear salida</div>
+                <div style={{ background:existing?C.teal+"22":C.accent+"22", borderRadius:6, padding:"4px 10px", fontSize:11, fontWeight:700, color:existing?C.teal:C.accent, whiteSpace:"nowrap" }}>{existing?"→ Ver salida":"+ Crear salida"}</div>
               </button>
-            ))}
+            )})}
           </div>
         )}
       </div>
