@@ -11,7 +11,10 @@ export async function uploadFile(folder, fileName, file) {
   const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
   const { error } = await supabase.storage
     .from('archivos')
-    .upload(path, file, { upsert: true })
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type || 'application/octet-stream',
+    })
   if (error) throw error
   const { data } = supabase.storage.from('archivos').getPublicUrl(path)
   return data.publicUrl

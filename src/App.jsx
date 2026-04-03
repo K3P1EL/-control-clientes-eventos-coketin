@@ -183,9 +183,18 @@ export default function App() {
 
   // ── REGISTRO ops ──────────────────────────────────────────────────────────
   const onAddReg = useCallback(async (payload) => {
-    const data = await createRegistro(payload)
-    setRegs(prev => [...prev, data])
-    return data
+    // Optimistic: show row immediately with temp id
+    const tempId = `temp_${Date.now()}`
+    const optimistic = { ...payload, id: tempId, created_at: new Date().toISOString() }
+    setRegs(prev => [...prev, optimistic])
+    try {
+      const data = await createRegistro(payload)
+      setRegs(prev => prev.map(r => r.id === tempId ? data : r))
+      return data
+    } catch (e) {
+      setRegs(prev => prev.filter(r => r.id !== tempId))
+      throw e
+    }
   }, [])
   const onUpdateReg = useCallback(async (id, patch) => {
     await updateRegistro(id, patch)

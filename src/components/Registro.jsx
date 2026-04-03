@@ -16,6 +16,7 @@ export default function Registro({
   const [selLocal,  setSelLocal]  = useState(locales[0] || "")
   const [dateRange, setDateRange] = useState("dia")
   const [upId,      setUpId]      = useState(null)
+  const [uploading, setUploading] = useState(false)
   const fRef = useRef(null)
 
   useEffect(() => {
@@ -48,10 +49,10 @@ export default function Registro({
   const onPhoto = async (e) => {
     const file = e.target.files?.[0]
     if (!file || !upId) return
+    setUploading(true)
     try { await onUploadRegPhoto(upId, file) }
     catch (err) { alert("Error subiendo foto: " + err.message) }
-    setUpId(null)
-    e.target.value = ""
+    finally { setUploading(false); setUpId(null); e.target.value = "" }
   }
 
   // ── ADMIN: employee grid ──────────────────────────────────────────────────
@@ -267,7 +268,10 @@ export default function Registro({
                   <td style={td}>
                     <div style={{ display:"flex", alignItems:"center", gap:4, ...lock }}>
                       <Bdg c={fc}><select value={r.foto} onChange={e=>upd(r.id,"foto",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option><option value="SI">SI</option><option value="NO">NO</option></select></Bdg>
-                      {canEdit && <button onClick={()=>{setUpId(r.id);fRef.current?.click()}} title="Subir foto" style={ib}><svg width="16" height="16" fill="none" stroke={C.accent} strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3-3-7 7"/></svg></button>}
+                      {canEdit && (uploading && upId===r.id
+                        ? <span style={{ fontSize:10, color:C.muted }}>Subiendo...</span>
+                        : <button onClick={()=>{setUpId(r.id);fRef.current?.click()}} title="Subir foto" style={ib}><svg width="16" height="16" fill="none" stroke={C.accent} strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3-3-7 7"/></svg></button>
+                      )}
                       {photos[r.id] && <button onClick={()=>window.open(photos[r.id])} title="Ver foto" style={ib}><svg width="16" height="16" fill="none" stroke={C.teal} strokeWidth="2"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg></button>}
                     </div>
                   </td>
