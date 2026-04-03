@@ -99,10 +99,18 @@ export default function App() {
 
   // ── Auth listener ─────────────────────────────────────────────────────────
   useEffect(() => {
-    getSession().then(session => {
-      if (session?.user) handleLogin(session.user.id)
-      else setAuthState("logged_out")
-    })
+    // Fallback: if session check or data load hangs, show login after 3s
+    const fallback = setTimeout(() => {
+      setAuthState(prev => prev === "loading" ? "logged_out" : prev)
+    }, 3000)
+
+    getSession()
+      .then(session => {
+        if (session?.user) return handleLogin(session.user.id)
+        else setAuthState("logged_out")
+      })
+      .catch(() => setAuthState("logged_out"))
+      .finally(() => clearTimeout(fallback))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
