@@ -182,6 +182,7 @@ export default function Clientes({
     const ct        = contratos[activeContrato] || contratos[0]
     const totalAdel = (ct?.adelantos||[]).filter(a=>!a.invalid).reduce((s,a)=>s+(Number(a.monto)||0),0)
     const resto     = (Number(ct?.total)||0) - totalAdel
+    const isSimple  = (user.view_mode || "completo") === "simple"
 
     return (
       <div>
@@ -329,12 +330,14 @@ export default function Clientes({
           </div>
         )}
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24 }}>
+        <div style={{ display:"grid", gridTemplateColumns:isSimple?"1fr":"1fr 1fr", gap:16, marginBottom:24 }}>
           {/* LEFT: Datos + Contrato */}
           <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
-            <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:16, color:C.accent }}>Datos del Cliente</h3>
+            {!isSimple && <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:16, color:C.accent }}>Datos del Cliente</h3>}
+            {isSimple && <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:16, color:C.accent }}>Ficha rapida</h3>}
 
-            {/* OCR */}
+            {/* OCR + Client data — hidden in simple mode */}
+            {!isSimple && <>
             <input ref={ocrRef} type="file" accept="image/*" style={{ display:"none" }} onChange={async e=>{const f=e.target.files?.[0];if(f) await scanPhoto(c.id,f);e.target.value=""}} />
             <div style={{ marginBottom:14 }}>
               <button onClick={()=>ocrRef.current?.click()} disabled={ocrLoading || !visionKey} style={{ background:`linear-gradient(135deg,${C.purple}22,${C.blue}22)`, border:`1px solid ${C.purple}44`, borderRadius:8, color:visionKey?C.purple:C.muted, cursor:ocrLoading?"wait":visionKey?"pointer":"not-allowed", padding:"8px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:6, width:"100%" }}>
@@ -431,6 +434,8 @@ export default function Clientes({
               <div><label style={lbl}>Referencia</label><DInput value={c.referencia} onCommit={v=>onUpdateClient(c.id,"referencia",v)} style={inp} placeholder="Cerca de..." /></div>
             </div>
 
+            </>}
+
             {/* ── Contrato ── */}
             {ct && (
               <div style={{ borderTop:`1px solid ${C.border}`, marginTop:14, paddingTop:14 }}>
@@ -438,7 +443,7 @@ export default function Clientes({
                   <h3 style={{ fontSize:15, fontWeight:600, margin:0, color:C.accent }}>
                     {ct.tipo==="contrato"?"Contrato":"Proforma"}{contratos.length>1?` #${activeContrato+1}`:""}
                   </h3>
-                  <div style={{ display:"flex", gap:6 }}>
+                  {!isSimple && <div style={{ display:"flex", gap:6 }}>
                     <div style={{ display:"inline-flex", borderRadius:20, background:C.bg, padding:2 }}>
                       <button onClick={()=>{if(ct.tipo!=="proforma"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"proforma"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo!=="contrato"?C.yellow:C.bg, color:ct.tipo!=="contrato"?"#fff":C.muted, transition:"all .2s" }}>Proforma</button>
                       <button onClick={()=>{if(ct.tipo!=="contrato"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"contrato"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo==="contrato"?C.green:C.bg, color:ct.tipo==="contrato"?"#fff":C.muted, transition:"all .2s" }}>Contrato</button>
@@ -446,7 +451,7 @@ export default function Clientes({
                     <button onClick={()=>onUpdateContrato(c.id,ct.id,{estado:ct.estado==="finalizado"?"activo":"finalizado"})} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.estado==="finalizado"?C.blue+"33":C.border, color:ct.estado==="finalizado"?C.blue:C.muted }}>
                       {ct.estado==="finalizado"?"✓ Finalizado":"En curso"}
                     </button>
-                  </div>
+                  </div>}
                 </div>
 
                 {/* Fechas */}
@@ -465,7 +470,8 @@ export default function Clientes({
                   </div>
                 </div>
 
-                {/* Producto de interés */}
+                {/* Producto de interés — hidden in simple */}
+                {!isSimple && <>
                 <div>
                   <label style={lbl}>Producto de interés</label>
                   {prodTags.length>0 && (
@@ -529,6 +535,7 @@ export default function Clientes({
                   </div>
                 )}
 
+                </>}
                 {/* Archivos de contrato */}
                 <div style={{ marginTop:8 }}>
                   <label style={lbl}>Contrato (archivos)</label>
@@ -571,8 +578,8 @@ export default function Clientes({
             <div style={{ marginTop:12, fontSize:11, color:C.muted }}>Creado por {c.created_by_name} — {fmtDate(c.created_at)}</div>
           </div>
 
-          {/* RIGHT: Pagos */}
-          {ct && (adm||(user.permissions||[]).includes("pagos")) && (
+          {/* RIGHT: Pagos — hidden in simple */}
+          {!isSimple && ct && (adm||(user.permissions||[]).includes("pagos")) && (
             <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
               <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:12, color:C.accent }}>Pagos y Adelantos</h3>
               <div style={{ background:C.cardAlt, borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
