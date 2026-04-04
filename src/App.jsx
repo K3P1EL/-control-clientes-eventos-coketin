@@ -67,6 +67,13 @@ export default function App() {
   const [trashDays,  setTrashDays]  = useState(10)
   uploadCfgRef.current = uploadCfg
 
+  // ── URL routing (minimal — only /almacen/FIC-XXXXX) ────────────────────
+  const [pendingAlmLink, setPendingAlmLink] = useState(() => {
+    const m = window.location.pathname.match(/^\/almacen\/(FIC-[A-Z0-9]+)$/i)
+    if (m) { window.history.replaceState({}, "", "/"); return m[1].toUpperCase() }
+    return null
+  })
+
   // ── Navigation ────────────────────────────────────────────────────────────
   const [tab,            setTab_]           = useState(() => { try { return localStorage.getItem("app_tab") || "registro" } catch { return "registro" } })
   const setTab = useCallback((t) => { setTab_(t); try { localStorage.setItem("app_tab", t) } catch {} }, [])
@@ -214,6 +221,38 @@ export default function App() {
   }, [])
 
   const adm = user?.is_admin === true
+
+  // ── Process /almacen/FIC-XXXXX link ────────────────────────────────────
+  useEffect(() => {
+    if (!pendingAlmLink || !dataReady || !user) return
+    const hasAlmPerm = user.is_admin || (user.permissions||[]).includes("almacen")
+    if (!hasAlmPerm) {
+      alert("No tienes permisos para acceder al almacen")
+      setPendingAlmLink(null)
+      return
+    }
+    const client = clients.find(c => c.code === pendingAlmLink && !c.deleted_at)
+    if (!client) {
+      alert("Ficha no encontrada: " + pendingAlmLink)
+      setPendingAlmLink(null)
+      return
+    }
+    // Check if salida already exists
+    const existing = almacen.find(s => s.client_id === client.id && s.estado !== "devuelto")
+    if (existing) {
+      setTab("almacen")
+      setNavAlmClientId(client.id)
+    } else {
+      createSalida({ client_id: client.id, client_name: client.nombre||"", client_code: client.code||"", created_by: user.id, created_by_name: user.name, estado: "por_recoger", notas: "" })
+        .then(data => {
+          setAlmacen(prev => [...prev, data])
+          setTab("almacen")
+          setNavAlmClientId(client.id)
+        })
+        .catch(e => alert("Error creando salida: " + e.message))
+    }
+    setPendingAlmLink(null)
+  }, [pendingAlmLink, dataReady, user, clients, almacen])
 
   // ── REGISTRO ops ──────────────────────────────────────────────────────────
   const onAddReg = useCallback(async (payload) => {
