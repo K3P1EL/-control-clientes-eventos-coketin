@@ -40,70 +40,73 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
       <h2 style={{ fontSize:20, fontWeight:700, marginBottom:20 }}>Panel de Administración</h2>
 
       {/* Usuarios */}
-      <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, marginBottom:24 }}>
-        <h3 style={{ fontSize:16, fontWeight:600, marginTop:0, marginBottom:16 }}>Gestión de Usuarios</h3>
-        <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-            <thead>
-              <tr style={{ background:C.cardAlt }}>
-                {["Nombre","Correo","Estado","Ver Clientes","Permisos","Acciones"].map(h=>
-                  <th key={h} style={{ padding:10, textAlign:"left", fontWeight:600, color:C.muted, fontSize:12, borderBottom:`1px solid ${C.border}` }}>{h}</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {!nonAdmins.length && (
-                <tr><td colSpan={6} style={{ padding:30, textAlign:"center", color:C.muted }}>No hay usuarios.</td></tr>
-              )}
-              {nonAdmins.map(u => (
-                <tr key={u.id} style={{ borderBottom:`1px solid ${C.border}` }}>
-                  <td style={td}>{u.name}</td>
-                  <td style={td}>{u.email}</td>
-                  <td style={td}>
-                    <button onClick={()=>togActive(u.id)} style={{ padding:"4px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:u.active?C.green:C.red, color:"#fff" }}>
-                      {u.active?"Activo":"Inactivo"}
-                    </button>
-                  </td>
-                  <td style={td}>
-                    <select value={u.client_visibility||"always"} onChange={e=>setVis(u.id,e.target.value)} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none", minWidth:90 }}>
-                      {VIS_OPTS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-                    </select>
-                  </td>
-                  <td style={td}>
-                    <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-                      {ALL_PERMS.map(p => (
-                        <button key={p} onClick={()=>togPerm(u.id,p)} style={{
-                          padding:"3px 10px", borderRadius:12, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
-                          background:(u.permissions||[]).includes(p)?C.accent+"33":C.border,
-                          color:(u.permissions||[]).includes(p)?C.accent:C.muted,
-                        }}>{p}</button>
+      <div style={{ marginBottom:24 }}>
+        <h3 style={{ fontSize:16, fontWeight:600, marginBottom:16 }}>Gestion de Usuarios</h3>
+        {!nonAdmins.length && <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:30, textAlign:"center", color:C.muted }}>No hay usuarios.</div>}
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {nonAdmins.map(u => (
+            <div key={u.id} style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:18 }}>
+              {/* Row 1: Name, email, status, local, delete */}
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12, flexWrap:"wrap" }}>
+                <div style={{ flex:1, minWidth:150 }}>
+                  <div style={{ fontSize:15, fontWeight:700, color:C.text }}>{u.name||"Sin nombre"}</div>
+                  <div style={{ fontSize:12, color:C.muted }}>{u.email}</div>
+                </div>
+                <button onClick={()=>togActive(u.id)} style={{ padding:"4px 14px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:u.active?C.green:C.red, color:"#fff" }}>
+                  {u.active?"Activo":"Inactivo"}
+                </button>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <span style={{ fontSize:11, color:C.muted }}>Local:</span>
+                  <select value={u.local||""} onChange={e=>onUpdateProfile(u.id,{local:e.target.value})} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none" }}>
+                    <option value="">Sin asignar</option>
+                    {locales.map(l=><option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <span style={{ fontSize:11, color:C.muted }}>Ver clientes:</span>
+                  <select value={u.client_visibility||"always"} onChange={e=>setVis(u.id,e.target.value)} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none" }}>
+                    {VIS_OPTS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+                <button onClick={()=>{if(window.confirm("¿Eliminar este usuario permanentemente?"))onDeleteProfile(u.id)}} title="Eliminar" style={{ background:C.danger+"22", border:"none", borderRadius:8, cursor:"pointer", color:C.danger, padding:"6px 8px" }}>
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
+                </button>
+              </div>
+              {/* Row 2: Permisos */}
+              <div style={{ marginBottom: (u.permissions||[]).includes("agenda") ? 12 : 0 }}>
+                <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>Permisos</div>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {ALL_PERMS.map(p => (
+                    <button key={p} onClick={()=>togPerm(u.id,p)} style={{
+                      padding:"4px 12px", borderRadius:12, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
+                      background:(u.permissions||[]).includes(p)?C.accent+"33":C.border,
+                      color:(u.permissions||[]).includes(p)?C.accent:C.muted,
+                    }}>{p}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Row 3: Agenda config (only if has agenda permission) */}
+              {(u.permissions||[]).includes("agenda") && (
+                <div style={{ background:C.cardAlt, borderRadius:8, padding:12 }}>
+                  <div style={{ fontSize:11, color:C.muted, marginBottom:8 }}>Configuracion de Agenda</div>
+                  <div style={{ display:"flex", gap:14, alignItems:"center", flexWrap:"wrap" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <span style={{ fontSize:11, color:C.text }}>Proximos</span>
+                      <input type="number" value={u.agenda_days??30} min={0} max={365}
+                        onChange={e=>onUpdateProfile(u.id,{agenda_days:Number(e.target.value)||0})}
+                        style={{ width:50, padding:"4px 6px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:12, outline:"none", textAlign:"center", fontWeight:700 }} />
+                      <span style={{ fontSize:11, color:C.text }}>dias</span>
+                    </div>
+                    <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
+                      {[["own","Sus contratos"],["all","Todo"],["local","Por local"]].map(([v,l])=>(
+                        <button key={v} onClick={()=>onUpdateProfile(u.id,{agenda_scope:v})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:(u.agenda_scope||"own")===v?C.accent:C.bg, color:(u.agenda_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
                       ))}
                     </div>
-                    {(u.permissions||[]).includes("agenda") && (
-                      <div style={{ display:"flex", gap:8, alignItems:"center", marginTop:8, flexWrap:"wrap" }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                          <span style={{ fontSize:10, color:C.muted }}>Dias:</span>
-                          <input type="number" value={u.agenda_days??30} min={0} max={365}
-                            onChange={e=>onUpdateProfile(u.id,{agenda_days:Number(e.target.value)||0})}
-                            style={{ width:50, padding:"3px 6px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none", textAlign:"center" }} />
-                        </div>
-                        <div style={{ display:"inline-flex", borderRadius:14, background:C.bg, padding:1 }}>
-                          {[["own","Sus contratos"],["all","Todo"],["local","Por local"]].map(([v,l])=>(
-                            <button key={v} onClick={()=>onUpdateProfile(u.id,{agenda_scope:v})} style={{ padding:"3px 10px", borderRadius:12, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.agenda_scope||"own")===v?C.accent:C.bg, color:(u.agenda_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </td>
-                  <td style={td}>
-                    <button onClick={()=>{if(window.confirm("¿Eliminar este usuario permanentemente?"))onDeleteProfile(u.id)}} style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:4 }}>
-                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
