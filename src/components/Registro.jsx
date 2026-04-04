@@ -54,7 +54,7 @@ export default function Registro({
   const del = (id) => onUpdateReg(id, { deleted:true, deleted_by:user.name, deleted_at:new Date().toISOString() })
   const restore = (id) => onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
   const hardDel = (id) => {
-    const linked = clients.find(c => (c.reg_ids||[]).includes(id))
+    const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(id))
     setDelConfirm({ regId: id, linked })
   }
 
@@ -65,7 +65,7 @@ export default function Registro({
     if (!files.length || !contractUpId) return
     const regId = contractUpId
     setContractUpId(null)
-    const linked = clients.find(c => (c.reg_ids||[]).includes(regId))
+    const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(regId))
     if (linked) {
       // Already has ficha — upload directly, no tipo modal needed
       doUpload(regId, files, null, linked)
@@ -114,7 +114,7 @@ export default function Registro({
     e.preventDefault(); e.stopPropagation(); setDragOverRow(null)
     const files = Array.from(e.dataTransfer.files || []).filter(f => /^(image|video|application\/pdf)/.test(f.type))
     if (!files.length) return
-    const linked = clients.find(c => (c.reg_ids||[]).includes(regId))
+    const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(regId))
     if (linked) {
       doUpload(regId, files, null, linked)
     } else {
@@ -312,7 +312,7 @@ export default function Registro({
 
       {/* File preview modal */}
       {previewRegId && (() => {
-        const linked = clients.find(c => (c.reg_ids||[]).includes(previewRegId))
+        const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(previewRegId))
         if (!linked) return null
         const lastCt = (linked.contratos||[]).slice(-1)[0]
         const archivos = (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[])
@@ -476,7 +476,7 @@ export default function Registro({
                     </div>
                   </td>
                   <td style={td}>{(() => {
-                    const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
+                    const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(r.id))
                     if (linked?.erronea) return <span style={{ fontSize:10, color:C.red }}>--</span>
                     const archivos = linked ? (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[]) : []
                     const n = archivos.length
@@ -504,7 +504,7 @@ export default function Registro({
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   {/* Ficha */}
                   <td style={td}>{(() => {
-                    const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
+                    const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(r.id) && !c.deleted_at)
                     return linked
                       ? linked.erronea
                         ? <button onClick={()=>goToClient(linked.id)} style={{ fontSize:10, fontWeight:700, color:C.red, background:C.red+"15", padding:"2px 8px", borderRadius:6, border:"none", cursor:"pointer" }}>Ficha erronea</button>
