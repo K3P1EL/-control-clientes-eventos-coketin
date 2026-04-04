@@ -206,7 +206,7 @@ export default function Registro({
   const dateRegs = regs.filter(filterByDate)
   const allRows  = adm
     ? (viewUser==="__all__" ? dateRegs : dateRegs.filter(r=>r.user_id===viewUser))
-    : dateRegs.filter(r=>r.user_id===user.id && !r.deleted)
+    : dateRegs.filter(r=>r.user_id===user.id)
   const rows  = allRows
   const total = rows.filter(r=>!r.deleted).length
   const viewName = adm
