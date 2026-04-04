@@ -65,6 +65,10 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
               <button onClick={()=>togActive(u.id)} style={{ padding:"5px 16px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:u.active?C.green:C.red, color:"#fff" }}>
                 {u.active?"Activo":"Inactivo"}
               </button>
+              <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
+                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"simple"})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="simple"?C.yellow:C.bg, color:(u.view_mode||"completo")==="simple"?"#fff":C.muted, transition:"all .2s" }}>Simple</button>
+                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"completo"})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="completo"?C.accent:C.bg, color:(u.view_mode||"completo")==="completo"?"#fff":C.muted, transition:"all .2s" }}>Completo</button>
+              </div>
               <div style={{ display:"flex", alignItems:"center", gap:4 }}>
                 <span style={{ fontSize:11, color:C.muted }}>Clientes:</span>
                 <select value={u.client_visibility||"always"} onChange={e=>setVis(u.id,e.target.value)} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none" }}>
