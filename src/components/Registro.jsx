@@ -504,8 +504,11 @@ export default function Registro({
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   {/* Ficha */}
                   <td style={td}>{(() => {
-                    const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(r.id) && !c.deleted_at)
-                    return linked
+                    const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(r.id))
+                    const deleted = !linked && clients.find(c => c.deleted_at && (c.reg_ids||[]).includes(r.id))
+                    return deleted
+                      ? <span style={{ fontSize:10, fontWeight:600, color:C.muted, background:C.border, padding:"2px 8px", borderRadius:6 }}>Ficha borrada</span>
+                      : linked
                       ? linked.erronea
                         ? <button onClick={()=>goToClient(linked.id)} style={{ fontSize:10, fontWeight:700, color:C.red, background:C.red+"15", padding:"2px 8px", borderRadius:6, border:"none", cursor:"pointer" }}>Ficha erronea</button>
                         : <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>

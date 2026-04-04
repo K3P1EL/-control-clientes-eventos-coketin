@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { C } from "../lib/colors"
 
-function daysLeft(deletedAt) {
-  if (!deletedAt) return 10
-  const diff = 10 - Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000)
+function daysLeft(deletedAt, maxDays) {
+  if (!deletedAt) return maxDays
+  const diff = maxDays - Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000)
   return Math.max(0, diff)
 }
 
@@ -21,7 +21,7 @@ export default function Papelera({
   clients, contactos, regs,
   onRestoreClient, onPermanentDeleteClient,
   onRestoreContacto, onPermanentDeleteContacto,
-  adm,
+  adm, trashDays = 10,
 }) {
   const [selected, setSelected] = useState(new Set())
 
@@ -83,7 +83,7 @@ export default function Papelera({
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12 }}>
         <div>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>Papelera</h2>
-          <div style={{ fontSize:12, color:C.muted, marginTop:4 }}>Los elementos se eliminan permanentemente despues de 10 dias</div>
+          <div style={{ fontSize:12, color:C.muted, marginTop:4 }}>Los elementos se eliminan permanentemente despues de {trashDays} dias</div>
         </div>
         {items.length > 0 && (
           <div style={{ display:"flex", gap:8 }}>
@@ -104,7 +104,7 @@ export default function Papelera({
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {items.map(item => {
-            const days = daysLeft(item.deletedAt)
+            const days = daysLeft(item.deletedAt, trashDays)
             const urgent = days <= 3
             const isSel = selected.has(item.id)
             return (

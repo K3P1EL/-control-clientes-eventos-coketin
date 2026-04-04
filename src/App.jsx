@@ -64,6 +64,7 @@ export default function App() {
   const [uploadCfg,  setUploadCfg]  = useState({ maxMB: 45, quality: 0.85, allowedTypes: ['image/jpeg','image/png','application/pdf','video/mp4','video/quicktime'] })
   const uploadCfgRef = useRef(uploadCfg)
   const [visionKey,  setVisionKey]  = useState("")
+  const [trashDays,  setTrashDays]  = useState(10)
   uploadCfgRef.current = uploadCfg
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -92,7 +93,7 @@ export default function App() {
   const loadData = async () => {
     if (dataLoaded.current) return
     dataLoaded.current = true
-    const [regData, fotosData, clientData, almData, invData, contData, tagData, locData, ptData, profileData, upCfg, gvKey] = await Promise.all([
+    const [regData, fotosData, clientData, almData, invData, contData, tagData, locData, ptData, profileData, upCfg, gvKey, tDays] = await Promise.all([
       safe(listRegistros(),            []),
       safe(listRegistroFotos(),        []),
       safe(listClients(),              []),
@@ -105,6 +106,7 @@ export default function App() {
       safe(listProfiles(),             []),
       safe(getConfig("upload_config"), null),
       safe(getConfig("google_vision_key"), null),
+      safe(getConfig("trash_days"), null),
     ])
     setRegs(regData)
     const photosObj = {}
@@ -120,6 +122,7 @@ export default function App() {
     setUsers(profileData)
     if (upCfg) setUploadCfg(upCfg)
     if (gvKey) setVisionKey(gvKey)
+    if (tDays) setTrashDays(tDays)
     setDataReady(true)
   }
 
@@ -511,6 +514,7 @@ export default function App() {
   const onSetProdTags = useCallback(async (v) => { setProdTags(v); setConfig("producto_tags", v).catch(()=>alert("Error guardando productos")) }, [])
   const onSetUploadCfg = useCallback(async (v) => { setUploadCfg(v); setConfig("upload_config", v).catch(()=>alert("Error guardando config de uploads")) }, [])
   const onSetVisionKey = useCallback(async (v) => { setVisionKey(v); setConfig("google_vision_key", v).catch(()=>alert("Error guardando API key")) }, [])
+  const onSetTrashDays = useCallback(async (v) => { setTrashDays(v); setConfig("trash_days", v).catch(()=>alert("Error guardando config")) }, [])
 
   // ── PROFILES ops ─────────────────────────────────────────────────────────
   const onUpdateProfile = useCallback(async (id, patch) => {
@@ -605,13 +609,14 @@ export default function App() {
               users={users} tags={tags} locales={locales} prodTags={prodTags}
               uploadCfg={uploadCfg} onSetUploadCfg={onSetUploadCfg}
               visionKey={visionKey} onSetVisionKey={onSetVisionKey}
+              trashDays={trashDays} onSetTrashDays={onSetTrashDays}
               onSetTags={onSetTags} onSetLocales={onSetLocales} onSetProdTags={onSetProdTags}
               onUpdateProfile={onUpdateProfile} onDeleteProfile={onDeleteProfile}
             />
           )}
           {tab==="papelera" && (
             <Papelera
-              clients={clients} contactos={contactos} regs={regs} adm={adm}
+              clients={clients} contactos={contactos} regs={regs} adm={adm} trashDays={trashDays}
               onRestoreClient={onRestoreClient} onPermanentDeleteClient={onPermanentDeleteClient}
               onRestoreContacto={onRestoreContacto} onPermanentDeleteContacto={onPermanentDeleteContacto}
             />

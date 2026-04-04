@@ -10,7 +10,7 @@ const ALL_TYPES = [
   { value:"application/pdf", label:"PDF" }, { value:"video/mp4", label:"MP4" }, { value:"video/quicktime", label:"MOV" },
 ]
 
-export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSetUploadCfg, visionKey, onSetVisionKey, onSetTags, onSetLocales, onSetProdTags, onUpdateProfile, onDeleteProfile }) {
+export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSetUploadCfg, visionKey, onSetVisionKey, trashDays, onSetTrashDays, onSetTags, onSetLocales, onSetProdTags, onUpdateProfile, onDeleteProfile }) {
   const [nt,  setNt]  = useState("")
   const [nl,  setNl]  = useState("")
   const [npt, setNpt] = useState("")
@@ -223,6 +223,15 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
             {visionKey ? <span style={{ fontSize:11, color:C.green, fontWeight:600 }}>Configurada</span> : <span style={{ fontSize:11, color:C.muted }}>Sin configurar</span>}
           </div>
           <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>Obtener en Google Cloud Console &gt; APIs &gt; Vision API. Se usa para escanear DNI/documentos en fichas de cliente.</div>
+        </div>
+        <div style={{ marginTop:16 }}>
+          <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:6 }}>Dias de papelera</label>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <input type="number" value={trashDays??10} min={1} max={90}
+              onChange={e=>onSetTrashDays(Number(e.target.value)||10)}
+              style={{ ...inp, marginBottom:0, width:70, textAlign:"center", fontWeight:700 }} />
+            <span style={{ fontSize:12, color:C.muted }}>dias antes de eliminarse permanentemente</span>
+          </div>
         </div>
       </div>
 
