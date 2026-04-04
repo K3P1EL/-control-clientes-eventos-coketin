@@ -466,11 +466,18 @@ export default function Clientes({
                   {(ct.contrato_archivos||[]).length > 0 && (
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:8 }}>
                       {(ct.contrato_archivos||[]).map((item,idx) => (
-                        <div key={item.id||idx} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer" }} onClick={()=>setViewContratoImg(item)}>
-                          <div style={{ aspectRatio:"1" }}>
+                        <div key={item.id||idx} style={{ borderRadius:10, overflow:"hidden", border:`2px solid ${errorFiles.has(item.id)?C.red:C.border}`, opacity:errorFiles.has(item.id)?.5:1 }}>
+                          <div onClick={()=>setViewContratoImg(item)} style={{ cursor:"pointer", aspectRatio:"1" }}>
                             {item.tipo==="image" ? <img src={item.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
                             : item.tipo==="video" ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
                             : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.yellow,fontWeight:700 }}>PDF</div>}
+                          </div>
+                          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px 6px", background:C.cardAlt }}>
+                            <span style={{ fontSize:8, color:errorFiles.has(item.id)?C.red:C.muted, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{errorFiles.has(item.id)?"Error":item.nombre||"Archivo"}</span>
+                            <div style={{ display:"flex", gap:3 }}>
+                              <button onClick={e=>{e.stopPropagation();setErrorFiles(prev=>{const s=new Set(prev);if(s.has(item.id))s.delete(item.id);else s.add(item.id);return s})}} style={{ background:errorFiles.has(item.id)?C.yellow+"22":C.red+"22", border:"none", borderRadius:3, cursor:"pointer", padding:"1px 4px", fontSize:8, fontWeight:700, color:errorFiles.has(item.id)?C.yellow:C.red }}>{errorFiles.has(item.id)?"↩":"!"}</button>
+                              {adm && <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar?"))onDeleteContratoArchivo(c.id,ct.id,item.id)}} style={{ background:C.danger+"22", border:"none", borderRadius:3, cursor:"pointer", padding:"1px 4px", fontSize:8, color:C.danger }}>x</button>}
+                            </div>
                           </div>
                         </div>
                       ))}
