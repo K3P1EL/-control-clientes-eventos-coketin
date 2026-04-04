@@ -64,7 +64,8 @@ export default function Clientes({
   const [errorFiles, setErrorFiles] = useState(new Set())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [selectedFichas, setSelectedFichas] = useState(new Set())
-  const [colorFilter, setColorFilter] = useState(null) // null | "normal" | "anterior" | "naranja" | "erronea" | "W" | "F"
+  const [statusFilter, setStatusFilter] = useState(null) // null | "anterior" | "naranja" | "erronea"
+  const [canalFilter, setCanalFilter] = useState(null) // null | "W" | "F"
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
@@ -725,33 +726,47 @@ export default function Clientes({
       </div>
 
       {/* Color filters */}
-      <div style={{ display:"flex", gap:6, marginBottom:14, alignItems:"center" }}>
-        <span style={{ fontSize:11, color:C.muted, marginRight:4 }}>Filtrar:</span>
-        {[
-          [null, "Todos", C.muted],
-          ["normal", "Normal", C.accent],
-          ["anterior", "Anterior", C.blue],
-          ["naranja", "Reg. borrado", C.orange],
-          ...(adm ? [["erronea", "Erronea", C.red]] : []),
-          ["F", "Local", C.purple],
-          ["W", "WhatsApp", "#25D366"],
-        ].map(([val, label, color]) => (
-          <button key={label} onClick={()=>setColorFilter(colorFilter===val?null:val)} style={{
-            padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
-            background: colorFilter===val ? color+"33" : C.border,
-            color: colorFilter===val ? color : C.muted,
-            borderLeft: val ? `3px solid ${color}` : "none",
-          }}>{label}</button>
-        ))}
+      <div style={{ display:"flex", gap:12, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:5, alignItems:"center" }}>
+          <span style={{ fontSize:11, color:C.muted }}>Estado:</span>
+          {[
+            [null, "Todos", C.muted],
+            ["anterior", "Anterior", C.blue],
+            ["naranja", "Reg. borrado", C.orange],
+            ...(adm ? [["erronea", "Erronea", C.red]] : []),
+          ].map(([val, label, color]) => (
+            <button key={label} onClick={()=>setStatusFilter(statusFilter===val?null:val)} style={{
+              padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
+              background: statusFilter===val ? color+"33" : C.border,
+              color: statusFilter===val ? color : C.muted,
+              borderLeft: val ? `3px solid ${color}` : "none",
+            }}>{label}</button>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:5, alignItems:"center" }}>
+          <span style={{ fontSize:11, color:C.muted }}>Canal:</span>
+          {[
+            [null, "Todos", C.muted],
+            ["F", "Local", C.purple],
+            ["W", "WhatsApp", "#25D366"],
+          ].map(([val, label, color]) => (
+            <button key={label} onClick={()=>setCanalFilter(canalFilter===val?null:val)} style={{
+              padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
+              background: canalFilter===val ? color+"33" : C.border,
+              color: canalFilter===val ? color : C.muted,
+              borderLeft: val ? `3px solid ${color}` : "none",
+            }}>{label}</button>
+          ))}
+        </div>
       </div>
 
-      {filteredClients.filter(c => !colorFilter || (colorFilter==="W"||colorFilter==="F" ? fichaCanal(c,regs)===colorFilter : fichaStatus(c,regs)===colorFilter)).length===0 ? (
+      {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).length===0 ? (
         <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
           No hay fichas de clientes.
         </div>
       ) : (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:14 }}>
-          {filteredClients.filter(c => !colorFilter || (colorFilter==="W"||colorFilter==="F" ? fichaCanal(c,regs)===colorFilter : fichaStatus(c,regs)===colorFilter)).map(c => {
+          {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).map(c => {
             const cts = getContratos(c)
             const visits = cts.length
             const lastCt = cts[cts.length-1]
