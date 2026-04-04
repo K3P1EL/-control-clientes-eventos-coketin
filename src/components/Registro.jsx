@@ -44,8 +44,8 @@ export default function Registro({
 
   const shift= n => { const p=date.split("/"); const d=new Date(+p[2],+p[1]-1,+p[0]); d.setDate(d.getDate()+n); setDate(`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`) }
 
-  const add = async () => {
-    await onAddReg({ fecha:today(), user_id:user.id, empleado:user.name, local:selLocal, hora:nowTime(), foto:"", canal:"F", sexo:"", edad:"", pirana:"", estado:"", observaciones:"" })
+  const addReg = async (canal) => {
+    await onAddReg({ fecha:today(), user_id:user.id, empleado:user.name, local:selLocal, hora:nowTime(), foto:"", canal, sexo:"", edad:"", pirana:"", estado:"", observaciones:"" })
     if (adm && date !== today()) setDate(today())
   }
 
@@ -280,7 +280,16 @@ export default function Registro({
             <button onClick={()=>setShowAll(true)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:showAll?C.accent:C.bg, color:showAll?"#fff":C.muted, transition:"all .2s" }}>Todo el dia</button>
             <button onClick={()=>setShowAll(false)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:!showAll?C.accent:C.bg, color:!showAll?"#fff":C.muted, transition:"all .2s" }}>Ultimos 3</button>
           </div>
-          <button onClick={add} style={btn}>+ Agregar Registro</button>
+          <div style={{ display:"inline-flex", borderRadius:10, overflow:"hidden", border:`1px solid ${C.accent}44` }}>
+            <button onClick={()=>addReg("F")} style={{ padding:"8px 16px", border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.accent, color:"#fff", display:"flex", alignItems:"center", gap:6 }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l2-7h6l2 7M3 9h12M3 9l1 4h10l1-4"/></svg>
+              + Local
+            </button>
+            <button onClick={()=>addReg("W")} style={{ padding:"8px 16px", border:"none", borderLeft:`1px solid rgba(255,255,255,.2)`, cursor:"pointer", fontSize:13, fontWeight:700, background:"#25D366", color:"#fff", display:"flex", alignItems:"center", gap:6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+              + WhatsApp
+            </button>
+          </div>
           {adm && (
             <button onClick={exportExcel} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:8, color:C.green, cursor:"pointer", padding:"6px 12px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v10H4V3h5l3 3z"/><path d="M9 3v3h3"/></svg>
