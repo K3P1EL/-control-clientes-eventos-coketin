@@ -454,6 +454,30 @@ export default function Clientes({
                   </div>}
                 </div>
 
+                {/* Archivos arriba en modo simple */}
+                {isSimple && <div style={{ marginBottom:12 }}>
+                  <label style={lbl}>Archivos del contrato</label>
+                  <input ref={fRef} type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingContrato(x=>x+files.length);await Promise.all(files.map(f=>onAddContratoArchivo(c.id,ct.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingContrato(x=>Math.max(0,x-files.length)))}} />
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                    <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"8px 16px", fontSize:12, fontWeight:600 }}>+ Subir foto</button>
+                    {uploadingContrato > 0 && <span style={{ fontSize:11, color:C.accent }}>{uploadingContrato} subiendo...</span>}
+                    <span style={{ fontSize:11, color:C.muted }}>o arrastra aqui</span>
+                  </div>
+                  {(ct.contrato_archivos||[]).length > 0 && (
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:8 }}>
+                      {(ct.contrato_archivos||[]).map((item,idx) => (
+                        <div key={item.id||idx} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, cursor:"pointer" }} onClick={()=>setViewContratoImg(item)}>
+                          <div style={{ aspectRatio:"1" }}>
+                            {item.tipo==="image" ? <img src={item.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                            : item.tipo==="video" ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
+                            : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.yellow,fontWeight:700 }}>PDF</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>}
+
                 {/* Fechas */}
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
                   <div>
@@ -571,7 +595,8 @@ export default function Clientes({
                 )}
 
                 </>}
-                {/* Archivos de contrato */}
+                {/* Archivos de contrato — hidden in simple (shown above instead) */}
+                {!isSimple && <>
                 <div style={{ marginTop:8 }}>
                   <label style={lbl}>Contrato (archivos)</label>
                   <input ref={fRef} type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingContrato(x=>x+files.length);await Promise.all(files.map(f=>onAddContratoArchivo(c.id,ct.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingContrato(x=>Math.max(0,x-files.length)))}} />
@@ -608,6 +633,7 @@ export default function Clientes({
                     </div>
                   )}
                 </div>
+                </>}
               </div>
             )}
             <div style={{ marginTop:12, fontSize:11, color:C.muted }}>Creado por {c.created_by_name} — {fmtDate(c.created_at)}</div>
