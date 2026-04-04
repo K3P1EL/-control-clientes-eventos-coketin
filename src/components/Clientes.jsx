@@ -174,7 +174,6 @@ export default function Clientes({
           </button>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Ficha de Cliente"}</h2>
           {c.code && <span style={{ padding:"3px 10px", borderRadius:8, fontSize:11, fontWeight:700, fontFamily:"monospace", letterSpacing:1, ...(c.erronea ? { background:C.red+"22", color:C.red, textDecoration:"line-through" } : { background:C.cyan+"22", color:C.cyan }) }}>{c.code}</span>}
-          {!(c.reg_ids||[]).length && !c.erronea && <span style={{ padding:"3px 10px", borderRadius:8, fontSize:11, fontWeight:600, background:C.blue+"22", color:C.blue }}>Anterior</span>}
           {!c.erronea && <>
             {contratos.length>1 && <span style={{ padding:"3px 10px", borderRadius:10, fontSize:11, fontWeight:700, background:C.purple+"33", color:C.purple }}>{contratos.length} visitas</span>}
             <button onClick={()=>setLinking(true)} style={{ background:C.purple+"22", border:`1px solid ${C.purple}44`, borderRadius:8, color:C.purple, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
@@ -712,7 +711,7 @@ export default function Clientes({
             const resto2 = (Number(lastCt?.total)||0) - totalAdel2
             const paid = resto2<=0 && Number(lastCt?.total)>0
             return (
-              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:c.erronea?C.red+"88":C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1, position:"relative" }}>
+              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:c.erronea?C.red+"88":C.border}`, borderLeft:`3px solid ${c.erronea?C.red:!(c.reg_ids||[]).length?C.blue:C.accent}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1, position:"relative" }}>
                 {adm && (
                   <div onClick={e=>toggleSelect(c.id,e)} style={{ position:"absolute", top:10, right:10, width:20, height:20, borderRadius:6, border:`2px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, background:selectedFichas.has(c.id)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", zIndex:1, transition:"all .15s" }}>
                     {selectedFichas.has(c.id) && <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="3"><path d="M2 6l3 3 5-5"/></svg>}
@@ -724,7 +723,6 @@ export default function Clientes({
                       <span style={{ fontSize:15, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Sin nombre"}</span>
                       {c.code && <span style={{ fontSize:9, fontWeight:700, color:C.cyan, fontFamily:"monospace", background:C.cyan+"18", padding:"1px 5px", borderRadius:4 }}>{c.code}</span>}
                       {c.erronea && <span style={{ fontSize:9, fontWeight:700, color:C.red, background:C.red+"22", padding:"1px 6px", borderRadius:4 }}>Erronea</span>}
-                      {!(c.reg_ids||[]).length && !c.erronea && <span style={{ fontSize:9, fontWeight:600, color:C.blue, background:C.blue+"18", padding:"1px 6px", borderRadius:4 }}>Anterior</span>}
                     </div>
                     <div style={{ fontSize:12, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
                   </div>
