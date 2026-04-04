@@ -56,27 +56,27 @@ function StorageBrowser() {
   const [files, setFiles] = useState([])
   const [folder, setFolder] = useState("registros")
   const [loading, setLoading] = useState(false)
-  const [selected, setSelected] = useState(new Set())
+  const [deleting, setDeleting] = useState(new Set())
 
   const load = async (f) => {
-    setFolder(f); setLoading(true); setSelected(new Set())
+    setFolder(f); setLoading(true)
     try { setFiles(await listStorageFiles(f)) } catch { setFiles([]) }
     setLoading(false)
   }
 
   useEffect(() => { load("registros") }, [])
 
-  const deleteSelected = async () => {
-    if (!window.confirm(`¿Eliminar ${selected.size} archivo${selected.size>1?"s":""} permanentemente del storage?`)) return
-    for (const path of selected) {
-      await deleteStorageFile(path).catch(() => {})
-    }
-    setSelected(new Set())
-    load(folder)
+  const deleteOne = async (path) => {
+    setDeleting(prev => new Set(prev).add(path))
+    await deleteStorageFile(path).catch(() => {})
+    setFiles(prev => prev.filter(f => f.path !== path))
+    setDeleting(prev => { const s = new Set(prev); s.delete(path); return s })
   }
 
   const fmtSize = (b) => !b ? "—" : b < 1024 ? `${b}B` : b < 1024*1024 ? `${(b/1024).toFixed(0)}KB` : `${(b/(1024*1024)).toFixed(1)}MB`
   const totalSize = files.reduce((s,f) => s + (f.metadata?.size||0), 0)
+  const getUrl = (f) => { const { data } = supabase.storage.from("archivos").getPublicUrl(f.path); return data?.publicUrl }
+  const isImage = (f) => f.metadata?.mimetype?.startsWith("image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name)
 
   return (
     <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, marginTop:24 }}>
@@ -84,25 +84,37 @@ function StorageBrowser() {
         <h3 style={{ fontSize:15, fontWeight:600, margin:0 }}>Archivos en Storage</h3>
         <span style={{ fontSize:12, color:C.muted }}>{files.length} archivos — {fmtSize(totalSize)}</span>
       </div>
-      <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+      <div style={{ display:"flex", gap:6, marginBottom:14 }}>
         {["registros","contratos","almacen"].map(f => (
-          <button key={f} onClick={()=>load(f)} style={{ padding:"4px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:folder===f?C.accent+"33":C.border, color:folder===f?C.accent:C.muted }}>{f}</button>
+          <button key={f} onClick={()=>load(f)} style={{ padding:"5px 16px", borderRadius:14, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:folder===f?C.accent+"33":C.border, color:folder===f?C.accent:C.muted }}>{f}</button>
         ))}
-        {selected.size > 0 && <button onClick={deleteSelected} style={{ marginLeft:"auto", padding:"4px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:C.danger+"33", color:C.danger }}>Eliminar {selected.size}</button>}
+        <button onClick={()=>load(folder)} style={{ marginLeft:"auto", background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"4px 10px", fontSize:11 }}>Recargar</button>
       </div>
-      {loading ? <div style={{ padding:20, textAlign:"center", color:C.muted }}>Cargando...</div> : (
-        <div style={{ maxHeight:300, overflow:"auto" }}>
-          {!files.length && <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:12 }}>Carpeta vacia</div>}
-          {files.map(f => (
-            <div key={f.name} onClick={()=>setSelected(prev=>{const s=new Set(prev);if(s.has(f.path))s.delete(f.path);else s.add(f.path);return s})} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 8px", borderRadius:6, cursor:"pointer", background:selected.has(f.path)?C.accent+"12":"transparent", borderBottom:`1px solid ${C.border}22` }}>
-              <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${selected.has(f.path)?C.accent:C.border}`, background:selected.has(f.path)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                {selected.has(f.path) && <svg width="10" height="10" fill="none" stroke="#fff" strokeWidth="3"><path d="M1 5l3 3 5-5"/></svg>}
-              </div>
-              <span style={{ flex:1, fontSize:11, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.name}</span>
-              <span style={{ fontSize:10, color:C.muted, flexShrink:0 }}>{fmtSize(f.metadata?.size)}</span>
-            </div>
-          ))}
-        </div>
+      {loading ? <div style={{ padding:30, textAlign:"center", color:C.muted }}>Cargando...</div> : (
+        <>
+          {!files.length && <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13 }}>Carpeta vacia</div>}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(110px, 1fr))", gap:10, maxHeight:400, overflow:"auto" }}>
+            {files.map(f => {
+              const url = getUrl(f)
+              const isDel = deleting.has(f.path)
+              return (
+                <div key={f.name} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, opacity:isDel?.3:1, transition:"opacity .2s" }}>
+                  <div onClick={()=>window.open(url,"_blank")} style={{ aspectRatio:"1", cursor:"pointer", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    {isImage(f) ? <img src={url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                    : <div style={{ textAlign:"center" }}><svg width="24" height="24" fill="none" stroke={C.muted} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><div style={{ fontSize:9, color:C.muted, marginTop:2 }}>{f.name.split('.').pop()?.toUpperCase()}</div></div>}
+                  </div>
+                  <div style={{ padding:"5px 6px", background:C.cardAlt, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:8, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.name}</div>
+                      <div style={{ fontSize:9, color:C.yellow, fontWeight:600 }}>{fmtSize(f.metadata?.size)}</div>
+                    </div>
+                    <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar del storage?"))deleteOne(f.path)}} disabled={isDel} style={{ background:C.danger+"22", border:"none", borderRadius:4, color:C.danger, cursor:"pointer", padding:"2px 5px", fontSize:9, flexShrink:0 }}>x</button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )
