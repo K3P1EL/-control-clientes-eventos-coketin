@@ -180,6 +180,7 @@ export default function App() {
           is_admin: userEmail === "k3p1elsor@gmail.com",
           permissions: ["registro","clientes","almacen","inventario","agenda","auditoria","dashboard"],
           client_visibility: "all",
+          view_mode: "completo",
         }
         supabase.from("profiles").upsert(profile).then(({ error }) => {
           if (error) console.error("Profile upsert error:", error.message)
