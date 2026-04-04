@@ -658,10 +658,11 @@ export default function App() {
       {mobSide && <div onClick={()=>setMobSide(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.5)", zIndex:40 }} />}
       <Side tab={tab} set={changeTab} adm={adm} open={mobSide} perms={user?.permissions||[]} />
       <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
-        <Head user={user} menu={()=>setMobSide(true)} onToggleViewMode={adm ? (mode) => {
+        <Head user={user} menu={()=>setMobSide(true)} onToggleViewMode={(mode) => {
           setUser(prev => ({ ...prev, view_mode: mode }))
+          try { localStorage.setItem("view_mode", mode) } catch {}
           updateProfile(user.id, { view_mode: mode }).catch(() => {})
-        } : null} />
+        }} />
         {uploadCount > 0 && (
           <div style={{ background:"#1a3a5c", borderBottom:`1px solid ${C.accent}`, padding:"8px 24px", display:"flex", alignItems:"center", gap:10, fontSize:13, color:C.accent }}>
             <span style={{ display:"inline-block", width:14, height:14, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} />
