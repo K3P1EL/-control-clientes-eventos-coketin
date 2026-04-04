@@ -25,6 +25,11 @@ import Clientes   from "./components/Clientes"
 import Contactos  from "./components/Contactos"
 import Almacen    from "./components/Almacen"
 import Papelera   from "./components/Papelera"
+import PublicSalida from "./components/PublicSalida"
+
+// Check for public route BEFORE app renders
+const publicMatch = window.location.pathname.match(/^\/ver\/(FIC-[A-Z0-9]+)$/i)
+const PUBLIC_CODE = publicMatch ? publicMatch[1].toUpperCase() : null
 import Inventario from "./components/Inventario"
 import Agenda     from "./components/Agenda"
 import Admin      from "./components/Admin"
@@ -32,6 +37,9 @@ import Audit      from "./components/Audit"
 import Dash       from "./components/Dash"
 
 export default function App() {
+  // ── Public route (no auth needed) ─────────────────────────────────────────
+  if (PUBLIC_CODE) return <PublicSalida code={PUBLIC_CODE} />
+
   // ── Auth state ────────────────────────────────────────────────────────────
   const [authState,  setAuthState]  = useState("loading")  // loading | logged_out | logged_in
   const [authView,   setAuthView]   = useState("login")
