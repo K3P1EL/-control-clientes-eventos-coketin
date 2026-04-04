@@ -17,11 +17,16 @@ export const nowFull = () => {
   return `${today()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`
 }
 
-export const genCode = () => {
+export const genCode = (existing = []) => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-  let c = ""
-  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)]
-  return "FIC-" + c
+  const set = new Set(existing)
+  let code
+  do {
+    let c = ""
+    for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)]
+    code = "FIC-" + c
+  } while (set.has(code))
+  return code
 }
 
 // Formatea un timestamp ISO de Supabase a "DD/MM/YYYY"

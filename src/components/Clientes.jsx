@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { C } from "../lib/colors"
-import { today, fmtDate, canChangeTipo } from "../lib/helpers"
+import { today, fmtDate, canChangeTipo, genCode } from "../lib/helpers"
 import { lbl, inp, mi, btn, td, ib, DInput } from "./shared"
 import { parseOCRText } from "../services/ocr"
 import { incrementOCRCount } from "../services/config"
@@ -142,7 +142,7 @@ export default function Clientes({
 
   const addNew = async () => {
     const nc = await onAddClient({
-      code: (() => { const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let c=""; for(let i=0;i<6;i++) c+=chars[Math.floor(Math.random()*chars.length)]; return "FIC-"+c })(),
+      code: genCode(clients.map(c=>c.code)),
       reg_ids: [], created_by: user.id, created_by_name: user.name,
       nombre:"", dni:"", phones:[], direccion:"", referencia:"",
     })

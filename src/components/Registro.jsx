@@ -111,7 +111,7 @@ export default function Registro({
         contratoId = (existingClient.contratos||[]).slice(-1)[0]?.id
       } else {
         const nc = await onAddClient(
-          { code: genCode(), reg_ids: [regId], created_by: user.id, created_by_name: user.name, nombre: "", dni: "", phones: [], direccion: "", referencia: "" },
+          { code: genCode(clients.map(c=>c.code)), reg_ids: [regId], created_by: user.id, created_by_name: user.name, nombre: "", dni: "", phones: [], direccion: "", referencia: "" },
           { tipo, estado: "activo" }
         )
         clientId = nc.id
