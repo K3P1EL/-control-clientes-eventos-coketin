@@ -57,24 +57,51 @@ function StorageBrowser() {
   const [folder, setFolder] = useState("registros")
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(new Set())
+  const [selected, setSelected] = useState(new Set())
 
   const load = async (f) => {
-    setFolder(f); setLoading(true)
+    setFolder(f); setLoading(true); setSelected(new Set())
     try { setFiles(await listStorageFiles(f)) } catch { setFiles([]) }
     setLoading(false)
   }
 
   useEffect(() => { load("registros") }, [])
 
+  const toggleSelect = (path) => {
+    setSelected(prev => {
+      const s = new Set(prev)
+      s.has(path) ? s.delete(path) : s.add(path)
+      return s
+    })
+  }
+
+  const selectAll = () => {
+    if (selected.size === files.length) setSelected(new Set())
+    else setSelected(new Set(files.map(f => f.path)))
+  }
+
   const deleteOne = async (path) => {
     setDeleting(prev => new Set(prev).add(path))
     await deleteStorageFile(path).catch(() => {})
     setFiles(prev => prev.filter(f => f.path !== path))
+    setSelected(prev => { const s = new Set(prev); s.delete(path); return s })
     setDeleting(prev => { const s = new Set(prev); s.delete(path); return s })
+  }
+
+  const deleteSelected = async () => {
+    if (!selected.size) return
+    if (!window.confirm(`¿Eliminar ${selected.size} archivo(s) del storage?`)) return
+    const paths = [...selected]
+    paths.forEach(p => setDeleting(prev => new Set(prev).add(p)))
+    await Promise.all(paths.map(p => deleteStorageFile(p).catch(() => {})))
+    setFiles(prev => prev.filter(f => !paths.includes(f.path)))
+    setSelected(new Set())
+    setDeleting(prev => { const s = new Set(prev); paths.forEach(p => s.delete(p)); return s })
   }
 
   const fmtSize = (b) => !b ? "—" : b < 1024 ? `${b}B` : b < 1024*1024 ? `${(b/1024).toFixed(0)}KB` : `${(b/(1024*1024)).toFixed(1)}MB`
   const totalSize = files.reduce((s,f) => s + (f.metadata?.size||0), 0)
+  const selectedSize = files.filter(f => selected.has(f.path)).reduce((s,f) => s + (f.metadata?.size||0), 0)
   const getUrl = (f) => { const { data } = supabase.storage.from("archivos").getPublicUrl(f.path); return data?.publicUrl }
   const isImage = (f) => f.metadata?.mimetype?.startsWith("image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name)
 
@@ -84,12 +111,27 @@ function StorageBrowser() {
         <h3 style={{ fontSize:15, fontWeight:600, margin:0 }}>Archivos en Storage</h3>
         <span style={{ fontSize:12, color:C.muted }}>{files.length} archivos — {fmtSize(totalSize)}</span>
       </div>
-      <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+      <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
         {["registros","contratos","almacen"].map(f => (
           <button key={f} onClick={()=>load(f)} style={{ padding:"5px 16px", borderRadius:14, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:folder===f?C.accent+"33":C.border, color:folder===f?C.accent:C.muted }}>{f}</button>
         ))}
         <button onClick={()=>load(folder)} style={{ marginLeft:"auto", background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"4px 10px", fontSize:11 }}>Recargar</button>
       </div>
+      {files.length > 0 && (
+        <div style={{ display:"flex", gap:8, marginBottom:10, alignItems:"center" }}>
+          <button onClick={selectAll} style={{ padding:"4px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:selected.size===files.length?C.accent+"33":"none", color:selected.size===files.length?C.accent:C.muted, cursor:"pointer", fontSize:11, fontWeight:600 }}>
+            {selected.size===files.length ? "Deseleccionar todo" : "Seleccionar todo"}
+          </button>
+          {selected.size > 0 && (
+            <>
+              <span style={{ fontSize:11, color:C.accent, fontWeight:600 }}>{selected.size} seleccionado(s) — {fmtSize(selectedSize)}</span>
+              <button onClick={deleteSelected} style={{ padding:"4px 14px", borderRadius:8, border:"none", background:C.danger, color:"#fff", cursor:"pointer", fontSize:11, fontWeight:700 }}>
+                Eliminar {selected.size}
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {loading ? <div style={{ padding:30, textAlign:"center", color:C.muted }}>Cargando...</div> : (
         <>
           {!files.length && <div style={{ padding:30, textAlign:"center", color:C.muted, fontSize:13 }}>Carpeta vacia</div>}
@@ -97,9 +139,13 @@ function StorageBrowser() {
             {files.map(f => {
               const url = getUrl(f)
               const isDel = deleting.has(f.path)
+              const isSel = selected.has(f.path)
               return (
-                <div key={f.name} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}`, opacity:isDel?.3:1, transition:"opacity .2s" }}>
-                  <div onClick={()=>window.open(url,"_blank")} style={{ aspectRatio:"1", cursor:"pointer", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <div key={f.name} onClick={()=>toggleSelect(f.path)} style={{ borderRadius:10, border:`2px solid ${isSel?C.accent:C.border}`, opacity:isDel?.3:1, transition:"opacity .2s, border-color .2s", cursor:"pointer", position:"relative" }}>
+                  <div style={{ position:"absolute", top:6, left:6, zIndex:10, width:22, height:22, borderRadius:5, background:isSel?C.accent:"rgba(0,0,0,0.6)", border:`2px solid ${isSel?C.accent:"rgba(255,255,255,0.5)"}`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", boxShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>
+                    {isSel && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <div onClick={e=>{e.stopPropagation();window.open(url,"_blank")}} style={{ aspectRatio:"1", cursor:"pointer", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:"8px 8px 0 0", overflow:"hidden" }}>
                     {isImage(f) ? <img src={url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
                     : <div style={{ textAlign:"center" }}><svg width="24" height="24" fill="none" stroke={C.muted} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><div style={{ fontSize:9, color:C.muted, marginTop:2 }}>{f.name.split('.').pop()?.toUpperCase()}</div></div>}
                   </div>
