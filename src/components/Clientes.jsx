@@ -174,6 +174,7 @@ export default function Clientes({
           </button>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Ficha de Cliente"}</h2>
           {c.code && <span style={{ padding:"3px 10px", borderRadius:8, fontSize:11, fontWeight:700, fontFamily:"monospace", letterSpacing:1, ...(c.erronea ? { background:C.red+"22", color:C.red, textDecoration:"line-through" } : { background:C.cyan+"22", color:C.cyan }) }}>{c.code}</span>}
+          {!(c.reg_ids||[]).length && !c.erronea && <span style={{ padding:"3px 10px", borderRadius:8, fontSize:11, fontWeight:600, background:C.blue+"22", color:C.blue }}>Anterior</span>}
           {!c.erronea && <>
             {contratos.length>1 && <span style={{ padding:"3px 10px", borderRadius:10, fontSize:11, fontWeight:700, background:C.purple+"33", color:C.purple }}>{contratos.length} visitas</span>}
             <button onClick={()=>setLinking(true)} style={{ background:C.purple+"22", border:`1px solid ${C.purple}44`, borderRadius:8, color:C.purple, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
@@ -616,7 +617,7 @@ export default function Clientes({
       <div>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>Clientes</h2>
-          <button onClick={addNew} style={btn}>+ Nuevo Cliente</button>
+          <button onClick={addNew} style={{ ...btn, background:C.blue }}>+ Registrar Anterior</button>
         </div>
         <p style={{ color:C.muted, fontSize:13, margin:"0 0 20px" }}>Selecciona un empleado para ver sus clientes.</p>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:14 }}>
@@ -693,7 +694,7 @@ export default function Clientes({
           {adm && filteredClients.length > 0 && selectedFichas.size === 0 && (
             <button onClick={()=>setSelectedFichas(new Set(filteredClients.map(c=>c.id)))} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:11 }}>Seleccionar</button>
           )}
-          <button onClick={addNew} style={btn}>+ Nuevo Cliente</button>
+          <button onClick={addNew} style={{ ...btn, background:C.blue }}>+ Registrar Anterior</button>
         </div>
       </div>
 
@@ -723,6 +724,7 @@ export default function Clientes({
                       <span style={{ fontSize:15, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Sin nombre"}</span>
                       {c.code && <span style={{ fontSize:9, fontWeight:700, color:C.cyan, fontFamily:"monospace", background:C.cyan+"18", padding:"1px 5px", borderRadius:4 }}>{c.code}</span>}
                       {c.erronea && <span style={{ fontSize:9, fontWeight:700, color:C.red, background:C.red+"22", padding:"1px 6px", borderRadius:4 }}>Erronea</span>}
+                      {!(c.reg_ids||[]).length && !c.erronea && <span style={{ fontSize:9, fontWeight:600, color:C.blue, background:C.blue+"18", padding:"1px 6px", borderRadius:4 }}>Anterior</span>}
                     </div>
                     <div style={{ fontSize:12, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
                   </div>
