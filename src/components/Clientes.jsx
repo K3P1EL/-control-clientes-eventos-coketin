@@ -64,7 +64,7 @@ export default function Clientes({
   const [errorFiles, setErrorFiles] = useState(new Set())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [selectedFichas, setSelectedFichas] = useState(new Set())
-  const [colorFilter, setColorFilter] = useState(null) // null | "normal" | "anterior" | "naranja" | "erronea"
+  const [colorFilter, setColorFilter] = useState(null) // null | "normal" | "anterior" | "naranja" | "erronea" | "W" | "F"
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
@@ -734,6 +734,8 @@ export default function Clientes({
             ["anterior", "Anterior", C.blue],
             ["naranja", "Reg. borrado", C.orange],
             ["erronea", "Erronea", C.red],
+            ["F", "Local", C.purple],
+            ["W", "WhatsApp", "#25D366"],
           ].map(([val, label, color]) => (
             <button key={label} onClick={()=>setColorFilter(colorFilter===val?null:val)} style={{
               padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
@@ -745,13 +747,13 @@ export default function Clientes({
         </div>
       )}
 
-      {filteredClients.filter(c => !colorFilter || fichaStatus(c, regs) === colorFilter).length===0 ? (
+      {filteredClients.filter(c => !colorFilter || (colorFilter==="W"||colorFilter==="F" ? fichaCanal(c,regs)===colorFilter : fichaStatus(c,regs)===colorFilter)).length===0 ? (
         <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
           No hay fichas de clientes.
         </div>
       ) : (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:14 }}>
-          {filteredClients.filter(c => !colorFilter || fichaStatus(c, regs) === colorFilter).map(c => {
+          {filteredClients.filter(c => !colorFilter || (colorFilter==="W"||colorFilter==="F" ? fichaCanal(c,regs)===colorFilter : fichaStatus(c,regs)===colorFilter)).map(c => {
             const cts = getContratos(c)
             const visits = cts.length
             const lastCt = cts[cts.length-1]
