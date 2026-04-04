@@ -12,7 +12,7 @@ import { createContrato, updateContrato, createAdelanto, updateAdelanto, deleteA
 import { listAlmacen, createSalida, updateSalida, deleteSalida, createItem, updateItem, deleteItem, createAlmacenArchivo, deleteAlmacenArchivo, createArchivoRecojo, deleteArchivoRecojo } from "./services/almacen"
 import { listInventario, createInventarioItem, updateInventarioItem, deleteInventarioItem } from "./services/inventario"
 import { getConfig, setConfig } from "./services/config"
-import { uploadFile } from "./services/storage"
+import { uploadFile, deleteFileByUrl } from "./services/storage"
 import { listContactos, createContacto, updateContacto, deleteContacto } from "./services/contactos"
 
 import Login      from "./components/Login"
@@ -467,14 +467,18 @@ export default function App() {
     } finally { uploadEnd() }
   }, [])
   const onDeleteContratoArchivo = useCallback(async (clientId, contratoId, archivoId) => {
+    let fileUrl = null
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => {
         if (ct.id !== contratoId) return ct
+        const ar = (ct.contrato_archivos||[]).find(a => a.id === archivoId)
+        if (ar) fileUrl = ar.url
         return { ...ct, contrato_archivos: (ct.contrato_archivos||[]).filter(a => a.id !== archivoId) }
       })}
     }))
     deleteContratoArchivo(archivoId).catch(e => { console.error("deleteContratoArchivo failed:", e); alert("Error eliminando archivo") })
+    if (fileUrl) deleteFileByUrl(fileUrl)
   }, [])
   const onMergeClients = useCallback(async (targetId, sourceId) => {
     setClients(prev => {
@@ -545,8 +549,10 @@ export default function App() {
     } finally { uploadEnd() }
   }, [])
   const onDeleteAlmacenArchivo = useCallback(async (salidaId, archivoId) => {
-    setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos: (s.almacen_archivos||[]).filter(a => a.id !== archivoId) } : s))
+    let fileUrl = null
+    setAlmacen(prev => prev.map(s => { if (s.id !== salidaId) return s; const ar = (s.almacen_archivos||[]).find(a=>a.id===archivoId); if(ar) fileUrl=ar.url; return { ...s, almacen_archivos: (s.almacen_archivos||[]).filter(a => a.id !== archivoId) } }))
     deleteAlmacenArchivo(archivoId).catch(e => { console.error("deleteAlmacenArchivo failed:", e); alert("Error eliminando archivo") })
+    if (fileUrl) deleteFileByUrl(fileUrl)
   }, [])
   const onAddArchivoRecojo = useCallback(async (salidaId, file) => {
     const localUrl = URL.createObjectURL(file)
@@ -566,8 +572,10 @@ export default function App() {
     } finally { uploadEnd() }
   }, [])
   const onDeleteArchivoRecojo = useCallback(async (salidaId, archivoId) => {
-    setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_archivos_recojo: (s.almacen_archivos_recojo||[]).filter(a => a.id !== archivoId) } : s))
+    let fileUrl = null
+    setAlmacen(prev => prev.map(s => { if (s.id !== salidaId) return s; const ar = (s.almacen_archivos_recojo||[]).find(a=>a.id===archivoId); if(ar) fileUrl=ar.url; return { ...s, almacen_archivos_recojo: (s.almacen_archivos_recojo||[]).filter(a => a.id !== archivoId) } }))
     deleteArchivoRecojo(archivoId).catch(e => { console.error("deleteArchivoRecojo failed:", e); alert("Error eliminando archivo") })
+    if (fileUrl) deleteFileByUrl(fileUrl)
   }, [])
 
   // ── INVENTARIO ops ────────────────────────────────────────────────────────

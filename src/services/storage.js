@@ -58,3 +58,31 @@ export async function uploadFile(folder, fileName, file, cfg) {
   const { data } = supabase.storage.from('archivos').getPublicUrl(path)
   return data.publicUrl
 }
+
+// Extract storage path from public URL
+function urlToPath(url) {
+  if (!url) return null
+  const match = url.match(/\/archivos\/(.+)$/)
+  return match ? match[1] : null
+}
+
+// Delete file from storage bucket by its public URL
+export async function deleteFileByUrl(url) {
+  const path = urlToPath(url)
+  if (!path) return
+  const { error } = await supabase.storage.from('archivos').remove([path])
+  if (error) console.error("Storage delete error:", error.message)
+}
+
+// List all files in a folder
+export async function listStorageFiles(folder) {
+  const { data, error } = await supabase.storage.from('archivos').list(folder, { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } })
+  if (error) throw error
+  return (data || []).map(f => ({ ...f, folder, path: `${folder}/${f.name}` }))
+}
+
+// Delete file from storage by path
+export async function deleteStorageFile(path) {
+  const { error } = await supabase.storage.from('archivos').remove([path])
+  if (error) throw error
+}

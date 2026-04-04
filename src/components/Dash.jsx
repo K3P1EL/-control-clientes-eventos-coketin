@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
 import { getOCRUsage } from "../services/config"
+import { listStorageFiles, deleteStorageFile } from "../services/storage"
 import { C } from "../lib/colors"
 import { Stat } from "./shared"
 import { today } from "../lib/helpers"
@@ -47,6 +48,62 @@ function StorageUsage() {
         <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 5, transition: "width .5s, background .5s" }} />
       </div>
       <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{pct.toFixed(1)}% usado</div>
+    </div>
+  )
+}
+
+function StorageBrowser() {
+  const [files, setFiles] = useState([])
+  const [folder, setFolder] = useState("registros")
+  const [loading, setLoading] = useState(false)
+  const [selected, setSelected] = useState(new Set())
+
+  const load = async (f) => {
+    setFolder(f); setLoading(true); setSelected(new Set())
+    try { setFiles(await listStorageFiles(f)) } catch { setFiles([]) }
+    setLoading(false)
+  }
+
+  useEffect(() => { load("registros") }, [])
+
+  const deleteSelected = async () => {
+    if (!window.confirm(`¿Eliminar ${selected.size} archivo${selected.size>1?"s":""} permanentemente del storage?`)) return
+    for (const path of selected) {
+      await deleteStorageFile(path).catch(() => {})
+    }
+    setSelected(new Set())
+    load(folder)
+  }
+
+  const fmtSize = (b) => !b ? "—" : b < 1024 ? `${b}B` : b < 1024*1024 ? `${(b/1024).toFixed(0)}KB` : `${(b/(1024*1024)).toFixed(1)}MB`
+  const totalSize = files.reduce((s,f) => s + (f.metadata?.size||0), 0)
+
+  return (
+    <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, marginTop:24 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <h3 style={{ fontSize:15, fontWeight:600, margin:0 }}>Archivos en Storage</h3>
+        <span style={{ fontSize:12, color:C.muted }}>{files.length} archivos — {fmtSize(totalSize)}</span>
+      </div>
+      <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+        {["registros","contratos","almacen"].map(f => (
+          <button key={f} onClick={()=>load(f)} style={{ padding:"4px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:folder===f?C.accent+"33":C.border, color:folder===f?C.accent:C.muted }}>{f}</button>
+        ))}
+        {selected.size > 0 && <button onClick={deleteSelected} style={{ marginLeft:"auto", padding:"4px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:C.danger+"33", color:C.danger }}>Eliminar {selected.size}</button>}
+      </div>
+      {loading ? <div style={{ padding:20, textAlign:"center", color:C.muted }}>Cargando...</div> : (
+        <div style={{ maxHeight:300, overflow:"auto" }}>
+          {!files.length && <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:12 }}>Carpeta vacia</div>}
+          {files.map(f => (
+            <div key={f.name} onClick={()=>setSelected(prev=>{const s=new Set(prev);if(s.has(f.path))s.delete(f.path);else s.add(f.path);return s})} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 8px", borderRadius:6, cursor:"pointer", background:selected.has(f.path)?C.accent+"12":"transparent", borderBottom:`1px solid ${C.border}22` }}>
+              <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${selected.has(f.path)?C.accent:C.border}`, background:selected.has(f.path)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                {selected.has(f.path) && <svg width="10" height="10" fill="none" stroke="#fff" strokeWidth="3"><path d="M1 5l3 3 5-5"/></svg>}
+              </div>
+              <span style={{ flex:1, fontSize:11, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.name}</span>
+              <span style={{ fontSize:10, color:C.muted, flexShrink:0 }}>{fmtSize(f.metadata?.size)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -114,6 +171,7 @@ export default function Dash({ regs, adm }) {
       </div>
       {adm && <StorageUsage />}
       {adm && <OcrUsage />}
+      {adm && <StorageBrowser />}
     </div>
   )
 }
