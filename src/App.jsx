@@ -24,6 +24,7 @@ import Registro   from "./components/Registro"
 import Clientes   from "./components/Clientes"
 import Contactos  from "./components/Contactos"
 import Almacen    from "./components/Almacen"
+import Papelera   from "./components/Papelera"
 import Inventario from "./components/Inventario"
 import Agenda     from "./components/Agenda"
 import Admin      from "./components/Admin"
@@ -264,8 +265,16 @@ export default function App() {
     updateClient(id, patch).catch(e => { console.error("updateClient failed:", e); alert("Error guardando cliente") })
   }, [])
   const onDeleteClient = useCallback(async (id) => {
+    setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c))
+    updateClient(id, { deleted_at: new Date().toISOString() }).catch(e => { console.error("deleteClient failed:", e); alert("Error eliminando") })
+  }, [])
+  const onRestoreClient = useCallback(async (id) => {
+    setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
+    updateClient(id, { deleted_at: null }).catch(e => { console.error("restoreClient failed:", e); alert("Error restaurando") })
+  }, [])
+  const onPermanentDeleteClient = useCallback(async (id) => {
     setClients(prev => prev.filter(c => c.id !== id))
-    deleteClient(id).catch(e => { console.error("deleteClient failed:", e); alert("Error eliminando cliente") })
+    deleteClient(id).catch(e => { console.error("permanentDeleteClient failed:", e); alert("Error eliminando") })
   }, [])
   const onAddContrato = useCallback(async (clientId, payload) => {
     const tempId = `temp_${Date.now()}`
@@ -484,8 +493,16 @@ export default function App() {
     updateContacto(id, patch).catch(e => { console.error("updateContacto failed:", e); alert("Error guardando cliente") })
   }, [])
   const onDeleteContacto = useCallback(async (id) => {
+    setContactos(prev => prev.map(c => c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c))
+    updateContacto(id, { deleted_at: new Date().toISOString() }).catch(e => { console.error("deleteContacto failed:", e); alert("Error eliminando") })
+  }, [])
+  const onRestoreContacto = useCallback(async (id) => {
+    setContactos(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
+    updateContacto(id, { deleted_at: null }).catch(e => { console.error("restoreContacto failed:", e); alert("Error restaurando") })
+  }, [])
+  const onPermanentDeleteContacto = useCallback(async (id) => {
     setContactos(prev => prev.filter(c => c.id !== id))
-    deleteContacto(id).catch(e => { console.error("deleteContacto failed:", e); alert("Error eliminando cliente") })
+    deleteContacto(id).catch(e => { console.error("permanentDeleteContacto failed:", e); alert("Error eliminando") })
   }, [])
 
   // ── CONFIG ops ────────────────────────────────────────────────────────────
@@ -590,6 +607,13 @@ export default function App() {
               visionKey={visionKey} onSetVisionKey={onSetVisionKey}
               onSetTags={onSetTags} onSetLocales={onSetLocales} onSetProdTags={onSetProdTags}
               onUpdateProfile={onUpdateProfile} onDeleteProfile={onDeleteProfile}
+            />
+          )}
+          {tab==="papelera" && (
+            <Papelera
+              clients={clients} contactos={contactos} regs={regs} adm={adm}
+              onRestoreClient={onRestoreClient} onPermanentDeleteClient={onPermanentDeleteClient}
+              onRestoreContacto={onRestoreContacto} onPermanentDeleteContacto={onPermanentDeleteContacto}
             />
           )}
         </main>

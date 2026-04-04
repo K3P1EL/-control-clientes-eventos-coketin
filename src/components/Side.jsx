@@ -9,6 +9,7 @@ const allItems = [
   { id:"agenda",      label:"Agenda",     d:"M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" },
   { id:"auditoria",   label:"Auditoría",  d:"M9 3a6 6 0 100 12A6 6 0 009 3zM9 6v3l2 1" },
   { id:"dashboard",   label:"Dashboard",  d:"M3 10h3v5H3zM8 6h3v9H8zM13 3h3v12h-3z" },
+  { id:"papelera",    label:"Papelera",   d:"M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6M10 10v6M14 10v6" },
 ]
 const adminItem = { id:"admin", label:"Admin", d:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zM19 8l2 2-2 2M21 10h-6" }
 

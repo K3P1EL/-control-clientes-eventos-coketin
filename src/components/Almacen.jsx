@@ -151,7 +151,7 @@ export default function Almacen({
   const mySalidas = adm ? almacen : almacen.filter(s=>s.created_by===user.id)
   const searchResults = searchCl.trim()
     ? clients.filter(c => {
-        if (c.erronea) return false
+        if (c.erronea || c.deleted_at) return false
         const q = searchCl.toLowerCase()
         return (c.nombre||"").toLowerCase().includes(q)
           || (c.code||"").toLowerCase().includes(q)

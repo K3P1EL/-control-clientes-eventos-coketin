@@ -10,7 +10,7 @@ export default function Agenda({ clients, user, adm, goToClient, onUpdateContrat
   const scope = adm ? "all" : (user.agenda_scope || "own")
 
   const allContratos = []
-  clients.filter(c => !c.erronea).forEach(c => {
+  clients.filter(c => !c.erronea && !c.deleted_at).forEach(c => {
     ;(c.contratos || []).forEach(ct => {
       if (ct.fecha_evento || ct.fecha_armado) {
         allContratos.push({

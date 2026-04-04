@@ -10,14 +10,15 @@ export default function Contactos({ contactos, user, adm, onAddContacto, onUpdat
   const [newName, setNewName] = useState("")
   const [newPhone, setNewPhone] = useState("")
 
+  const active = contactos.filter(c => !c.deleted_at)
   const filtered = search.trim()
-    ? contactos.filter(c => {
+    ? active.filter(c => {
         const q = search.toLowerCase()
         return (c.nombre||"").toLowerCase().includes(q)
           || (c.dni||"").includes(q)
           || (c.phones||[]).some(p => p.includes(q))
       })
-    : contactos
+    : active
 
   // Detail view
   if (view) {
