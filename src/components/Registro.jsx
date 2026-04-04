@@ -534,11 +534,13 @@ export default function Registro({
                   <td style={td}><div style={lock}><Bdg c={ec}><select value={r.estado} onChange={e=>upd(r.id,"estado",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option>{tags.map(t=><option key={t} value={t}>{t}</option>)}</select></Bdg></div></td>
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   {/* Ficha */}
-                  <td style={td}>{(() => {
+                  <td style={{ ...td, pointerEvents:"auto", opacity:1 }}>{(() => {
                     const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(r.id))
                     const deleted = !linked && clients.find(c => c.deleted_at && (c.reg_ids||[]).includes(r.id))
                     return deleted
-                      ? <span style={{ fontSize:10, fontWeight:600, color:C.muted, background:C.border, padding:"2px 8px", borderRadius:6 }}>Ficha borrada</span>
+                      ? <span style={{ fontSize:10, fontWeight:600, color:C.muted, background:C.border, padding:"2px 8px", borderRadius:6 }}>Ficha en papelera</span>
+                      : isDel && linked
+                      ? <button onClick={()=>goToClient(linked.id)} style={{ fontSize:10, fontWeight:700, color:C.red, background:C.red+"15", padding:"2px 8px", borderRadius:6, border:"none", cursor:"pointer" }}>Ver ficha</button>
                       : linked
                       ? linked.erronea
                         ? <button onClick={()=>goToClient(linked.id)} style={{ fontSize:10, fontWeight:700, color:C.red, background:C.red+"15", padding:"2px 8px", borderRadius:6, border:"none", cursor:"pointer" }}>Ficha erronea</button>
