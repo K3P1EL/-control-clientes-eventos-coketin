@@ -8,7 +8,7 @@ export default function Agenda({ clients, user, adm, goToClient }) {
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
 
   const allContratos = []
-  clients.forEach(c => {
+  clients.filter(c => !c.erronea).forEach(c => {
     ;(c.contratos || []).forEach(ct => {
       if (ct.fecha_evento || ct.fecha_armado) {
         allContratos.push({
