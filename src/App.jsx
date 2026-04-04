@@ -658,7 +658,7 @@ export default function App() {
       {mobSide && <div onClick={()=>setMobSide(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.5)", zIndex:40 }} />}
       <Side tab={tab} set={changeTab} adm={adm} open={mobSide} perms={user?.permissions||[]} />
       <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
-        <Head user={user} menu={()=>setMobSide(true)} onToggleViewMode={adm ? (mode) => {
+        <Head user={user} menu={()=>setMobSide(true)} onToggleViewMode={(adm || user?.can_toggle_view) ? (mode) => {
           setUser(prev => ({ ...prev, view_mode: mode }))
           try { localStorage.setItem("view_mode", mode) } catch {}
           updateProfile(user.id, { view_mode: mode }).catch(() => {})

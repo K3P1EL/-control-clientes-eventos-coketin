@@ -66,8 +66,9 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                 {u.active?"Activo":"Inactivo"}
               </button>
               <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
-                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"simple"})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="simple"?C.yellow:C.bg, color:(u.view_mode||"completo")==="simple"?"#fff":C.muted, transition:"all .2s" }}>Simple</button>
-                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"completo"})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="completo"?C.accent:C.bg, color:(u.view_mode||"completo")==="completo"?"#fff":C.muted, transition:"all .2s" }}>Completo</button>
+                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"simple",can_toggle_view:false})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="simple"&&!u.can_toggle_view?C.yellow:C.bg, color:(u.view_mode||"completo")==="simple"&&!u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Simple</button>
+                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"completo",can_toggle_view:false})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?C.accent:C.bg, color:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Completo</button>
+                <button onClick={()=>onUpdateProfile(u.id,{can_toggle_view:true})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:u.can_toggle_view?C.purple:C.bg, color:u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Puede elegir</button>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:4 }}>
                 <span style={{ fontSize:11, color:C.muted }}>Clientes:</span>
