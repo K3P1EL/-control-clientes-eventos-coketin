@@ -731,6 +731,7 @@ export default function Clientes({
           <span style={{ fontSize:11, color:C.muted }}>Estado:</span>
           {[
             [null, "Todos", C.muted],
+            ["normal", "Normal", C.accent],
             ["anterior", "Anterior", C.blue],
             ["naranja", "Reg. borrado", C.orange],
             ...(adm ? [["erronea", "Erronea", C.red]] : []),
