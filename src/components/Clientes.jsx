@@ -41,6 +41,7 @@ export default function Clientes({
   const [viewContratoImg,setViewContratoImg]= useState(null)
   const [uploadingContrato, setUploadingContrato] = useState(0)
   const [errorFiles, setErrorFiles] = useState(new Set())
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // client id to confirm delete
   const fRef   = useRef(null)
   const ocrRef = useRef(null)
 
@@ -177,13 +178,57 @@ export default function Clientes({
           <button onClick={()=>onUpdateClient(c.id,"erronea",!c.erronea)} style={{ background:c.erronea?C.yellow+"22":C.red+"18", border:`1px solid ${c.erronea?C.yellow:C.red}44`, borderRadius:8, color:c.erronea?C.yellow:C.red, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>
             {c.erronea ? "Quitar marca" : "Ficha erronea"}
           </button>
-          {adm && <button onClick={async()=>{if(!window.confirm("¿Eliminar este cliente permanentemente?"))return;await onDeleteClient(c.id);setView(null)}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
+          {adm && <button onClick={()=>setDeleteConfirm(c.id)} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
         </div>
         {c.erronea && <div style={{ background:C.red+"15", border:`1px solid ${C.red}44`, borderRadius:10, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
           <svg width="18" height="18" fill="none" stroke={C.red} strokeWidth="2"><circle cx="9" cy="9" r="7"/><path d="M9 6v4M9 12.5v.5"/></svg>
           <span style={{ color:C.red, fontSize:13, fontWeight:600 }}>Ficha marcada como erronea</span>
           <span style={{ color:C.muted, fontSize:11, marginLeft:"auto" }}>No se eliminara, solo queda marcada para revision</span>
         </div>}
+
+        {/* Delete confirmation modal */}
+        {deleteConfirm === c.id && (() => {
+          const cts = c.contratos || []
+          const totalArchivos = cts.reduce((s,ct) => s + (ct.contrato_archivos||[]).length, 0)
+          const totalAdelantos = cts.reduce((s,ct) => s + (ct.adelantos||[]).length, 0)
+          const regCount = (c.reg_ids||[]).length
+          const hasData = cts.length > 0 || totalArchivos > 0 || totalAdelantos > 0 || regCount > 0
+          return (
+            <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={()=>setDeleteConfirm(null)}>
+              <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.red}44`, padding:24, maxWidth:420, width:"100%" }}>
+                <h3 style={{ margin:"0 0 8px", fontSize:17, fontWeight:700, color:C.red }}>Eliminar cliente</h3>
+                <p style={{ margin:"0 0 16px", fontSize:13, color:C.muted }}>Se eliminara permanentemente <strong style={{ color:C.text }}>{c.nombre||c.code||"este cliente"}</strong> y todos sus datos vinculados:</p>
+                {hasData ? (
+                  <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16, display:"flex", flexDirection:"column", gap:8 }}>
+                    {cts.length > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
+                      <span style={{ color:C.text }}>Contratos</span>
+                      <span style={{ color:C.yellow, fontWeight:700 }}>{cts.length}</span>
+                    </div>}
+                    {totalAdelantos > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
+                      <span style={{ color:C.text }}>Adelantos/Pagos</span>
+                      <span style={{ color:C.yellow, fontWeight:700 }}>{totalAdelantos}</span>
+                    </div>}
+                    {totalArchivos > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
+                      <span style={{ color:C.text }}>Archivos subidos</span>
+                      <span style={{ color:C.yellow, fontWeight:700 }}>{totalArchivos}</span>
+                    </div>}
+                    {regCount > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
+                      <span style={{ color:C.text }}>Registros vinculados</span>
+                      <span style={{ color:C.muted, fontWeight:700 }}>{regCount} (no se borran)</span>
+                    </div>}
+                  </div>
+                ) : (
+                  <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16, fontSize:13, color:C.muted, textAlign:"center" }}>Sin datos vinculados</div>
+                )}
+                <div style={{ fontSize:11, color:C.red, marginBottom:16 }}>Esta accion no se puede deshacer.</div>
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={()=>setDeleteConfirm(null)} style={{ flex:1, padding:10, borderRadius:10, background:"transparent", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer", fontSize:13, fontWeight:600 }}>Cancelar</button>
+                  <button onClick={async()=>{setDeleteConfirm(null);await onDeleteClient(c.id);setView(null)}} style={{ flex:1, padding:10, borderRadius:10, background:C.danger, border:"none", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>Eliminar todo</button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Lightbox */}
         {viewContratoImg && (
