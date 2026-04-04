@@ -744,6 +744,12 @@ export default function Clientes({
             }}>{label}</button>
           ))}
         </div>
+        <div style={{ fontSize:10, color:C.muted, display:"flex", gap:10 }}>
+          <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.accent, marginRight:4 }}/>Normal</span>
+          <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.blue, marginRight:4 }}/>Sin registro</span>
+          <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.orange, marginRight:4 }}/>Reg. borrado</span>
+          {adm && <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.red, marginRight:4 }}/>Erronea</span>}
+        </div>
         <div style={{ display:"flex", gap:5, alignItems:"center" }}>
           <span style={{ fontSize:11, color:C.muted }}>Canal:</span>
           {[
