@@ -26,10 +26,6 @@ import Contactos  from "./components/Contactos"
 import Almacen    from "./components/Almacen"
 import Papelera   from "./components/Papelera"
 import PublicSalida from "./components/PublicSalida"
-
-// Check for public route BEFORE app renders
-const publicMatch = window.location.pathname.match(/^\/ver\/(FIC-[A-Z0-9]+)$/i)
-const PUBLIC_CODE = publicMatch ? publicMatch[1].toUpperCase() : null
 import Inventario from "./components/Inventario"
 import Agenda     from "./components/Agenda"
 import Admin      from "./components/Admin"
@@ -37,9 +33,6 @@ import Audit      from "./components/Audit"
 import Dash       from "./components/Dash"
 
 export default function App() {
-  // ── Public route (no auth needed) ─────────────────────────────────────────
-  if (PUBLIC_CODE) return <PublicSalida code={PUBLIC_CODE} />
-
   // ── Auth state ────────────────────────────────────────────────────────────
   const [authState,  setAuthState]  = useState("loading")  // loading | logged_out | logged_in
   const [authView,   setAuthView]   = useState("login")
@@ -75,9 +68,14 @@ export default function App() {
   const [trashDays,  setTrashDays]  = useState(10)
   uploadCfgRef.current = uploadCfg
 
-  // ── URL routing (minimal — only /almacen/FIC-XXXXX) ────────────────────
+  // ── URL routing ────────────────────────────────────────────────────────
   const [pendingAlmLink, setPendingAlmLink] = useState(() => {
     const m = window.location.pathname.match(/^\/almacen\/(FIC-[A-Z0-9]+)$/i)
+    if (m) { window.history.replaceState({}, "", "/"); return m[1].toUpperCase() }
+    return null
+  })
+  const [pendingVerLink, setPendingVerLink] = useState(() => {
+    const m = window.location.pathname.match(/^\/ver\/(FIC-[A-Z0-9]+)$/i)
     if (m) { window.history.replaceState({}, "", "/"); return m[1].toUpperCase() }
     return null
   })
@@ -261,6 +259,14 @@ export default function App() {
     }
     setPendingAlmLink(null)
   }, [pendingAlmLink, dataReady, user, clients, almacen])
+
+  // ── Process /ver/FIC-XXXXX link (readonly, any logged-in user) ─────────
+  const [showVerSalida, setShowVerSalida] = useState(null) // FIC code to show
+  useEffect(() => {
+    if (!pendingVerLink || !dataReady || !user) return
+    setShowVerSalida(pendingVerLink)
+    setPendingVerLink(null)
+  }, [pendingVerLink, dataReady, user])
 
   // ── REGISTRO ops ──────────────────────────────────────────────────────────
   const onAddReg = useCallback(async (payload) => {
@@ -608,6 +614,18 @@ export default function App() {
       : <Register go={() => setAuthView("login")} />
   }
   if (!user?.active && !adm) return <Pending />
+
+  // Readonly salida view (any logged-in user, no almacen permission needed)
+  if (showVerSalida) return (
+    <div style={{ minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Segoe UI',system-ui,sans-serif" }}>
+      <style>{CSS}</style>
+      <div style={{ background:C.sidebar, borderBottom:`1px solid ${C.border}`, padding:"12px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <span style={{ fontSize:14, fontWeight:600, color:C.text }}>{user.name}</span>
+        <button onClick={()=>setShowVerSalida(null)} style={{ background:C.accent+"22", border:`1px solid ${C.accent}44`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"6px 16px", fontSize:12, fontWeight:600 }}>Ir a la app</button>
+      </div>
+      <PublicSalida code={showVerSalida} />
+    </div>
+  )
 
   const changeTab = (t) => {
     if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
