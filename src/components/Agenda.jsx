@@ -1,11 +1,14 @@
 import { useState } from "react"
 import { C } from "../lib/colors"
 
-export default function Agenda({ clients, user, adm, goToClient }) {
+const AGENDA_VIS_DAYS = { hoy:0, "3dias":3, semana:7, mes:30, todo:Infinity }
+
+export default function Agenda({ clients, user, adm, agendaVis, goToClient }) {
   const [filter, setFilter] = useState("pendiente")
 
   const now = new Date()
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
+  const maxDays = adm ? Infinity : (AGENDA_VIS_DAYS[agendaVis] ?? Infinity)
 
   const allContratos = []
   clients.filter(c => !c.erronea).forEach(c => {
@@ -25,6 +28,13 @@ export default function Agenda({ clients, user, adm, goToClient }) {
 
   const filtered = allContratos.filter(ct => {
     if (!adm && ct.clientId && clients.find(c=>c.id===ct.clientId)?.created_by !== user.id) return false
+    // Agenda visibility: non-admins can only see within configured range
+    if (!adm && maxDays !== Infinity) {
+      const ev = ct.fecha_evento || ""
+      if (!ev) return false
+      const diff = Math.floor((new Date(ev+"T00:00:00") - new Date(todayStr+"T00:00:00")) / 86400000)
+      if (diff < 0 || diff > maxDays) return false
+    }
     const evDate = ct.fecha_evento || ""
     const done   = ct.estado === "finalizado"
     if (filter === "finalizado") return done
