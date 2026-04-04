@@ -172,8 +172,16 @@ export default function Clientes({
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h4l2 3h6l2-3h4v12H3z"/></svg>Almacén
             </button>
           )}
+          <button onClick={()=>onUpdateClient(c.id,"erronea",!c.erronea)} style={{ background:c.erronea?C.yellow+"22":C.red+"18", border:`1px solid ${c.erronea?C.yellow:C.red}44`, borderRadius:8, color:c.erronea?C.yellow:C.red, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>
+            {c.erronea ? "Quitar marca" : "Ficha erronea"}
+          </button>
           {adm && <button onClick={async()=>{if(!window.confirm("¿Eliminar este cliente permanentemente?"))return;await onDeleteClient(c.id);setView(null)}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
         </div>
+        {c.erronea && <div style={{ background:C.red+"15", border:`1px solid ${C.red}44`, borderRadius:10, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
+          <svg width="18" height="18" fill="none" stroke={C.red} strokeWidth="2"><circle cx="9" cy="9" r="7"/><path d="M9 6v4M9 12.5v.5"/></svg>
+          <span style={{ color:C.red, fontSize:13, fontWeight:600 }}>Ficha marcada como erronea</span>
+          <span style={{ color:C.muted, fontSize:11, marginLeft:"auto" }}>No se eliminara, solo queda marcada para revision</span>
+        </div>}
 
         {/* Lightbox */}
         {viewContratoImg && (
@@ -582,14 +590,15 @@ export default function Clientes({
             const resto2 = (Number(lastCt?.total)||0) - totalAdel2
             const paid = resto2<=0 && Number(lastCt?.total)>0
             return (
-              <button key={c.id} onClick={()=>{setView(c.id);setActiveContrato(cts.length-1)}} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s" }}
+              <button key={c.id} onClick={()=>{setView(c.id);setActiveContrato(cts.length-1)}} style={{ background:C.card, border:`1px solid ${c.erronea?C.red+"88":C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1 }}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
                 onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
                   <div>
                     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                      <span style={{ fontSize:15, fontWeight:700, color:C.text }}>{c.nombre||"Sin nombre"}</span>
+                      <span style={{ fontSize:15, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Sin nombre"}</span>
                       {c.code && <span style={{ fontSize:9, fontWeight:700, color:C.cyan, fontFamily:"monospace", background:C.cyan+"18", padding:"1px 5px", borderRadius:4 }}>{c.code}</span>}
+                      {c.erronea && <span style={{ fontSize:9, fontWeight:700, color:C.red, background:C.red+"22", padding:"1px 6px", borderRadius:4 }}>Erronea</span>}
                     </div>
                     <div style={{ fontSize:12, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
                   </div>
