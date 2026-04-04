@@ -42,6 +42,9 @@ export default function Clientes({
   const [uploadingContrato, setUploadingContrato] = useState(0)
   const [errorFiles, setErrorFiles] = useState(new Set())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [selectedFichas, setSelectedFichas] = useState(new Set())
+  const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
+  const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
   const [showContactSearch, setShowContactSearch] = useState(false)
   const fRef   = useRef(null)
@@ -677,7 +680,16 @@ export default function Clientes({
           </h2>
           <span style={{ fontSize:13, color:C.muted }}>{filteredClients.length} fichas</span>
         </div>
-        <button onClick={addNew} style={btn}>+ Nuevo Cliente</button>
+        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          {adm && selectedFichas.size > 0 && <>
+            <button onClick={bulkDelete} style={{ background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Papelera ({selectedFichas.size})</button>
+            <button onClick={()=>setSelectedFichas(new Set())} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:12 }}>Deseleccionar</button>
+          </>}
+          {adm && filteredClients.length > 0 && selectedFichas.size === 0 && (
+            <button onClick={()=>setSelectedFichas(new Set(filteredClients.map(c=>c.id)))} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:11 }}>Seleccionar</button>
+          )}
+          <button onClick={addNew} style={btn}>+ Nuevo Cliente</button>
+        </div>
       </div>
 
       {filteredClients.length===0 ? (
@@ -694,10 +706,13 @@ export default function Clientes({
             const resto2 = (Number(lastCt?.total)||0) - totalAdel2
             const paid = resto2<=0 && Number(lastCt?.total)>0
             return (
-              <button key={c.id} onClick={()=>{setView(c.id);setActiveContrato(cts.length-1)}} style={{ background:C.card, border:`1px solid ${c.erronea?C.red+"88":C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1 }}
-                onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
-                onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
+              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:c.erronea?C.red+"88":C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1, position:"relative" }}>
+                {adm && (
+                  <div onClick={e=>toggleSelect(c.id,e)} style={{ position:"absolute", top:10, right:10, width:20, height:20, borderRadius:6, border:`2px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, background:selectedFichas.has(c.id)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", zIndex:1, transition:"all .15s" }}>
+                    {selectedFichas.has(c.id) && <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="3"><path d="M2 6l3 3 5-5"/></svg>}
+                  </div>
+                )}
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6, paddingRight:adm?28:0 }}>
                   <div>
                     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                       <span style={{ fontSize:15, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Sin nombre"}</span>
@@ -729,7 +744,7 @@ export default function Clientes({
                     </span>
                   )}
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
