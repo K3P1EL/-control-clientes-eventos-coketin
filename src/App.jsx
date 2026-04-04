@@ -13,6 +13,7 @@ import { listAlmacen, createSalida, updateSalida, deleteSalida, createItem, upda
 import { listInventario, createInventarioItem, updateInventarioItem, deleteInventarioItem } from "./services/inventario"
 import { getConfig, setConfig } from "./services/config"
 import { uploadFile } from "./services/storage"
+import { listContactos, createContacto, updateContacto, deleteContacto } from "./services/contactos"
 
 import Login      from "./components/Login"
 import Register   from "./components/Register"
@@ -21,6 +22,7 @@ import Side       from "./components/Side"
 import Head       from "./components/Head"
 import Registro   from "./components/Registro"
 import Clientes   from "./components/Clientes"
+import Contactos  from "./components/Contactos"
 import Almacen    from "./components/Almacen"
 import Inventario from "./components/Inventario"
 import Agenda     from "./components/Agenda"
@@ -57,6 +59,7 @@ export default function App() {
   const [tags,       setTags]       = useState([])
   const [locales,    setLocales]    = useState(["Local 1"])
   const [prodTags,   setProdTags]   = useState([])
+  const [contactos,  setContactos]  = useState([])
   const [uploadCfg,  setUploadCfg]  = useState({ maxMB: 45, quality: 0.85, allowedTypes: ['image/jpeg','image/png','application/pdf','video/mp4','video/quicktime'] })
   const uploadCfgRef = useRef(uploadCfg)
   const [visionKey,  setVisionKey]  = useState("")
@@ -71,7 +74,7 @@ export default function App() {
   const [navRegDate,     setNavRegDate]     = useState(null)
   const [navAlmClientId, setNavAlmClientId] = useState(null)
 
-  const goToClient  = useCallback((id)        => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavClientId(id); setTab("clientes") }, [])
+  const goToClient  = useCallback((id)        => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavClientId(id); setTab("fichas") }, [])
   const goToReg     = useCallback((uid, date) => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }, [])
   const goToAlmacen = useCallback((id)        => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavAlmClientId(id); setTab("almacen") }, [])
 
@@ -88,12 +91,13 @@ export default function App() {
   const loadData = async () => {
     if (dataLoaded.current) return
     dataLoaded.current = true
-    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData, upCfg, gvKey] = await Promise.all([
+    const [regData, fotosData, clientData, almData, invData, contData, tagData, locData, ptData, profileData, upCfg, gvKey] = await Promise.all([
       safe(listRegistros(),            []),
       safe(listRegistroFotos(),        []),
       safe(listClients(),              []),
       safe(listAlmacen(),              []),
       safe(listInventario(),           []),
+      safe(listContactos(),            []),
       safe(getConfig("estado_tags"),   null),
       safe(getConfig("locales"),       null),
       safe(getConfig("producto_tags"), null),
@@ -108,6 +112,7 @@ export default function App() {
     setClients(clientData)
     setAlmacen(almData)
     setInventario(invData)
+    setContactos(contData)
     setTags(tagData    ?? ["Desconocido","Cliente frío","Cotizó","Contrato","Re Consultó","Competencia","Conocido"])
     setLocales(locData ?? ["Local 1"])
     setProdTags(ptData ?? [])
@@ -460,6 +465,29 @@ export default function App() {
     deleteInventarioItem(id).catch(e => { console.error("deleteInventario failed:", e); alert("Error eliminando item") })
   }, [])
 
+  // ── CONTACTOS ops ─────────────────────────────────────────────────────────
+  const onAddContacto = useCallback(async (payload) => {
+    const tempId = `temp_${Date.now()}`
+    const optimistic = { id: tempId, ...payload, created_at: new Date().toISOString() }
+    setContactos(prev => [optimistic, ...prev])
+    try {
+      const data = await createContacto(payload)
+      setContactos(prev => prev.map(c => c.id === tempId ? data : c))
+      return data
+    } catch (e) {
+      setContactos(prev => prev.filter(c => c.id !== tempId))
+      alert("Error creando cliente"); throw e
+    }
+  }, [])
+  const onUpdateContacto = useCallback(async (id, patch) => {
+    setContactos(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
+    updateContacto(id, patch).catch(e => { console.error("updateContacto failed:", e); alert("Error guardando cliente") })
+  }, [])
+  const onDeleteContacto = useCallback(async (id) => {
+    setContactos(prev => prev.filter(c => c.id !== id))
+    deleteContacto(id).catch(e => { console.error("deleteContacto failed:", e); alert("Error eliminando cliente") })
+  }, [])
+
   // ── CONFIG ops ────────────────────────────────────────────────────────────
   const onSetTags     = useCallback(async (v) => { setTags(v); setConfig("estado_tags", v).catch(()=>alert("Error guardando tags")) }, [])
   const onSetLocales  = useCallback(async (v) => { setLocales(v); setConfig("locales", v).catch(()=>alert("Error guardando locales")) }, [])
@@ -517,9 +545,9 @@ export default function App() {
               onAddClient={onAddClient} onDeleteClient={onDeleteClient} onAddContratoArchivo={onAddContratoArchivo} onDeleteContratoArchivo={onDeleteContratoArchivo} onUpdateContrato={onUpdateContrato} goToClient={goToClient}
             />
           )}
-          {tab==="clientes" && (
+          {tab==="fichas" && (
             <Clientes
-              clients={clients} user={user} adm={adm} regs={regs} users={users} prodTags={prodTags} visionKey={visionKey}
+              clients={clients} user={user} adm={adm} regs={regs} users={users} prodTags={prodTags} visionKey={visionKey} contactos={contactos}
               navClientId={navClientId} clearNavClient={()=>setNavClientId(null)} changeTab={changeTab}
               goToReg={goToReg} goToAlmacen={goToAlmacen}
               onAddClient={onAddClient} onUpdateClient={onUpdateClient} onDeleteClient={onDeleteClient}
@@ -527,7 +555,13 @@ export default function App() {
               onUpdateContrato={onUpdateContrato}
               onAddAdelanto={onAddAdelanto} onUpdateAdelanto={onUpdateAdelanto} onDeleteAdelanto={onDeleteAdelanto}
               onAddContratoArchivo={onAddContratoArchivo} onDeleteContratoArchivo={onDeleteContratoArchivo}
-              onMergeClients={onMergeClients}
+              onMergeClients={onMergeClients} onAddContacto={onAddContacto}
+            />
+          )}
+          {tab==="clientes" && (
+            <Contactos
+              contactos={contactos} user={user} adm={adm}
+              onAddContacto={onAddContacto} onUpdateContacto={onUpdateContacto} onDeleteContacto={onDeleteContacto}
             />
           )}
           {tab==="almacen" && (

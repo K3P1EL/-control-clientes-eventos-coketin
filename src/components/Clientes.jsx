@@ -8,14 +8,14 @@ import OCRPreviewModal from "./OCRPreviewModal"
 import LinkPopup from "./LinkPopup"
 
 export default function Clientes({
-  clients, user, adm, regs, users, prodTags, visionKey,
+  clients, user, adm, regs, users, prodTags, visionKey, contactos,
   navClientId, clearNavClient, changeTab,
   goToReg, goToAlmacen,
   onAddClient, onUpdateClient, onDeleteClient,
   onAddContrato, onUpdateContrato,
   onAddAdelanto, onUpdateAdelanto, onDeleteAdelanto,
   onAddContratoArchivo, onDeleteContratoArchivo,
-  onMergeClients,
+  onMergeClients, onAddContacto,
 }) {
   const [view,           setView_]          = useState(() => { try { const v = localStorage.getItem("client_view"); return v || null } catch { return null } })
   const setView = (v) => { setView_(v || null); try { if (v) localStorage.setItem("client_view", v); else localStorage.removeItem("client_view") } catch {} }
@@ -41,7 +41,9 @@ export default function Clientes({
   const [viewContratoImg,setViewContratoImg]= useState(null)
   const [uploadingContrato, setUploadingContrato] = useState(0)
   const [errorFiles, setErrorFiles] = useState(new Set())
-  const [deleteConfirm, setDeleteConfirm] = useState(null) // client id to confirm delete
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [contactSearch, setContactSearch] = useState("")
+  const [showContactSearch, setShowContactSearch] = useState(false)
   const fRef   = useRef(null)
   const ocrRef = useRef(null)
 
@@ -158,7 +160,7 @@ export default function Clientes({
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16, flexWrap:"wrap" }}>
           <button onClick={()=>{
             setView(null);setActiveContrato(0)
-            try { const rt = localStorage.getItem("return_tab"); if (rt && rt !== "clientes") { localStorage.removeItem("return_tab"); changeTab(rt) } } catch {}
+            try { const rt = localStorage.getItem("return_tab"); if (rt && rt !== "fichas") { localStorage.removeItem("return_tab"); changeTab(rt) } } catch {}
           }} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>
@@ -294,6 +296,60 @@ export default function Clientes({
                   ? <><div style={{ width:14,height:14,border:`2px solid ${C.purple}44`,borderTop:`2px solid ${C.purple}`,borderRadius:"50%",animation:"spin 1s linear infinite" }}/> Analizando documento...</>
                   : <><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="8" cy="7" r="2"/><path d="M2 11l3-3 2 2 3-3 4 4"/></svg>{visionKey ? "Escanear DNI / Documento" : "OCR no configurado (Admin)"}</>}
               </button>
+            </div>
+
+            {/* Contact search + save */}
+            <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+              {/* Search existing client */}
+              <div style={{ flex:1, position:"relative" }}>
+                <button onClick={()=>setShowContactSearch(!showContactSearch)} style={{ width:"100%", background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.teal, cursor:"pointer", padding:"8px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:6 }}>
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="6" cy="6" r="4"/><path d="M10 10l3 3"/></svg>
+                  Buscar cliente existente
+                </button>
+                {showContactSearch && (
+                  <div style={{ position:"absolute", top:"100%", left:0, right:0, marginTop:4, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:10, zIndex:50, boxShadow:"0 8px 24px rgba(0,0,0,.4)" }}>
+                    <input value={contactSearch} onChange={e=>setContactSearch(e.target.value)} placeholder="Nombre, DNI o celular..." style={{ ...inp, marginBottom:8, fontSize:12 }} autoFocus />
+                    <div style={{ maxHeight:160, overflow:"auto" }}>
+                      {contactSearch.trim() && (() => {
+                        const q = contactSearch.toLowerCase()
+                        const results = (contactos||[]).filter(ct => (ct.nombre||"").toLowerCase().includes(q) || (ct.dni||"").includes(q) || (ct.phones||[]).some(p=>p.includes(q)))
+                        return !results.length
+                          ? <div style={{ padding:8, fontSize:12, color:C.muted, textAlign:"center" }}>No encontrado</div>
+                          : results.slice(0,5).map(ct => (
+                            <button key={ct.id} onClick={()=>{
+                              const updates = {}
+                              if(ct.nombre) updates.nombre = ct.nombre
+                              if(ct.dni) updates.dni = ct.dni
+                              if(ct.direccion) updates.direccion = ct.direccion
+                              if(ct.referencia) updates.referencia = ct.referencia
+                              if(ct.phones?.length) updates.phones = [...new Set([...(c.phones||[]),...ct.phones])]
+                              updates.contacto_id = ct.id
+                              if(Object.keys(updates).length) onUpdateClient(c.id, updates)
+                              setShowContactSearch(false); setContactSearch("")
+                            }} style={{ width:"100%", padding:"8px 10px", border:`1px solid ${C.border}`, borderRadius:6, background:C.cardAlt, cursor:"pointer", textAlign:"left", color:C.text, fontSize:12, marginBottom:4, display:"block" }}>
+                              <div style={{ fontWeight:600 }}>{ct.nombre||"Sin nombre"}</div>
+                              <div style={{ fontSize:10, color:C.muted }}>{ct.dni ? `DNI: ${ct.dni}` : ""}{ct.phones?.[0] ? ` · ${ct.phones[0]}` : ""}</div>
+                            </button>
+                          ))
+                      })()}
+                      {!contactSearch.trim() && <div style={{ padding:8, fontSize:11, color:C.muted, textAlign:"center" }}>Escribe para buscar...</div>}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Save as client */}
+              {!c.contacto_id && (c.nombre || c.dni || (c.phones||[]).length > 0) && (
+                <button onClick={async()=>{
+                  const nc = await onAddContacto({ nombre:c.nombre||"", dni:c.dni||"", phones:c.phones||[], direccion:c.direccion||"", referencia:c.referencia||"", created_by:user.id, created_by_name:user.name })
+                  onUpdateClient(c.id, { contacto_id: nc.id })
+                }} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:8, color:C.green, cursor:"pointer", padding:"8px 14px", fontSize:12, fontWeight:600, whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:6 }}>
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zM19 8v6M22 11h-6"/></svg>
+                  Guardar cliente
+                </button>
+              )}
+              {c.contacto_id && <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:C.green, fontWeight:600, padding:"0 8px" }}>
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 6l3 3 5-5"/></svg>Cliente guardado
+              </span>}
             </div>
 
             {/* OCR preview modal */}

@@ -2,7 +2,7 @@ import { useState } from "react"
 import { C, estadoColors, ADMIN_EMAIL } from "../lib/colors"
 import { inp, btn } from "./shared"
 
-const ALL_PERMS = ["registro","clientes","almacen","inventario","agenda","pagos","auditoria","dashboard"]
+const ALL_PERMS = ["registro","fichas","clientes","almacen","inventario","agenda","pagos","auditoria","dashboard"]
 const VIS_OPTS  = [["always","Siempre"],["month","1 mes"],["week","1 semana"],["3days","3 días"],["today","Solo hoy"],["none","Ninguno"]]
 
 const ALL_TYPES = [
