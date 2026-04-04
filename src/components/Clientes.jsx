@@ -9,6 +9,17 @@ import LinkPopup from "./LinkPopup"
 
 const parseProds = (pi) => Array.isArray(pi) ? pi : (pi||"").split(",").map(s=>s.trim()).filter(Boolean)
 
+// Determine ficha status color: erronea(red) > naranja(deleted regs) > anterior(blue, no regs) > normal(green)
+function fichaStatus(c, regs) {
+  if (c.erronea) return "erronea"
+  const rids = c.reg_ids || []
+  if (!rids.length) return "anterior"
+  const allRegsDeleted = rids.length > 0 && rids.every(rid => { const r = regs.find(x=>x.id===rid); return !r || r.deleted })
+  if (allRegsDeleted) return "naranja"
+  return "normal"
+}
+const STATUS_COLORS = { normal: C.accent, anterior: C.blue, naranja: C.orange, erronea: C.red }
+
 export default function Clientes({
   clients, user, adm, regs, users, prodTags, visionKey, contactos,
   navClientId, clearNavClient, changeTab,
@@ -45,6 +56,7 @@ export default function Clientes({
   const [errorFiles, setErrorFiles] = useState(new Set())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [selectedFichas, setSelectedFichas] = useState(new Set())
+  const [colorFilter, setColorFilter] = useState(null) // null | "normal" | "anterior" | "naranja" | "erronea"
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
@@ -704,21 +716,44 @@ export default function Clientes({
         </div>
       </div>
 
-      {filteredClients.length===0 ? (
+      {/* Color filters */}
+      {adm && (
+        <div style={{ display:"flex", gap:6, marginBottom:14, alignItems:"center" }}>
+          <span style={{ fontSize:11, color:C.muted, marginRight:4 }}>Filtrar:</span>
+          {[
+            [null, "Todos", C.muted],
+            ["normal", "Normal", C.accent],
+            ["anterior", "Anterior", C.blue],
+            ["naranja", "Reg. borrado", C.orange],
+            ["erronea", "Erronea", C.red],
+          ].map(([val, label, color]) => (
+            <button key={label} onClick={()=>setColorFilter(colorFilter===val?null:val)} style={{
+              padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
+              background: colorFilter===val ? color+"33" : C.border,
+              color: colorFilter===val ? color : C.muted,
+              borderLeft: val ? `3px solid ${color}` : "none",
+            }}>{label}</button>
+          ))}
+        </div>
+      )}
+
+      {filteredClients.filter(c => !colorFilter || fichaStatus(c, regs) === colorFilter).length===0 ? (
         <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
           No hay fichas de clientes.
         </div>
       ) : (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:14 }}>
-          {filteredClients.map(c => {
+          {filteredClients.filter(c => !colorFilter || fichaStatus(c, regs) === colorFilter).map(c => {
             const cts = getContratos(c)
             const visits = cts.length
             const lastCt = cts[cts.length-1]
             const totalAdel2 = (lastCt?.adelantos||[]).filter(a=>!a.invalid).reduce((s,a)=>s+(Number(a.monto)||0),0)
             const resto2 = (Number(lastCt?.total)||0) - totalAdel2
             const paid = resto2<=0 && Number(lastCt?.total)>0
+            const status = fichaStatus(c, regs)
+            const sc = STATUS_COLORS[status]
             return (
-              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:c.erronea?C.red+"88":C.border}`, borderLeft:`3px solid ${c.erronea?C.red:!(c.reg_ids||[]).length?C.blue:C.accent}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1, position:"relative" }}>
+              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, borderLeft:`3px solid ${sc}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1, position:"relative" }}>
                 {adm && (
                   <div onClick={e=>toggleSelect(c.id,e)} style={{ position:"absolute", top:10, right:10, width:20, height:20, borderRadius:6, border:`2px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, background:selectedFichas.has(c.id)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", zIndex:1, transition:"all .15s" }}>
                     {selectedFichas.has(c.id) && <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="3"><path d="M2 6l3 3 5-5"/></svg>}
