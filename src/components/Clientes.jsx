@@ -606,7 +606,7 @@ export default function Clientes({
   // Admin: employee grid
   if (adm && viewEmp === null) {
     const empMap = {}
-    clients.forEach(c => {
+    clients.filter(c => !c.deleted_at).forEach(c => {
       if (!empMap[c.created_by]) empMap[c.created_by] = { id:c.created_by, name:c.created_by_name, count:0 }
       empMap[c.created_by].count++
     })
