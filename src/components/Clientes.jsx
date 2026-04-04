@@ -167,6 +167,13 @@ export default function Clientes({
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16, flexWrap:"wrap" }}>
           <button onClick={()=>{
+            // Check if ficha is empty — if so, delete it and notify
+            const archivos = (c.contratos||[]).flatMap(ct => ct.contrato_archivos||[])
+            const isEmpty = !c.nombre && !c.dni && !(c.phones||[]).length && !archivos.length
+            if (isEmpty) {
+              onDeleteClient(c.id)
+              alert("Ficha no creada: no tiene nombre, DNI, celular ni archivos.")
+            }
             setView(null);setActiveContrato(0)
             try { const rt = localStorage.getItem("return_tab"); if (rt && rt !== "fichas") { localStorage.removeItem("return_tab"); changeTab(rt) } } catch {}
           }} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
