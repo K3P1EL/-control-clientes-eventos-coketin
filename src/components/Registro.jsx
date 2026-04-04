@@ -537,10 +537,8 @@ export default function Registro({
                   <td style={{ ...td, pointerEvents:"auto", opacity:1 }}>{(() => {
                     const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(r.id))
                     const deleted = !linked && clients.find(c => c.deleted_at && (c.reg_ids||[]).includes(r.id))
-                    return deleted
-                      ? <span style={{ fontSize:10, fontWeight:600, color:C.muted, background:C.border, padding:"2px 8px", borderRadius:6 }}>Ficha en papelera</span>
-                      : isDel && linked
-                      ? <button onClick={()=>goToClient(linked.id)} style={{ fontSize:10, fontWeight:700, color:C.red, background:C.red+"15", padding:"2px 8px", borderRadius:6, border:"none", cursor:"pointer" }}>Ver ficha</button>
+                    return (deleted || isDel)
+                      ? <span style={{ fontSize:10, fontWeight:600, color:C.muted }}>—</span>
                       : linked
                       ? linked.erronea
                         ? <button onClick={()=>goToClient(linked.id)} style={{ fontSize:10, fontWeight:700, color:C.red, background:C.red+"15", padding:"2px 8px", borderRadius:6, border:"none", cursor:"pointer" }}>Ficha erronea</button>
