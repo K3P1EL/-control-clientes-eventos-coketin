@@ -438,6 +438,7 @@ export default function Registro({
                   </td>
                   <td style={td}>{(() => {
                     const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
+                    if (linked?.erronea) return <span style={{ fontSize:10, color:C.red }}>--</span>
                     const archivos = linked ? (linked.contratos||[]).flatMap(ct => ct.contrato_archivos||[]) : []
                     const n = archivos.length
                     const isUp = contractUploading.has(r.id)
@@ -466,7 +467,9 @@ export default function Registro({
                   <td style={td}>{(() => {
                     const linked = clients.find(c => (c.reg_ids||[]).includes(r.id))
                     return linked
-                      ? <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
+                      ? linked.erronea
+                        ? <span style={{ fontSize:10, fontWeight:700, color:C.red, background:C.red+"15", padding:"2px 8px", borderRadius:6 }}>Ficha erronea</span>
+                        : <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
                           <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:11, fontWeight:700 }}>→ Ver ficha</button>
                           {(() => { const lct=(linked.contratos||[]).slice(-1)[0]; return lct?.tipo?<span style={{ fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:lct.tipo==="contrato"?C.green+"22":C.yellow+"22",color:lct.tipo==="contrato"?C.green:C.yellow }}>{lct.tipo==="contrato"?"C":"P"}</span>:null })()}
                           {linked.code && <button onClick={e=>{e.stopPropagation();navigator.clipboard.writeText(linked.code);e.currentTarget.textContent="Copiado!";setTimeout(()=>{e.currentTarget.textContent=linked.code},1200)}} title="Copiar codigo" style={{ background:C.cyan+"15", border:`1px solid ${C.cyan}33`, borderRadius:5, color:C.cyan, cursor:"pointer", padding:"1px 6px", fontSize:9, fontWeight:600, fontFamily:"monospace" }}>{linked.code}</button>}

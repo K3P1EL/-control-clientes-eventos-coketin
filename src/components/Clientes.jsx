@@ -161,17 +161,19 @@ export default function Clientes({
           }} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>
-          <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>{c.nombre||"Ficha de Cliente"}</h2>
-          {c.code && <span style={{ padding:"3px 10px", borderRadius:8, fontSize:11, fontWeight:700, background:C.cyan+"22", color:C.cyan, fontFamily:"monospace", letterSpacing:1 }}>{c.code}</span>}
-          {contratos.length>1 && <span style={{ padding:"3px 10px", borderRadius:10, fontSize:11, fontWeight:700, background:C.purple+"33", color:C.purple }}>{contratos.length} visitas</span>}
-          <button onClick={()=>setLinking(true)} style={{ background:C.purple+"22", border:`1px solid ${C.purple}44`, borderRadius:8, color:C.purple, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007-7l-1.5 1.5a3 3 0 01-4.5 4.5L10 13zM8 5a5 5 0 00-7 7l1.5-1.5a3 3 0 014.5-4.5L8 5z"/></svg>Vincular
-          </button>
-          {(adm||(user.permissions||[]).includes("almacen")) && (
-            <button onClick={()=>goToAlmacen(c.id)} style={{ background:C.orange+"22", border:`1px solid ${C.orange}44`, borderRadius:8, color:C.orange, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h4l2 3h6l2-3h4v12H3z"/></svg>Almacén
+          <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Ficha de Cliente"}</h2>
+          {c.code && <span style={{ padding:"3px 10px", borderRadius:8, fontSize:11, fontWeight:700, fontFamily:"monospace", letterSpacing:1, ...(c.erronea ? { background:C.red+"22", color:C.red, textDecoration:"line-through" } : { background:C.cyan+"22", color:C.cyan }) }}>{c.code}</span>}
+          {!c.erronea && <>
+            {contratos.length>1 && <span style={{ padding:"3px 10px", borderRadius:10, fontSize:11, fontWeight:700, background:C.purple+"33", color:C.purple }}>{contratos.length} visitas</span>}
+            <button onClick={()=>setLinking(true)} style={{ background:C.purple+"22", border:`1px solid ${C.purple}44`, borderRadius:8, color:C.purple, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007-7l-1.5 1.5a3 3 0 01-4.5 4.5L10 13zM8 5a5 5 0 00-7 7l1.5-1.5a3 3 0 014.5-4.5L8 5z"/></svg>Vincular
             </button>
-          )}
+            {(adm||(user.permissions||[]).includes("almacen")) && (
+              <button onClick={()=>goToAlmacen(c.id)} style={{ background:C.orange+"22", border:`1px solid ${C.orange}44`, borderRadius:8, color:C.orange, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h4l2 3h6l2-3h4v12H3z"/></svg>Almacén
+              </button>
+            )}
+          </>}
           <button onClick={()=>onUpdateClient(c.id,"erronea",!c.erronea)} style={{ background:c.erronea?C.yellow+"22":C.red+"18", border:`1px solid ${c.erronea?C.yellow:C.red}44`, borderRadius:8, color:c.erronea?C.yellow:C.red, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>
             {c.erronea ? "Quitar marca" : "Ficha erronea"}
           </button>
@@ -234,7 +236,7 @@ export default function Clientes({
           </div>
         )}
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24, ...(c.erronea?{opacity:.5,pointerEvents:"none"}:{}) }}>
           {/* LEFT: Datos + Contrato */}
           <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
             <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:16, color:C.accent }}>Datos del Cliente</h3>
