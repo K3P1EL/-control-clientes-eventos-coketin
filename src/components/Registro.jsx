@@ -61,7 +61,16 @@ export default function Registro({
     }
     onUpdateReg(id, { deleted:true, deleted_by:user.name, deleted_at:new Date().toISOString() })
   }
-  const restore = (id) => onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
+  const restoreCount = useRef({ day: "", count: 0 })
+  const restore = (id) => {
+    if (!adm) {
+      const d = today()
+      if (restoreCount.current.day !== d) restoreCount.current = { day: d, count: 0 }
+      if (restoreCount.current.count >= 5) { alert("Limite de restauraciones alcanzado (5 por dia)"); return }
+      restoreCount.current.count++
+    }
+    onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
+  }
   const hardDel = (id) => {
     const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(id))
     setDelConfirm({ regId: id, linked })
@@ -287,7 +296,7 @@ export default function Registro({
           </div>
           <div style={{ display:"inline-flex", borderRadius:8, background:C.bg, padding:2, border:`1px solid ${C.border}` }}>
             <button onClick={()=>setShowAll(true)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:showAll?C.accent:C.bg, color:showAll?"#fff":C.muted, transition:"all .2s" }}>Todo el dia</button>
-            <button onClick={()=>setShowAll(false)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:!showAll?C.accent:C.bg, color:!showAll?"#fff":C.muted, transition:"all .2s" }}>Ultimos 3</button>
+            <button onClick={()=>setShowAll(false)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:!showAll?C.accent:C.bg, color:!showAll?"#fff":C.muted, transition:"all .2s" }}>Ultimos 5</button>
           </div>
           <div style={{ display:"inline-flex", borderRadius:10, overflow:"hidden", border:`1px solid ${C.accent}44` }}>
             <button onClick={()=>addReg("F")} style={{ padding:"8px 16px", border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.accent, color:"#fff", display:"flex", alignItems:"center", gap:6 }}>
@@ -456,7 +465,7 @@ export default function Registro({
             {(() => {
               const nonDelRows = rows.filter(x => !x.deleted)
               const nonDelIdSet = new Map(nonDelRows.map((r,i) => [r.id, i]))
-              const visibleRows = showAll ? rows : (nonDelRows.length > 3 ? nonDelRows.slice(-3) : nonDelRows)
+              const visibleRows = showAll ? rows : (nonDelRows.length > 5 ? nonDelRows.slice(-5) : nonDelRows)
               return visibleRows.map((r, i) => {
               const isDel   = r.deleted
               const nonDelIdx = isDel ? -1 : (nonDelIdSet.get(r.id) ?? -1)
@@ -545,15 +554,13 @@ export default function Registro({
                   })()}</td>
                   {/* Acciones */}
                   <td style={td}>
-                    {isDel && adm ? (
-                      <div style={{ display:"flex", gap:4 }}>
+                    {isDel ? (
+                      <div style={{ display:"flex", gap:4, alignItems:"center" }}>
                         <button onClick={()=>restore(r.id)} title="Restaurar" style={{ background:C.green+"22", border:"none", borderRadius:4, color:C.green, cursor:"pointer", padding:"2px 6px", fontSize:10, fontWeight:700 }}>↩</button>
-                        <button onClick={()=>hardDel(r.id)} title="Eliminar permanente" style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:2 }}>
+                        {adm && <button onClick={()=>hardDel(r.id)} title="Eliminar permanente" style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:2 }}>
                           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
-                        </button>
+                        </button>}
                       </div>
-                    ) : isDel ? (
-                      <span style={{ fontSize:10, color:C.red }}>Borrado</span>
                     ) : (
                       <button onClick={()=>del(r.id)} style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:4 }}>
                         <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
