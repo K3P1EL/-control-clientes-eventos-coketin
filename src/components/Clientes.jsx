@@ -198,8 +198,8 @@ export default function Clientes({
           return (
             <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={()=>setDeleteConfirm(null)}>
               <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.red}44`, padding:24, maxWidth:420, width:"100%" }}>
-                <h3 style={{ margin:"0 0 8px", fontSize:17, fontWeight:700, color:C.red }}>Eliminar cliente</h3>
-                <p style={{ margin:"0 0 16px", fontSize:13, color:C.muted }}>Se eliminara permanentemente <strong style={{ color:C.text }}>{c.nombre||c.code||"este cliente"}</strong> y todos sus datos vinculados:</p>
+                <h3 style={{ margin:"0 0 8px", fontSize:17, fontWeight:700, color:C.red }}>Eliminar ficha</h3>
+                <p style={{ margin:"0 0 16px", fontSize:13, color:C.muted }}>Se movera a la papelera <strong style={{ color:C.text }}>{c.nombre||c.code||"esta ficha"}</strong> con sus datos vinculados:</p>
                 {hasData ? (
                   <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16, display:"flex", flexDirection:"column", gap:8 }}>
                     {cts.length > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
@@ -222,10 +222,10 @@ export default function Clientes({
                 ) : (
                   <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16, fontSize:13, color:C.muted, textAlign:"center" }}>Sin datos vinculados</div>
                 )}
-                <div style={{ fontSize:11, color:C.red, marginBottom:16 }}>Esta accion no se puede deshacer.</div>
+                <div style={{ fontSize:11, color:C.muted, marginBottom:16, background:C.accent+"11", padding:"8px 12px", borderRadius:6 }}>Se movera a la Papelera. Podras restaurarlo en los proximos 10 dias.</div>
                 <div style={{ display:"flex", gap:10 }}>
                   <button onClick={()=>setDeleteConfirm(null)} style={{ flex:1, padding:10, borderRadius:10, background:"transparent", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer", fontSize:13, fontWeight:600 }}>Cancelar</button>
-                  <button onClick={async()=>{setDeleteConfirm(null);await onDeleteClient(c.id);setView(null)}} style={{ flex:1, padding:10, borderRadius:10, background:C.danger, border:"none", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>Eliminar todo</button>
+                  <button onClick={()=>{setDeleteConfirm(null);onDeleteClient(c.id);setView(null)}} style={{ flex:1, padding:10, borderRadius:10, background:C.danger, border:"none", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>Mover a papelera</button>
                 </div>
               </div>
             </div>
