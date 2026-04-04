@@ -725,27 +725,25 @@ export default function Clientes({
       </div>
 
       {/* Color filters */}
-      {adm && (
-        <div style={{ display:"flex", gap:6, marginBottom:14, alignItems:"center" }}>
-          <span style={{ fontSize:11, color:C.muted, marginRight:4 }}>Filtrar:</span>
-          {[
-            [null, "Todos", C.muted],
-            ["normal", "Normal", C.accent],
-            ["anterior", "Anterior", C.blue],
-            ["naranja", "Reg. borrado", C.orange],
-            ["erronea", "Erronea", C.red],
-            ["F", "Local", C.purple],
-            ["W", "WhatsApp", "#25D366"],
-          ].map(([val, label, color]) => (
-            <button key={label} onClick={()=>setColorFilter(colorFilter===val?null:val)} style={{
-              padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
-              background: colorFilter===val ? color+"33" : C.border,
-              color: colorFilter===val ? color : C.muted,
-              borderLeft: val ? `3px solid ${color}` : "none",
-            }}>{label}</button>
-          ))}
-        </div>
-      )}
+      <div style={{ display:"flex", gap:6, marginBottom:14, alignItems:"center" }}>
+        <span style={{ fontSize:11, color:C.muted, marginRight:4 }}>Filtrar:</span>
+        {[
+          [null, "Todos", C.muted],
+          ["normal", "Normal", C.accent],
+          ["anterior", "Anterior", C.blue],
+          ["naranja", "Reg. borrado", C.orange],
+          ...(adm ? [["erronea", "Erronea", C.red]] : []),
+          ["F", "Local", C.purple],
+          ["W", "WhatsApp", "#25D366"],
+        ].map(([val, label, color]) => (
+          <button key={label} onClick={()=>setColorFilter(colorFilter===val?null:val)} style={{
+            padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
+            background: colorFilter===val ? color+"33" : C.border,
+            color: colorFilter===val ? color : C.muted,
+            borderLeft: val ? `3px solid ${color}` : "none",
+          }}>{label}</button>
+        ))}
+      </div>
 
       {filteredClients.filter(c => !colorFilter || (colorFilter==="W"||colorFilter==="F" ? fichaCanal(c,regs)===colorFilter : fichaStatus(c,regs)===colorFilter)).length===0 ? (
         <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
