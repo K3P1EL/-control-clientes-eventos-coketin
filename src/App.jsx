@@ -312,18 +312,31 @@ export default function App() {
   const onDeleteClient = useCallback(async (id) => {
     const ts = new Date().toISOString()
     setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: ts } : c))
+    // Also soft-delete linked almacen salidas
+    setAlmacen(prev => prev.map(s => s.client_id === id ? { ...s, deleted_at: ts } : s))
     updateClient(id, { deleted_at: ts }).catch(e => {
       setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
+      setAlmacen(prev => prev.map(s => s.client_id === id ? { ...s, deleted_at: null } : s))
       console.error("deleteClient failed:", e); alert("Error eliminando")
     })
-  }, [])
+    // Update almacen salidas in DB
+    almacen.filter(s => s.client_id === id && !s.deleted_at).forEach(s => {
+      updateSalida(s.id, { deleted_at: ts }).catch(() => {})
+    })
+  }, [almacen])
   const onRestoreClient = useCallback(async (id) => {
     setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
+    // Also restore linked almacen salidas
+    setAlmacen(prev => prev.map(s => s.client_id === id && s.deleted_at ? { ...s, deleted_at: null } : s))
     updateClient(id, { deleted_at: null }).catch(e => {
       setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c))
       console.error("restoreClient failed:", e); alert("Error restaurando")
     })
-  }, [])
+    // Restore almacen salidas in DB
+    almacen.filter(s => s.client_id === id && s.deleted_at).forEach(s => {
+      updateSalida(s.id, { deleted_at: null }).catch(() => {})
+    })
+  }, [almacen])
   const onPermanentDeleteClient = useCallback(async (id) => {
     const backup = []
     setClients(prev => { backup.push(...prev.filter(c => c.id === id)); return prev.filter(c => c.id !== id) })
@@ -640,7 +653,7 @@ export default function App() {
           )}
           {tab==="almacen" && (
             <Almacen
-              almacen={almacen} clients={clients} user={user} adm={adm}
+              almacen={almacen} clients={clients} regs={regs} user={user} adm={adm}
               navClientId={navAlmClientId} clearNav={()=>setNavAlmClientId(null)}
               goToClient={goToClient}
               onAddSalida={onAddSalida} onUpdateSalida={onUpdateSalida} onDeleteSalida={onDeleteSalida}

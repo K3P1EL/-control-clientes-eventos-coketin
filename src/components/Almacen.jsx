@@ -9,7 +9,7 @@ const EST_LABEL  = { por_recoger:"Por recoger", recogido:"Recogido", en_uso:"En 
 const EST_COLOR  = { por_recoger:C.yellow, recogido:C.blue, en_uso:C.purple, entregado:C.accent, devuelto:C.green }
 
 export default function Almacen({
-  almacen, clients, user, adm,
+  almacen, clients, regs, user, adm,
   navClientId, clearNav, goToClient,
   onAddSalida, onUpdateSalida, onDeleteSalida,
   onAddItem,   onUpdateItem,   onDeleteItem,
@@ -148,7 +148,8 @@ export default function Almacen({
   }
 
   // ── List view ─────────────────────────────────────────────────────────────
-  const mySalidas = adm ? almacen : almacen.filter(s=>s.created_by===user.id)
+  const activeSalidas = almacen.filter(s => !s.deleted_at)
+  const mySalidas = adm ? activeSalidas : activeSalidas.filter(s=>s.created_by===user.id)
   const searchResults = searchCl.trim()
     ? clients.filter(c => {
         if (c.erronea || c.deleted_at) return false
@@ -213,8 +214,12 @@ export default function Almacen({
           {mySalidas.map(s => {
             const totalItems = (s.almacen_items||[]).length
             const devueltos  = (s.almacen_items||[]).filter(it=>it.devuelto).length
+            const linkedClient = clients.find(c => c.id === s.client_id)
+            const clientDeleted = linkedClient?.deleted_at
+            const clientRegDeleted = linkedClient && (linkedClient.reg_ids||[]).length > 0 && (linkedClient.reg_ids||[]).every(rid => { const r = regs?.find(x=>x.id===rid); return !r || r.deleted })
+            const borderColor = clientDeleted ? C.red : clientRegDeleted ? C.orange : EST_COLOR[s.estado] || C.muted
             return (
-              <button key={s.id} onClick={()=>setView(s.id)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", borderLeft:`4px solid ${EST_COLOR[s.estado]||C.muted}` }}
+              <button key={s.id} onClick={()=>setView(s.id)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", borderLeft:`4px solid ${borderColor}`, opacity:clientDeleted?.6:1 }}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
                 onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
