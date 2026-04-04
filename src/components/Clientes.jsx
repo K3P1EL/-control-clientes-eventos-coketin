@@ -473,6 +473,9 @@ export default function Clientes({
                 {/* Ubicaciones / Google Maps (max 3) */}
                 <div style={{ marginBottom:12 }}>
                   <label style={lbl}>Ubicaciones del evento</label>
+                  {(ct.ubicaciones||[]).length < 3 && (
+                    <input onKeyDown={e=>{if(e.key==="Enter"&&e.target.value.trim()){const v=e.target.value.trim();if(/^https?:\/\//.test(v)){onUpdateContrato(c.id,ct.id,{ubicaciones:[...(ct.ubicaciones||[]),v]});e.target.value=""}else{alert("Pega un link valido (https://...)")}}}} onPaste={e=>{setTimeout(()=>{const v=e.target.value.trim();if(v&&/^https?:\/\//.test(v)){onUpdateContrato(c.id,ct.id,{ubicaciones:[...(ct.ubicaciones||[]),v]});e.target.value=""}},100)}} style={{ ...inp, marginBottom:8, fontSize:12 }} placeholder={`Pega link de Google Maps y pulsa Enter... (${3-(ct.ubicaciones||[]).length} restantes)`} />
+                  )}
                   {(ct.ubicaciones||[]).map((ub,idx) => (
                     <div key={idx} style={{ display:"flex", gap:6, alignItems:"center", marginBottom:6 }}>
                       <div style={{ flex:1, padding:"7px 12px", borderRadius:8, background:C.inputBg, border:`1px solid ${C.border}`, fontSize:12, color:C.accent, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", cursor:"pointer" }} onClick={()=>window.open(ub,"_blank")}>
@@ -490,9 +493,6 @@ export default function Clientes({
                       <button onClick={()=>{const u=[...(ct.ubicaciones||[])];u.splice(idx,1);onUpdateContrato(c.id,ct.id,{ubicaciones:u})}} title="Quitar" style={{ background:C.danger+"22", border:"none", borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 7px", display:"flex", alignItems:"center", fontSize:11 }}>x</button>
                     </div>
                   ))}
-                  {(ct.ubicaciones||[]).length < 3 && (
-                    <input onKeyDown={e=>{if(e.key==="Enter"&&e.target.value.trim()){const v=e.target.value.trim();if(/^https?:\/\//.test(v)){onUpdateContrato(c.id,ct.id,{ubicaciones:[...(ct.ubicaciones||[]),v]});e.target.value=""}else{alert("Pega un link valido (https://...)")}}}} onPaste={e=>{setTimeout(()=>{const v=e.target.value.trim();if(v&&/^https?:\/\//.test(v)){onUpdateContrato(c.id,ct.id,{ubicaciones:[...(ct.ubicaciones||[]),v]});e.target.value=""}},100)}} style={{ ...inp, marginBottom:0, fontSize:12 }} placeholder={`Pega link de Google Maps y pulsa Enter... (${3-(ct.ubicaciones||[]).length} restantes)`} />
-                  )}
                 </div>
 
                 {/* Producto de interés — hidden in simple */}
