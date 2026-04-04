@@ -35,14 +35,3 @@ export async function deleteContacto(id) {
   const { error } = await supabase.from('contactos').delete().eq('id', id)
   if (error) throw error
 }
-
-export async function searchContactos(query) {
-  const q = query.toLowerCase()
-  const { data, error } = await supabase
-    .from('contactos')
-    .select('*')
-    .or(`nombre.ilike.%${q}%,dni.ilike.%${q}%`)
-    .limit(10)
-  if (error) throw error
-  return data ?? []
-}

@@ -5,7 +5,7 @@ import { today } from "./lib/helpers"
 import { CSS, Loader } from "./components/shared"
 
 import { getSession } from "./services/auth"
-import { getProfile, listProfiles, updateProfile } from "./services/profiles"
+import { listProfiles, updateProfile } from "./services/profiles"
 import { listRegistros, createRegistro, updateRegistro, listRegistroFotos, createRegistroFoto, deleteRegistro } from "./services/registros"
 import { listClients, createClient, updateClient, deleteClient } from "./services/clients"
 import { createContrato, updateContrato, createAdelanto, updateAdelanto, deleteAdelanto, createContratoArchivo, deleteContratoArchivo } from "./services/contratos"
