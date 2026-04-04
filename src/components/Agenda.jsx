@@ -1,14 +1,13 @@
 import { useState } from "react"
 import { C } from "../lib/colors"
 
-const AGENDA_VIS_DAYS = { hoy:0, "3dias":3, semana:7, mes:30, todo:Infinity }
-
-export default function Agenda({ clients, user, adm, agendaVis, goToClient }) {
+export default function Agenda({ clients, user, adm, goToClient, onUpdateContrato }) {
   const [filter, setFilter] = useState("pendiente")
 
   const now = new Date()
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
-  const maxDays = adm ? Infinity : (AGENDA_VIS_DAYS[agendaVis] ?? Infinity)
+  const maxDays = adm ? Infinity : (user.agenda_days ?? 30)
+  const scope = adm ? "all" : (user.agenda_scope || "own")
 
   const allContratos = []
   clients.filter(c => !c.erronea).forEach(c => {
@@ -27,8 +26,18 @@ export default function Agenda({ clients, user, adm, agendaVis, goToClient }) {
   })
 
   const filtered = allContratos.filter(ct => {
-    if (!adm && ct.clientId && clients.find(c=>c.id===ct.clientId)?.created_by !== user.id) return false
-    // Agenda visibility: non-admins can only see within configured range
+    // Hidden by admin
+    if (!adm && ct.hidden_agenda) return false
+    // Scope filter for non-admins
+    if (!adm) {
+      const owner = clients.find(c=>c.id===ct.clientId)
+      if (scope === "own" && owner?.created_by !== user.id) return false
+      if (scope === "local" && ct.local && ct.local !== user.local) {
+        // fallback: check if owner was created by same user
+        if (owner?.created_by !== user.id) return false
+      }
+    }
+    // Days limit for non-admins
     if (!adm && maxDays !== Infinity) {
       const ev = ct.fecha_evento || ""
       if (!ev) return false
@@ -124,6 +133,9 @@ export default function Agenda({ clients, user, adm, agendaVis, goToClient }) {
                   )}
                   {overdue && <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.red+"33", color:C.red }}>Vencido</span>}
                   {ct.estado==="finalizado" && <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.green+"33", color:C.green }}>Finalizado</span>}
+                  {adm && <button onClick={e=>{e.stopPropagation();onUpdateContrato(ct.clientId,ct.id,{hidden_agenda:!ct.hidden_agenda})}} style={{ padding:"2px 8px", borderRadius:10, fontSize:9, fontWeight:600, border:"none", cursor:"pointer", background:ct.hidden_agenda?C.yellow+"33":C.border, color:ct.hidden_agenda?C.yellow:C.muted, marginTop:2 }}>
+                    {ct.hidden_agenda?"Oculto":"Ocultar"}
+                  </button>}
                 </div>
               </button>
             )

@@ -60,7 +60,6 @@ export default function App() {
   const [uploadCfg,  setUploadCfg]  = useState({ maxMB: 45, quality: 0.85, allowedTypes: ['image/jpeg','image/png','application/pdf','video/mp4','video/quicktime'] })
   const uploadCfgRef = useRef(uploadCfg)
   const [visionKey,  setVisionKey]  = useState("")
-  const [agendaVis,  setAgendaVis]  = useState("todo") // todo, mes, semana, 3dias, hoy
   uploadCfgRef.current = uploadCfg
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -89,7 +88,7 @@ export default function App() {
   const loadData = async () => {
     if (dataLoaded.current) return
     dataLoaded.current = true
-    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData, upCfg, gvKey, agVis] = await Promise.all([
+    const [regData, fotosData, clientData, almData, invData, tagData, locData, ptData, profileData, upCfg, gvKey] = await Promise.all([
       safe(listRegistros(),            []),
       safe(listRegistroFotos(),        []),
       safe(listClients(),              []),
@@ -101,7 +100,6 @@ export default function App() {
       safe(listProfiles(),             []),
       safe(getConfig("upload_config"), null),
       safe(getConfig("google_vision_key"), null),
-      safe(getConfig("agenda_visibility"), null),
     ])
     setRegs(regData)
     const photosObj = {}
@@ -116,7 +114,6 @@ export default function App() {
     setUsers(profileData)
     if (upCfg) setUploadCfg(upCfg)
     if (gvKey) setVisionKey(gvKey)
-    if (agVis) setAgendaVis(agVis)
     setDataReady(true)
   }
 
@@ -469,7 +466,6 @@ export default function App() {
   const onSetProdTags = useCallback(async (v) => { setProdTags(v); setConfig("producto_tags", v).catch(()=>alert("Error guardando productos")) }, [])
   const onSetUploadCfg = useCallback(async (v) => { setUploadCfg(v); setConfig("upload_config", v).catch(()=>alert("Error guardando config de uploads")) }, [])
   const onSetVisionKey = useCallback(async (v) => { setVisionKey(v); setConfig("google_vision_key", v).catch(()=>alert("Error guardando API key")) }, [])
-  const onSetAgendaVis = useCallback(async (v) => { setAgendaVis(v); setConfig("agenda_visibility", v).catch(()=>alert("Error guardando config")) }, [])
 
   // ── PROFILES ops ─────────────────────────────────────────────────────────
   const onUpdateProfile = useCallback(async (id, patch) => {
@@ -550,7 +546,7 @@ export default function App() {
               onAddInventario={onAddInventario} onUpdateInventario={onUpdateInventario} onDeleteInventario={onDeleteInventario}
             />
           )}
-          {tab==="agenda"    && <Agenda clients={clients} user={user} adm={adm} agendaVis={agendaVis} goToClient={goToClient} />}
+          {tab==="agenda"    && <Agenda clients={clients} user={user} adm={adm} goToClient={goToClient} onUpdateContrato={onUpdateContrato} />}
           {tab==="auditoria" && <Audit regs={regs} photos={photos} />}
           {tab==="dashboard" && <Dash regs={regs} adm={adm} />}
           {tab==="admin" && adm && (
@@ -558,7 +554,6 @@ export default function App() {
               users={users} tags={tags} locales={locales} prodTags={prodTags}
               uploadCfg={uploadCfg} onSetUploadCfg={onSetUploadCfg}
               visionKey={visionKey} onSetVisionKey={onSetVisionKey}
-              agendaVis={agendaVis} onSetAgendaVis={onSetAgendaVis}
               onSetTags={onSetTags} onSetLocales={onSetLocales} onSetProdTags={onSetProdTags}
               onUpdateProfile={onUpdateProfile} onDeleteProfile={onDeleteProfile}
             />

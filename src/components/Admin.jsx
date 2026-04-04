@@ -10,9 +10,7 @@ const ALL_TYPES = [
   { value:"application/pdf", label:"PDF" }, { value:"video/mp4", label:"MP4" }, { value:"video/quicktime", label:"MOV" },
 ]
 
-const AGENDA_VIS_OPTS = [["todo","Todo"],["mes","1 mes"],["semana","1 semana"],["3dias","3 dias"],["hoy","Solo hoy"]]
-
-export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSetUploadCfg, visionKey, onSetVisionKey, agendaVis, onSetAgendaVis, onSetTags, onSetLocales, onSetProdTags, onUpdateProfile, onDeleteProfile }) {
+export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSetUploadCfg, visionKey, onSetVisionKey, onSetTags, onSetLocales, onSetProdTags, onUpdateProfile, onDeleteProfile }) {
   const [nt,  setNt]  = useState("")
   const [nl,  setNl]  = useState("")
   const [npt, setNpt] = useState("")
@@ -72,7 +70,7 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                     </select>
                   </td>
                   <td style={td}>
-                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
                       {ALL_PERMS.map(p => (
                         <button key={p} onClick={()=>togPerm(u.id,p)} style={{
                           padding:"3px 10px", borderRadius:12, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
@@ -81,6 +79,21 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                         }}>{p}</button>
                       ))}
                     </div>
+                    {(u.permissions||[]).includes("agenda") && (
+                      <div style={{ display:"flex", gap:8, alignItems:"center", marginTop:8, flexWrap:"wrap" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                          <span style={{ fontSize:10, color:C.muted }}>Dias:</span>
+                          <input type="number" value={u.agenda_days??30} min={0} max={365}
+                            onChange={e=>onUpdateProfile(u.id,{agenda_days:Number(e.target.value)||0})}
+                            style={{ width:50, padding:"3px 6px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none", textAlign:"center" }} />
+                        </div>
+                        <div style={{ display:"inline-flex", borderRadius:14, background:C.bg, padding:1 }}>
+                          {[["own","Sus contratos"],["all","Todo"],["local","Por local"]].map(([v,l])=>(
+                            <button key={v} onClick={()=>onUpdateProfile(u.id,{agenda_scope:v})} style={{ padding:"3px 10px", borderRadius:12, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.agenda_scope||"own")===v?C.accent:C.bg, color:(u.agenda_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td style={td}>
                     <button onClick={()=>{if(window.confirm("¿Eliminar este usuario permanentemente?"))onDeleteProfile(u.id)}} style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:4 }}>
@@ -175,15 +188,6 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
             {visionKey ? <span style={{ fontSize:11, color:C.green, fontWeight:600 }}>Configurada</span> : <span style={{ fontSize:11, color:C.muted }}>Sin configurar</span>}
           </div>
           <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>Obtener en Google Cloud Console &gt; APIs &gt; Vision API. Se usa para escanear DNI/documentos en fichas de cliente.</div>
-        </div>
-        <div style={{ marginTop:16 }}>
-          <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:6 }}>Visibilidad de Agenda (trabajadores)</label>
-          <div style={{ display:"inline-flex", borderRadius:20, background:C.bg, padding:2 }}>
-            {AGENDA_VIS_OPTS.map(([v,l]) => (
-              <button key={v} onClick={()=>onSetAgendaVis(v)} style={{ padding:"5px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:agendaVis===v?C.accent:C.bg, color:agendaVis===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
-            ))}
-          </div>
-          <div style={{ fontSize:11, color:C.muted, marginTop:6 }}>Cuantos dias de agenda pueden ver los empleados. El admin siempre ve todo.</div>
         </div>
       </div>
 
