@@ -59,7 +59,7 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
             {/* Row 1: Name, email, status, delete */}
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14, flexWrap:"wrap" }}>
               <div style={{ flex:1, minWidth:180 }}>
-                <div style={{ fontSize:16, fontWeight:700, color:C.text }}>{u.name||"Sin nombre"}</div>
+                <input value={u.name||""} onChange={e=>onUpdateProfile(u.id,{name:e.target.value})} placeholder="Sin nombre" style={{ fontSize:16, fontWeight:700, color:C.text, background:"transparent", border:"none", borderBottom:`1px solid transparent`, outline:"none", padding:0, width:"100%" }} onFocus={e=>e.target.style.borderBottomColor=C.accent} onBlur={e=>e.target.style.borderBottomColor="transparent"} />
                 <div style={{ fontSize:12, color:C.muted }}>{u.email}</div>
               </div>
               <button onClick={()=>togActive(u.id)} style={{ padding:"5px 16px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:u.active?C.green:C.red, color:"#fff" }}>
