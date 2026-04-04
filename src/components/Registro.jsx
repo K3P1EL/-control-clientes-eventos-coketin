@@ -536,8 +536,7 @@ export default function Registro({
                   {/* Ficha */}
                   <td style={{ ...td, pointerEvents:"auto", opacity:1 }}>{(() => {
                     const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(r.id))
-                    const deleted = !linked && clients.find(c => c.deleted_at && (c.reg_ids||[]).includes(r.id))
-                    return (deleted || isDel)
+                    return isDel
                       ? <span style={{ fontSize:10, fontWeight:600, color:C.muted }}>—</span>
                       : linked
                       ? linked.erronea
