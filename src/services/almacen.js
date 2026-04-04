@@ -6,7 +6,8 @@ export async function listAlmacen() {
     .select(`
       *,
       almacen_items (*),
-      almacen_archivos (*)
+      almacen_archivos (*),
+      almacen_archivos_recojo (*)
     `)
     .order('created_at', { ascending: false })
     .limit(500)
@@ -78,5 +79,22 @@ export async function createAlmacenArchivo(payload) {
 
 export async function deleteAlmacenArchivo(id) {
   const { error } = await supabase.from('almacen_archivos').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ─── Archivos de recojo ─────────────────────────────────────────────────────
+
+export async function createArchivoRecojo(payload) {
+  const { data, error } = await supabase
+    .from('almacen_archivos_recojo')
+    .insert(payload)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteArchivoRecojo(id) {
+  const { error } = await supabase.from('almacen_archivos_recojo').delete().eq('id', id)
   if (error) throw error
 }

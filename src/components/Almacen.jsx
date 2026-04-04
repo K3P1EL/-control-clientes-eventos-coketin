@@ -14,6 +14,7 @@ export default function Almacen({
   onAddSalida, onUpdateSalida, onDeleteSalida,
   onAddItem,   onUpdateItem,   onDeleteItem,
   onAddAlmacenArchivo, onDeleteAlmacenArchivo,
+  onAddArchivoRecojo, onDeleteArchivoRecojo,
 }) {
   const [view,      setView_]     = useState(() => { try { const v = localStorage.getItem("almacen_view"); return v || null } catch { return null } })
   const setView = (v) => { setView_(v || null); try { if (v) localStorage.setItem("almacen_view", v); else localStorage.removeItem("almacen_view") } catch {} }
@@ -21,7 +22,9 @@ export default function Almacen({
   const [searchCl,  setSearchCl]  = useState("")
   const [uploadingCount, setUploadingCount] = useState(0)
   const [errorFiles, setErrorFiles] = useState(new Set())
+  const [uploadingRecojo, setUploadingRecojo] = useState(0)
   const fRef = useRef(null)
+  const fRefRecojo = useRef(null)
 
   useEffect(() => {
     if (!navClientId) return
@@ -101,40 +104,70 @@ export default function Almacen({
             <div style={{ fontSize:11, color:C.muted, marginTop:10 }}>Creado por {s.created_by_name} — {fmtDate(s.created_at)}</div>
           </div>
 
-          {/* Archivos */}
-          <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
-            <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:12, color:C.accent }}>Archivos / Grabaciones</h3>
-            <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingCount(c=>c+files.length);await Promise.all(files.map(f=>onAddAlmacenArchivo(s.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingCount(c=>Math.max(0,c-files.length)))}} />
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}
-              onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor=C.accent}} onDragLeave={e=>{e.currentTarget.style.borderColor="transparent"}}
-              onDrop={async e=>{e.preventDefault();e.currentTarget.style.borderColor="transparent";const files=Array.from(e.dataTransfer.files||[]).filter(f=>/^(image|video|application\/pdf)/.test(f.type));if(!files.length)return;setUploadingCount(c=>c+files.length);await Promise.all(files.map(f=>onAddAlmacenArchivo(s.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingCount(c=>Math.max(0,c-files.length)))}}>
-              <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"8px 16px", fontSize:12, fontWeight:600 }}>Subir archivo</button>
-              {uploadingCount > 0 && <span style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:C.accent }}><span style={{ display:"inline-block", width:12, height:12, border:"2px solid currentColor", borderTopColor:"transparent", borderRadius:"50%", animation:"spin .8s linear infinite" }} />{uploadingCount} subiendo...</span>}
-              <span style={{ fontSize:11, color:C.muted }}>o arrastra aqui</span>
-            </div>
-            {!(s.almacen_archivos||[]).length && <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:13, background:C.cardAlt, borderRadius:8 }}>Sin archivos.</div>}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(120px, 1fr))", gap:10 }}>
-              {(s.almacen_archivos||[]).map(ar => {
-                const isErr = errorFiles.has(ar.id)
-                return (
-                  <div key={ar.id} style={{ borderRadius:12, overflow:"hidden", border:`2px solid ${isErr?C.red:C.border}`, position:"relative", opacity:isErr?.5:1, transition:"opacity .2s" }}>
-                    <div onClick={()=>setViewFile(ar)} style={{ cursor:"pointer", aspectRatio:"1" }}>
-                      {ar.tipo?.startsWith("image")
-                        ? <img src={ar.url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                        : ar.tipo?.startsWith("video")
-                        ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="32" height="32" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg><span style={{ fontSize:10,color:C.muted }}>Video</span></div>
-                        : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="28" height="28" fill="none" stroke={C.red} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><span style={{ fontSize:10,color:C.muted }}>PDF</span></div>}
-                    </div>
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"5px 8px", background:C.cardAlt }}>
-                      <span style={{ fontSize:9, color:isErr?C.red:C.muted, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{isErr?"Error":ar.nombre||"Archivo"}</span>
-                      <div style={{ display:"flex", gap:4, flexShrink:0 }}>
-                        <button onClick={e=>{e.stopPropagation();setErrorFiles(prev=>{const s=new Set(prev);if(s.has(ar.id))s.delete(ar.id);else s.add(ar.id);return s})}} style={{ background:isErr?C.yellow+"22":C.red+"22", border:"none", borderRadius:4, cursor:"pointer", padding:"2px 5px", fontSize:9, fontWeight:700, color:isErr?C.yellow:C.red }}>{isErr?"Restaurar":"Error"}</button>
-                        {adm && <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este archivo?"))onDeleteAlmacenArchivo(s.id,ar.id)}} style={{ background:C.danger+"22", border:"none", borderRadius:4, cursor:"pointer", padding:"2px 5px", fontSize:9, color:C.danger }}>x</button>}
+          {/* Archivos — 2 columnas: Salida y Recojo */}
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            {/* Archivos de SALIDA */}
+            <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, borderLeft:`3px solid ${C.orange}` }}>
+              <h3 style={{ fontSize:14, fontWeight:600, marginTop:0, marginBottom:10, color:C.orange }}>Lo que se lleva</h3>
+              <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingCount(c=>c+files.length);await Promise.all(files.map(f=>onAddAlmacenArchivo(s.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingCount(c=>Math.max(0,c-files.length)))}} />
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.orange, cursor:"pointer", padding:"6px 14px", fontSize:11, fontWeight:600 }}>Subir foto</button>
+                {uploadingCount > 0 && <span style={{ fontSize:11, color:C.orange }}>{uploadingCount} subiendo...</span>}
+              </div>
+              {!(s.almacen_archivos||[]).length && <div style={{ padding:14, textAlign:"center", color:C.muted, fontSize:12, background:C.cardAlt, borderRadius:8 }}>Sin archivos de salida</div>}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:8 }}>
+                {(s.almacen_archivos||[]).map(ar => {
+                  const isErr = errorFiles.has(ar.id)
+                  return (
+                    <div key={ar.id} style={{ borderRadius:10, overflow:"hidden", border:`2px solid ${isErr?C.red:C.border}`, opacity:isErr?.5:1 }}>
+                      <div onClick={()=>setViewFile(ar)} style={{ cursor:"pointer", aspectRatio:"1" }}>
+                        {ar.tipo?.startsWith("image") ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                        : ar.tipo?.startsWith("video") ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
+                        : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.yellow,fontWeight:700 }}>PDF</div>}
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px 6px", background:C.cardAlt }}>
+                        <span style={{ fontSize:8, color:C.muted, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ar.nombre||"Archivo"}</span>
+                        <div style={{ display:"flex", gap:3 }}>
+                          <button onClick={()=>setErrorFiles(prev=>{const x=new Set(prev);if(x.has(ar.id))x.delete(ar.id);else x.add(ar.id);return x})} style={{ background:isErr?C.yellow+"22":C.red+"22", border:"none", borderRadius:3, cursor:"pointer", padding:"1px 4px", fontSize:8, fontWeight:700, color:isErr?C.yellow:C.red }}>{isErr?"↩":"!"}</button>
+                          {adm && <button onClick={()=>{if(window.confirm("¿Eliminar?"))onDeleteAlmacenArchivo(s.id,ar.id)}} style={{ background:C.danger+"22", border:"none", borderRadius:3, cursor:"pointer", padding:"1px 4px", fontSize:8, color:C.danger }}>x</button>}
+                        </div>
                       </div>
                     </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Archivos de RECOJO */}
+            <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, borderLeft:`3px solid ${C.green}` }}>
+              <h3 style={{ fontSize:14, fontWeight:600, marginTop:0, marginBottom:10, color:C.green }}>Lo que se recoge</h3>
+              <input ref={fRefRecojo} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingRecojo(c=>c+files.length);await Promise.all(files.map(f=>onAddArchivoRecojo(s.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingRecojo(c=>Math.max(0,c-files.length)))}} />
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                <button onClick={()=>fRefRecojo.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.green, cursor:"pointer", padding:"6px 14px", fontSize:11, fontWeight:600 }}>Subir foto</button>
+                {uploadingRecojo > 0 && <span style={{ fontSize:11, color:C.green }}>{uploadingRecojo} subiendo...</span>}
+              </div>
+              {!(s.almacen_archivos_recojo||[]).length && <div style={{ padding:14, textAlign:"center", color:C.muted, fontSize:12, background:C.cardAlt, borderRadius:8 }}>Sin archivos de recojo</div>}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:8 }}>
+                {(s.almacen_archivos_recojo||[]).map(ar => (
+                  <div key={ar.id} style={{ borderRadius:10, overflow:"hidden", border:`2px solid ${C.border}` }}>
+                    <div onClick={()=>setViewFile(ar)} style={{ cursor:"pointer", aspectRatio:"1" }}>
+                      {ar.tipo?.startsWith("image") ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                      : ar.tipo?.startsWith("video") ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
+                      : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.yellow,fontWeight:700 }}>PDF</div>}
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px 6px", background:C.cardAlt }}>
+                      <span style={{ fontSize:8, color:C.muted, flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ar.nombre||"Archivo"}</span>
+                      {adm && <button onClick={()=>{if(window.confirm("¿Eliminar?"))onDeleteArchivoRecojo(s.id,ar.id)}} style={{ background:C.danger+"22", border:"none", borderRadius:3, cursor:"pointer", padding:"1px 4px", fontSize:8, color:C.danger }}>x</button>}
+                    </div>
                   </div>
-                )
-              })}
+                ))}
+              </div>
+            </div>
+
+            {/* Notas de perdida */}
+            <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, borderLeft:`3px solid ${C.red}` }}>
+              <h3 style={{ fontSize:14, fontWeight:600, marginTop:0, marginBottom:10, color:C.red }}>Perdidas / Danos</h3>
+              <DInput tag="textarea" value={s.notas_perdida||""} onCommit={v=>onUpdateSalida(s.id,{notas_perdida:v})} style={{ ...inp, minHeight:60, resize:"vertical", fontFamily:"inherit" }} placeholder="Detalla que se perdio o dano en el evento..." />
             </div>
           </div>
         </div>
