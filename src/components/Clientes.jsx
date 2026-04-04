@@ -23,11 +23,9 @@ const STATUS_COLORS = { normal: C.accent, anterior: C.blue, naranja: C.orange, e
 function fichaCanal(c, regs) {
   const rids = c.reg_ids || []
   if (!rids.length) return null
-  const channels = rids.map(rid => regs.find(x=>x.id===rid)?.canal).filter(Boolean)
-  if (channels.includes("W") && channels.includes("F")) return "ambos"
-  if (channels.includes("W")) return "W"
-  if (channels.includes("F")) return "F"
-  return null
+  // Show canal of the first (original) registro
+  const first = regs.find(x => x.id === rids[0])
+  return first?.canal || null
 }
 
 export default function Clientes({
@@ -775,7 +773,7 @@ export default function Clientes({
                       <span style={{ fontSize:15, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Sin nombre"}</span>
                       {c.code && <span style={{ fontSize:9, fontWeight:700, color:C.cyan, fontFamily:"monospace", background:C.cyan+"18", padding:"1px 5px", borderRadius:4 }}>{c.code}</span>}
                       {c.erronea && <span style={{ fontSize:9, fontWeight:700, color:C.red, background:C.red+"22", padding:"1px 6px", borderRadius:4 }}>Erronea</span>}
-                      {(() => { const ch = fichaCanal(c, regs); return ch === "W" ? <span style={{ fontSize:9, fontWeight:600, color:"#25D366", background:"#25D36618", padding:"1px 5px", borderRadius:4 }}>WA</span> : ch === "F" ? <span style={{ fontSize:9, fontWeight:600, color:C.purple, background:C.purple+"18", padding:"1px 5px", borderRadius:4 }}>Local</span> : ch === "ambos" ? <span style={{ fontSize:9, fontWeight:600, color:C.teal, background:C.teal+"18", padding:"1px 5px", borderRadius:4 }}>WA+Local</span> : null })()}
+                      {(() => { const ch = fichaCanal(c, regs); return ch === "W" ? <span style={{ fontSize:9, fontWeight:600, color:"#25D366", background:"#25D36618", padding:"1px 5px", borderRadius:4 }}>WA</span> : ch === "F" ? <span style={{ fontSize:9, fontWeight:600, color:C.purple, background:C.purple+"18", padding:"1px 5px", borderRadius:4 }}>Local</span> : null })()}
                     </div>
                     <div style={{ fontSize:12, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
                   </div>
