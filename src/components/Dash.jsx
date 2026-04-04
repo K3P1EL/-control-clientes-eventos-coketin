@@ -82,9 +82,13 @@ function StorageBrowser() {
 
   const deleteOne = async (path) => {
     setDeleting(prev => new Set(prev).add(path))
-    await deleteStorageFile(path).catch(() => {})
-    setFiles(prev => prev.filter(f => f.path !== path))
-    setSelected(prev => { const s = new Set(prev); s.delete(path); return s })
+    try {
+      await deleteStorageFile(path)
+      setFiles(prev => prev.filter(f => f.path !== path))
+      setSelected(prev => { const s = new Set(prev); s.delete(path); return s })
+    } catch (e) {
+      alert("Error al eliminar: " + e.message)
+    }
     setDeleting(prev => { const s = new Set(prev); s.delete(path); return s })
   }
 
@@ -93,10 +97,15 @@ function StorageBrowser() {
     if (!window.confirm(`¿Eliminar ${selected.size} archivo(s) del storage?`)) return
     const paths = [...selected]
     paths.forEach(p => setDeleting(prev => new Set(prev).add(p)))
-    await Promise.all(paths.map(p => deleteStorageFile(p).catch(() => {})))
-    setFiles(prev => prev.filter(f => !paths.includes(f.path)))
+    const errors = []
+    await Promise.all(paths.map(async p => {
+      try { await deleteStorageFile(p) } catch (e) { errors.push(p + ": " + e.message) }
+    }))
+    if (errors.length) alert("Errores al eliminar:\n" + errors.join("\n"))
+    // Recargar la lista real del storage en vez de confiar en el estado local
+    try { setFiles(await listStorageFiles(folder)) } catch { }
     setSelected(new Set())
-    setDeleting(prev => { const s = new Set(prev); paths.forEach(p => s.delete(p)); return s })
+    setDeleting(new Set())
   }
 
   const fmtSize = (b) => !b ? "—" : b < 1024 ? `${b}B` : b < 1024*1024 ? `${(b/1024).toFixed(0)}KB` : `${(b/(1024*1024)).toFixed(1)}MB`
