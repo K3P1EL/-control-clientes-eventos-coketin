@@ -51,7 +51,16 @@ export default function Registro({
 
   const upd = (id, field, val) => onUpdateReg(id, { [field]: val })
 
-  const del = (id) => onUpdateReg(id, { deleted:true, deleted_by:user.name, deleted_at:new Date().toISOString() })
+  const delCount = useRef({ day: "", count: 0 })
+  const del = (id) => {
+    if (!adm) {
+      const d = today()
+      if (delCount.current.day !== d) delCount.current = { day: d, count: 0 }
+      if (delCount.current.count >= 5) { alert("Limite de borrados alcanzado (5 por dia)"); return }
+      delCount.current.count++
+    }
+    onUpdateReg(id, { deleted:true, deleted_by:user.name, deleted_at:new Date().toISOString() })
+  }
   const restore = (id) => onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
   const hardDel = (id) => {
     const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(id))
