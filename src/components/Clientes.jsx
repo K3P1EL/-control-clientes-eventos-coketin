@@ -557,7 +557,7 @@ export default function Clientes({
   const filteredClients = (adm
     ? (viewEmp==="__all__" ? clients : getMyClients(viewEmp, true))
     : getMyClients(user.id, false)
-  ).filter(c => !c.erronea)
+  ).filter(c => adm || !c.erronea)
   const viewEmpName = adm && viewEmp && viewEmp!=="__all__" && viewEmp!=="__mine__"
     ? (users.find(u=>u.id===viewEmp)?.name || "Empleado")
     : null
