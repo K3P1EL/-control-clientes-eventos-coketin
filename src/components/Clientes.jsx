@@ -7,6 +7,8 @@ import { incrementOCRCount } from "../services/config"
 import OCRPreviewModal from "./OCRPreviewModal"
 import LinkPopup from "./LinkPopup"
 
+const parseProds = (pi) => Array.isArray(pi) ? pi : (pi||"").split(",").map(s=>s.trim()).filter(Boolean)
+
 export default function Clientes({
   clients, user, adm, regs, users, prodTags, visionKey, contactos,
   navClientId, clearNavClient, changeTab,
@@ -50,7 +52,7 @@ export default function Clientes({
   const fRef   = useRef(null)
   const ocrRef = useRef(null)
 
-  useEffect(() => { if (navClientId) { setView(navClientId); clearNavClient() } }, [navClientId])
+  useEffect(() => { if (navClientId) { setView(navClientId); clearNavClient() } }, [navClientId, clearNavClient])
 
   // If we have a saved view but no viewEmp yet (admin refresh), auto-set viewEmp to show the client
   useEffect(() => {
@@ -60,6 +62,9 @@ export default function Clientes({
       else if (clients.length > 0) setViewEmp("__all__")
     }
   }, [view, viewEmp, clients])
+
+  // Reset per-ficha state when view changes
+  useEffect(() => { setErrorFiles(new Set()); setUploadingContrato(0); setContactSearch(""); setShowContactSearch(false) }, [view])
 
   // ── OCR ──────────────────────────────────────────────────────────────────
   const scanPhoto = async (clientId, file) => {
@@ -109,13 +114,14 @@ export default function Clientes({
     if (fields.telefono && !phones.includes(fields.telefono)) phones.push(fields.telefono)
     if (phones.length !== (c.phones||[]).length) updates.phones = phones
     if (Object.keys(updates).length) await onUpdateClient(ocrClientId, updates)
-    // Contract fields
-    const ct = (c.contratos||[])[activeContrato] || (c.contratos||[])[0]
+    // Contract fields — only if contrato exists
+    const cts = c.contratos || []
+    const ct = cts[activeContrato] || cts[0]
     if (ct) {
       const ctPatch = {}
       if (fields.total)        ctPatch.total       = Number(fields.total) || 0
       if (fields.fecha_evento) ctPatch.fecha_evento = fields.fecha_evento
-      if (fields.tipo_documento) ctPatch.tipo       = fields.tipo_documento
+      if (fields.tipo_documento && (fields.tipo_documento === "proforma" || fields.tipo_documento === "contrato")) ctPatch.tipo = fields.tipo_documento
       // Append descripcion to notas
       if (fields.descripcion_servicios) {
         const curr = ct.notas || ""
@@ -133,7 +139,6 @@ export default function Clientes({
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getContratos  = (c) => (c.contratos||[])
   const getRegIds     = (c) => c.reg_ids||[]
-  const parseProds    = (pi) => Array.isArray(pi) ? pi : (pi||"").split(",").map(s=>s.trim()).filter(Boolean)
 
   const addNew = async () => {
     const nc = await onAddClient({

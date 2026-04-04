@@ -3,7 +3,9 @@ import { C } from "../lib/colors"
 
 function daysLeft(deletedAt, maxDays) {
   if (!deletedAt) return maxDays
-  const diff = maxDays - Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000)
+  const now = new Date(); now.setHours(0,0,0,0)
+  const del = new Date(deletedAt); del.setHours(0,0,0,0)
+  const diff = maxDays - Math.floor((now - del) / 86400000)
   return Math.max(0, diff)
 }
 

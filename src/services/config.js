@@ -25,8 +25,9 @@ function getCurrentMonth() {
 
 export async function getOCRUsage() {
   const val = await getConfig('ocr_usage')
-  if (!val) return { month: getCurrentMonth(), count: 0 }
-  return val.month === getCurrentMonth() ? val : { month: getCurrentMonth(), count: 0 }
+  const cur = getCurrentMonth()
+  if (!val || typeof val.month !== 'string' || typeof val.count !== 'number') return { month: cur, count: 0 }
+  return val.month === cur ? val : { month: cur, count: 0 }
 }
 
 export async function incrementOCRCount() {

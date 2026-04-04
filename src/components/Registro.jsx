@@ -5,6 +5,8 @@ import { today, nowTime, genCode, canChangeTipo } from "../lib/helpers"
 import { Bdg, DInput, lbl, inp, mi, sel, btn, td, ib } from "./shared"
 
 function getBg(val, map) { return map[val] || C.border }
+const toD  = d => { const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
+const fromD= d => { const p=d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` }
 
 export default function Registro({
   regs, user, adm, tags, photos, clients, locales, users,
@@ -34,14 +36,12 @@ export default function Registro({
       if (navRegDate) setDate(navRegDate)
       clearNavReg()
     }
-  }, [navRegId])
+  }, [navRegId, clearNavReg])
 
   useEffect(() => {
     if (locales.length && !locales.includes(selLocal)) setSelLocal(locales[0])
   }, [locales])
 
-  const toD  = d => { const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
-  const fromD= d => { const p=d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` }
   const shift= n => { const p=date.split("/"); const d=new Date(+p[2],+p[1]-1,+p[0]); d.setDate(d.getDate()+n); setDate(`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`) }
 
   const add = async () => {
@@ -100,10 +100,12 @@ export default function Registro({
         contratoId = nc.contratos?.[0]?.id
       }
       if (clientId && contratoId) {
-        await Promise.all(files.map(f => onAddContratoArchivo(clientId, contratoId, f)))
+        const results = await Promise.allSettled(files.map(f => onAddContratoArchivo(clientId, contratoId, f)))
+        const failed = results.filter((r,i) => r.status === "rejected").map((r,i) => files[i]?.name || `archivo ${i+1}`)
+        if (failed.length) alert(`Error subiendo: ${failed.join(", ")}`)
       }
       onUpdateReg(regId, { foto: "SI" })
-    } catch (err) { alert("Error subiendo archivo: " + err.message) }
+    } catch (err) { alert("Error: " + err.message) }
     finally { setContractUploading(prev => { const s = new Set(prev); s.delete(regId); return s }) }
   }
 
@@ -434,10 +436,12 @@ export default function Registro({
               <tr><td colSpan={14} style={{ padding:40, textAlign:"center", color:C.muted }}>No hay registros. Haz clic en "+ Agregar Registro".</td></tr>
             )}
             {(() => {
-              const visibleRows = showAll ? rows : (() => { const nd = rows.filter(x=>!x.deleted); return nd.length > 3 ? nd.slice(-3) : nd })()
+              const nonDelRows = rows.filter(x => !x.deleted)
+              const nonDelIdSet = new Map(nonDelRows.map((r,i) => [r.id, i]))
+              const visibleRows = showAll ? rows : (nonDelRows.length > 3 ? nonDelRows.slice(-3) : nonDelRows)
               return visibleRows.map((r, i) => {
               const isDel   = r.deleted
-              const nonDelIdx = isDel ? -1 : rows.filter(x => !x.deleted).indexOf(r)
+              const nonDelIdx = isDel ? -1 : (nonDelIdSet.get(r.id) ?? -1)
               const isSel = selectedRow === r.id
               const canEdit = !isDel && (adm || nonDelIdx >= total - 3)
               const lock    = !canEdit ? { opacity:.45, pointerEvents:"none" } : {}

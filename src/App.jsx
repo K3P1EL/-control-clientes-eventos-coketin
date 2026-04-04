@@ -185,6 +185,9 @@ export default function App() {
   }
 
   // ── Auth listener ─────────────────────────────────────────────────────────
+  const handleLoginRef = useRef(handleLogin)
+  handleLoginRef.current = handleLogin
+
   useEffect(() => {
     const fallback = setTimeout(() => {
       setAuthState(prev => prev === "loading" ? "logged_out" : prev)
@@ -192,7 +195,7 @@ export default function App() {
 
     getSession()
       .then(session => {
-        if (session?.user) return handleLogin(session.user)
+        if (session?.user) return handleLoginRef.current(session.user)
         else setAuthState("logged_out")
       })
       .catch(e => { console.error("getSession error:", e); setAuthState("logged_out") })
@@ -200,7 +203,7 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
-        await handleLogin(session.user)
+        await handleLoginRef.current(session.user)
       } else if (event === "SIGNED_OUT") {
         setUser(null); setUsers([]); setRegs([]); setClients([])
         setAlmacen([]); setInventario([]); setPhotos({}); setDataReady(false)
@@ -268,16 +271,27 @@ export default function App() {
     updateClient(id, patch).catch(e => { console.error("updateClient failed:", e); alert("Error guardando cliente") })
   }, [])
   const onDeleteClient = useCallback(async (id) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c))
-    updateClient(id, { deleted_at: new Date().toISOString() }).catch(e => { console.error("deleteClient failed:", e); alert("Error eliminando") })
+    const ts = new Date().toISOString()
+    setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: ts } : c))
+    updateClient(id, { deleted_at: ts }).catch(e => {
+      setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
+      console.error("deleteClient failed:", e); alert("Error eliminando")
+    })
   }, [])
   const onRestoreClient = useCallback(async (id) => {
     setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
-    updateClient(id, { deleted_at: null }).catch(e => { console.error("restoreClient failed:", e); alert("Error restaurando") })
+    updateClient(id, { deleted_at: null }).catch(e => {
+      setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c))
+      console.error("restoreClient failed:", e); alert("Error restaurando")
+    })
   }, [])
   const onPermanentDeleteClient = useCallback(async (id) => {
-    setClients(prev => prev.filter(c => c.id !== id))
-    deleteClient(id).catch(e => { console.error("permanentDeleteClient failed:", e); alert("Error eliminando") })
+    const backup = []
+    setClients(prev => { backup.push(...prev.filter(c => c.id === id)); return prev.filter(c => c.id !== id) })
+    deleteClient(id).catch(e => {
+      if (backup.length) setClients(prev => [...prev, ...backup])
+      console.error("permanentDeleteClient failed:", e); alert("Error eliminando")
+    })
   }, [])
   const onAddContrato = useCallback(async (clientId, payload) => {
     const tempId = `temp_${Date.now()}`

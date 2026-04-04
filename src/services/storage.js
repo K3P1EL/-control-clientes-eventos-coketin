@@ -42,7 +42,7 @@ export async function uploadFile(folder, fileName, file, cfg) {
     try {
       uploadBlob = await compressImage(file, quality)
       contentType = "image/jpeg"
-    } catch { uploadBlob = file }
+    } catch (e) { console.warn("Compresion fallida, subiendo original:", e.message); uploadBlob = file }
   }
 
   if (uploadBlob.size > maxBytes) {
