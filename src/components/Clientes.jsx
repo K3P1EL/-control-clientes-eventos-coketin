@@ -236,7 +236,7 @@ export default function Clientes({
           </div>
         )}
 
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24, ...(c.erronea?{opacity:.5,pointerEvents:"none"}:{}) }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:24 }}>
           {/* LEFT: Datos + Contrato */}
           <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
             <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:16, color:C.accent }}>Datos del Cliente</h3>
@@ -554,9 +554,10 @@ export default function Clientes({
       try { const d=new Date(c.created_at); return (now-d)/86400000 <= maxAge } catch { return true }
     })
   }
-  const filteredClients = adm
+  const filteredClients = (adm
     ? (viewEmp==="__all__" ? clients : getMyClients(viewEmp, true))
     : getMyClients(user.id, false)
+  ).filter(c => !c.erronea)
   const viewEmpName = adm && viewEmp && viewEmp!=="__all__" && viewEmp!=="__mine__"
     ? (users.find(u=>u.id===viewEmp)?.name || "Empleado")
     : null
