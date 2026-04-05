@@ -333,7 +333,18 @@ export default function App() {
     const patch = typeof fieldOrPatch === "string" ? { [fieldOrPatch]: val } : fieldOrPatch
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
     updateClient(id, patch).catch(e => { console.error("updateClient failed:", e); alert("Error guardando cliente") })
-  }, [])
+    // When marking as erronea, clear Proforma/Contrato estado from linked registros
+    if (patch.erronea === true) {
+      const client = clients.find(c => c.id === id)
+      ;(client?.reg_ids || []).forEach(rid => {
+        const reg = regs.find(r => r.id === rid)
+        if (reg && (reg.estado === "Proforma" || reg.estado === "Contrato")) {
+          setRegs(prev => prev.map(r => r.id === rid ? { ...r, estado: "" } : r))
+          updateRegistro(rid, { estado: "" }).catch(() => {})
+        }
+      })
+    }
+  }, [clients, regs])
   const onDeleteClient = useCallback(async (id) => {
     const ts = new Date().toISOString()
     setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: ts } : c))
