@@ -842,7 +842,9 @@ export default memo(function Clientes({
           if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
           if (canalFilter && fichaCanal(c,regs)!==canalFilter) return false
           if (dateFrom || dateTo) {
-            const d = c.created_at ? c.created_at.slice(0,10) : ""
+            if (!c.created_at) return false
+            const dt = new Date(c.created_at)
+            const d = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`
             if (dateFrom && d < dateFrom) return false
             if (dateTo && d > dateTo) return false
           }
