@@ -490,8 +490,7 @@ export default memo(function Registro({
               const cc = getBg(r.canal,  { W:C.teal, F:C.purple })
               const sc = getBg(r.sexo,   { H:C.blue, M:C.pink })
               const pc = getBg(r.pirana, { S:C.red, P:C.yellow, N:C.muted })
-              const ei = tags.indexOf(r.estado)
-              const ec = ei >= 0 ? estadoColors[ei%estadoColors.length] : C.border
+              const ec = r.estado==="Contrato"?C.green:r.estado==="Proforma"?C.yellow:(() => { const ci = tags.filter(x=>x!=="Proforma"&&x!=="Contrato").indexOf(r.estado); return ci >= 0 ? estadoColors[ci%estadoColors.length] : C.border })()
               const isDrag = dragOverRow === r.id
               const rowBg = isDrag ? C.accent+"22" : isDel ? C.red+"0a" : isSel ? C.accent+"15" : i%2 ? C.cardAlt+"44" : "transparent"
 
