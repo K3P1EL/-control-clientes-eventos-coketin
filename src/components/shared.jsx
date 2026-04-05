@@ -74,6 +74,100 @@ export function DInput({ value, onCommit, tag = "input", ...props }) {
   return <Tag {...props} value={local} onChange={handleChange} onBlur={handleBlur} />
 }
 
+// ─── Date Picker ──────────────────────────────────────────────────────────────
+const DAYS = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"]
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+
+export function DatePicker({ value, onChange, placeholder = "Seleccionar" }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const parsed = value ? new Date(value + "T00:00:00") : null
+  const [viewYear, setViewYear] = useState(parsed?.getFullYear() || new Date().getFullYear())
+  const [viewMonth, setViewMonth] = useState(parsed?.getMonth() ?? new Date().getMonth())
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener("mousedown", close)
+    return () => document.removeEventListener("mousedown", close)
+  }, [open])
+
+  useEffect(() => {
+    if (value) {
+      const d = new Date(value + "T00:00:00")
+      setViewYear(d.getFullYear()); setViewMonth(d.getMonth())
+    }
+  }, [value])
+
+  const prev = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) } else setViewMonth(m => m - 1) }
+  const next = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) } else setViewMonth(m => m + 1) }
+
+  const firstDay = new Date(viewYear, viewMonth, 1)
+  const startDay = (firstDay.getDay() + 6) % 7
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  const today = new Date(); today.setHours(0,0,0,0)
+
+  const cells = []
+  for (let i = 0; i < startDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+  const pick = (day) => {
+    const m = String(viewMonth + 1).padStart(2, "0")
+    const d = String(day).padStart(2, "0")
+    onChange(`${viewYear}-${m}-${d}`)
+    setOpen(false)
+  }
+
+  const clear = (e) => { e.stopPropagation(); onChange(""); setOpen(false) }
+
+  const displayText = parsed
+    ? `${String(parsed.getDate()).padStart(2,"0")}/${String(parsed.getMonth()+1).padStart(2,"0")}/${parsed.getFullYear()}`
+    : placeholder
+
+  return (
+    <div ref={ref} style={{ position:"relative", display:"inline-block" }}>
+      <button onClick={() => setOpen(!open)} style={{ background:C.inputBg, border:`1px solid ${open?C.accent:C.border}`, borderRadius:8, color:value?C.text:C.muted, padding:"5px 10px", fontSize:12, cursor:"pointer", display:"flex", alignItems:"center", gap:6, transition:"border-color .2s" }}>
+        <svg width="14" height="14" fill="none" stroke={value?C.accent:C.muted} strokeWidth="2"><rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M1 5.5h12M4.5 1v2M9.5 1v2"/></svg>
+        {displayText}
+        {value && <span onClick={clear} style={{ color:C.muted, fontSize:14, lineHeight:1, marginLeft:2 }}>×</span>}
+      </button>
+      {open && (
+        <div style={{ position:"absolute", top:"100%", left:0, marginTop:4, background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:12, zIndex:1000, boxShadow:"0 8px 24px rgba(0,0,0,.4)", width:260, animation:"fadeIn .15s" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <button onClick={prev} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:16, padding:"2px 6px" }}>‹</button>
+            <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{MONTHS[viewMonth]} {viewYear}</span>
+            <button onClick={next} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:16, padding:"2px 6px" }}>›</button>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(7, 1fr)", gap:2, textAlign:"center" }}>
+            {DAYS.map(d => <div key={d} style={{ fontSize:10, color:C.muted, fontWeight:600, padding:"4px 0" }}>{d}</div>)}
+            {cells.map((day, i) => {
+              if (!day) return <div key={"e"+i} />
+              const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`
+              const isToday = viewYear===today.getFullYear() && viewMonth===today.getMonth() && day===today.getDate()
+              const isSel = value === dateStr
+              return (
+                <button key={i} onClick={() => pick(day)} style={{
+                  width:32, height:32, borderRadius:8, border:"none", cursor:"pointer", fontSize:12, fontWeight:isSel||isToday?700:400,
+                  background: isSel ? C.accent : isToday ? C.accent+"22" : "transparent",
+                  color: isSel ? "#fff" : isToday ? C.accent : C.text,
+                  transition: "all .15s",
+                }}
+                onMouseEnter={e=>{if(!isSel)e.currentTarget.style.background=C.border}}
+                onMouseLeave={e=>{if(!isSel)e.currentTarget.style.background=isToday?C.accent+"22":"transparent"}}
+                >{day}</button>
+              )
+            })}
+          </div>
+          <div style={{ display:"flex", justifyContent:"space-between", marginTop:8 }}>
+            <button onClick={() => { const t = new Date(); pick(t.getDate()); setViewMonth(t.getMonth()); setViewYear(t.getFullYear()) }} style={{ background:"none", border:"none", color:C.accent, cursor:"pointer", fontSize:11, fontWeight:600 }}>Hoy</button>
+            {value && <button onClick={clear} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11 }}>Limpiar</button>}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Safe image with fallback ─────────────────────────────────────────────────
 export function SafeImg({ src, alt = "", style, ...props }) {
   const [err, setErr] = useState(false)

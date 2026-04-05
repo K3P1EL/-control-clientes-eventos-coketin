@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, memo } from "react"
 import { C } from "../lib/colors"
 import { today, fmtDate, canChangeTipo, genCode } from "../lib/helpers"
-import { lbl, inp, mi, btn, td, ib, DInput, SafeImg } from "./shared"
+import { lbl, inp, mi, btn, td, ib, DInput, SafeImg, DatePicker } from "./shared"
 import { parseOCRText } from "../services/ocr"
 import { incrementOCRCount } from "../services/config"
 import OCRPreviewModal from "./OCRPreviewModal"
@@ -814,11 +814,11 @@ export default memo(function Clientes({
 
       {/* Filters */}
       <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
-        <div style={{ display:"flex", gap:4, alignItems:"center" }}>
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
           <span style={{ fontSize:11, color:C.muted }}>Desde</span>
-          <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 8px", fontSize:11 }} />
+          <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="Inicio" />
           <span style={{ fontSize:11, color:C.muted }}>Hasta</span>
-          <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 8px", fontSize:11 }} />
+          <DatePicker value={dateTo} onChange={setDateTo} placeholder="Fin" />
         </div>
         <select value={statusFilter||""} onChange={e=>setStatusFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
           <option value="">Todos los estados</option>
