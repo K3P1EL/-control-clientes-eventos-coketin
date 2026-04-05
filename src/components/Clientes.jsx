@@ -803,6 +803,14 @@ export default function Clientes({
             <button onClick={bulkDelete} style={{ background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Papelera ({selectedFichas.size})</button>
             <button onClick={()=>setSelectedFichas(new Set())} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:12 }}>Deseleccionar</button>
           </>}
+          {adm && (() => {
+            const borrados = filteredClients.filter(c => fichaStatus(c, regs) === "naranja").length
+            return borrados > 0 ? (
+              <button onClick={()=>setStatusFilter(statusFilter==="naranja"?null:"naranja")} style={{ background:statusFilter==="naranja"?C.orange+"33":C.orange+"18", border:`1px solid ${C.orange}44`, borderRadius:8, color:C.orange, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:700 }}>
+                Reg. borrados ({borrados})
+              </button>
+            ) : null
+          })()}
           {adm && filteredClients.length > 0 && selectedFichas.size === 0 && (
             <button onClick={()=>setSelectedFichas(new Set(filteredClients.map(c=>c.id)))} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:11 }}>Seleccionar</button>
           )}
