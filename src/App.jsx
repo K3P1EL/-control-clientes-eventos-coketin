@@ -406,7 +406,16 @@ export default function App() {
       return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, ...patch } : ct) }
     }))
     updateContrato(contratoId, patch).catch(e => { console.error("updateContrato failed:", e); alert("Error guardando contrato") })
-  }, [])
+    // Auto-update linked registro estado when tipo changes
+    if (patch.tipo) {
+      const client = clients.find(c => c.id === clientId)
+      const estado = patch.tipo === "contrato" ? "Contrato" : "Proforma"
+      ;(client?.reg_ids || []).forEach(rid => {
+        setRegs(prev => prev.map(r => r.id === rid ? { ...r, estado } : r))
+        updateRegistro(rid, { estado }).catch(() => {})
+      })
+    }
+  }, [clients])
   const onAddAdelanto = useCallback(async (clientId, contratoId, payload) => {
     const tempId = `temp_${Date.now()}`
     const optimistic = { id: tempId, contrato_id: contratoId, ...payload, created_at: new Date().toISOString() }

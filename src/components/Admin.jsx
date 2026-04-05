@@ -253,11 +253,28 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
           <input value={nt} onChange={e=>setNt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addT()} placeholder="Nuevo estado..." style={{ ...inp, marginBottom:0, flex:1 }} />
           <button onClick={addT} style={btn}>Agregar</button>
         </div>
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          {tags.map((t,i) => (
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+          {/* Fixed tags */}
+          {["Proforma","Contrato"].map(t => {
+            const c = t==="Contrato"?C.green:C.yellow
+            const exists = tags.includes(t)
+            return (
+              <div key={t} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20, background:c+"33", color:c, fontSize:13, fontWeight:600, border:`2px solid ${c}44` }}>
+                <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 1v8M1 5h8"/></svg>
+                {t}
+                <span style={{ fontSize:8, opacity:0.6 }}>fijo</span>
+                {!exists && <button onClick={()=>onSetTags([t,...tags])} style={{ background:c, border:"none", borderRadius:8, color:"#fff", cursor:"pointer", padding:"1px 6px", fontSize:9, fontWeight:700 }}>Agregar</button>}
+              </div>
+            )
+          })}
+          <span style={{ width:1, height:24, background:C.border }} />
+          {/* Custom tags */}
+          {tags.filter(t=>t!=="Proforma"&&t!=="Contrato").map((t,i) => {
+            const idx = tags.indexOf(t)
+            return (
             <div key={t} draggable
-              onDragStart={()=>setDragIdx(i)}
-              onDragOver={e=>{e.preventDefault();setDragOverIdx(i)}}
+              onDragStart={()=>setDragIdx(idx)}
+              onDragOver={e=>{e.preventDefault();setDragOverIdx(idx)}}
               onDragEnd={()=>{
                 if(dragIdx!==null && dragOverIdx!==null && dragIdx!==dragOverIdx){
                   const next=[...tags]; const [item]=next.splice(dragIdx,1); next.splice(dragOverIdx,0,item); onSetTags(next)
@@ -268,15 +285,15 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                 display:"flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20,
                 background:estadoColors[i%estadoColors.length]+"33", color:estadoColors[i%estadoColors.length],
                 fontSize:13, fontWeight:600, cursor:"grab", transition:"transform .15s, opacity .15s",
-                opacity:dragIdx===i?0.4:1,
-                transform:dragOverIdx===i&&dragIdx!==i?"translateX(8px)":"none",
-                border:dragOverIdx===i&&dragIdx!==i?`2px dashed ${C.accent}`:"2px solid transparent",
+                opacity:dragIdx===idx?0.4:1,
+                transform:dragOverIdx===idx&&dragIdx!==idx?"translateX(8px)":"none",
+                border:dragOverIdx===idx&&dragIdx!==idx?`2px dashed ${C.accent}`:"2px solid transparent",
               }}>
               <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity:0.4 }}><path d="M1 3h8M1 7h8"/></svg>
               {t}
               <button onClick={()=>remT(t)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", padding:0, lineHeight:1, fontSize:16 }}>×</button>
             </div>
-          ))}
+          )})}
         </div>
       </div>
 
