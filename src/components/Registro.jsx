@@ -2,11 +2,26 @@ import { useState, useEffect, useRef } from "react"
 import * as XLSX from "xlsx"
 import { C, estadoColors } from "../lib/colors"
 import { today, nowTime, genCode, canChangeTipo } from "../lib/helpers"
+import { LIMITS } from "../lib/constants"
 import { Bdg, DInput, lbl, inp, mi, sel, btn, td, ib } from "./shared"
 
 function getBg(val, map) { return map[val] || C.border }
 const toD  = d => { const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
 const fromD= d => { const p=d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` }
+
+function CopyBtn({ text }) {
+  const [copied, setCopied] = useState(false)
+  const t = useRef(null)
+  const copy = (e) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    clearTimeout(t.current)
+    t.current = setTimeout(() => setCopied(false), 1200)
+  }
+  useEffect(() => () => clearTimeout(t.current), [])
+  return <button onClick={copy} title="Copiar codigo" style={{ background:C.cyan+"15", border:`1px solid ${C.cyan}33`, borderRadius:5, color:C.cyan, cursor:"pointer", padding:"1px 6px", fontSize:9, fontWeight:600, fontFamily:"monospace" }}>{copied?"Copiado!":text}</button>
+}
 
 export default function Registro({
   regs, user, adm, tags, photos, clients, locales, users,
@@ -56,7 +71,7 @@ export default function Registro({
     if (!adm) {
       const d = today()
       if (delCount.current.day !== d) delCount.current = { day: d, count: 0 }
-      if (delCount.current.count >= 5) { alert("Limite de borrados alcanzado (5 por dia)"); return }
+      if (delCount.current.count >= LIMITS.DELETES_PER_DAY) { alert(`Limite de borrados alcanzado (${LIMITS.DELETES_PER_DAY} por dia)`); return }
       delCount.current.count++
     }
     onUpdateReg(id, { deleted:true, deleted_by:user.name, deleted_at:new Date().toISOString() })
@@ -66,7 +81,7 @@ export default function Registro({
     if (!adm) {
       const d = today()
       if (restoreCount.current.day !== d) restoreCount.current = { day: d, count: 0 }
-      if (restoreCount.current.count >= 5) { alert("Limite de restauraciones alcanzado (5 por dia)"); return }
+      if (restoreCount.current.count >= LIMITS.RESTORES_PER_DAY) { alert(`Limite de restauraciones alcanzado (${LIMITS.RESTORES_PER_DAY} por dia)`); return }
       restoreCount.current.count++
     }
     onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
@@ -546,7 +561,7 @@ export default function Registro({
                         : <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
                           <button onClick={()=>goToClient(linked.id)} style={{ background:C.green+"22", border:"none", borderRadius:6, color:C.green, cursor:"pointer", padding:"2px 8px", fontSize:11, fontWeight:700 }}>→ Ver ficha</button>
                           {(() => { const lct=(linked.contratos||[]).slice(-1)[0]; return lct?.tipo?<span style={{ fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:4,background:lct.tipo==="contrato"?C.green+"22":C.yellow+"22",color:lct.tipo==="contrato"?C.green:C.yellow }}>{lct.tipo==="contrato"?"C":"P"}</span>:null })()}
-                          {linked.code && <button onClick={e=>{e.stopPropagation();navigator.clipboard.writeText(linked.code);e.currentTarget.textContent="Copiado!";setTimeout(()=>{e.currentTarget.textContent=linked.code},1200)}} title="Copiar codigo" style={{ background:C.cyan+"15", border:`1px solid ${C.cyan}33`, borderRadius:5, color:C.cyan, cursor:"pointer", padding:"1px 6px", fontSize:9, fontWeight:600, fontFamily:"monospace" }}>{linked.code}</button>}
+                          {linked.code && <CopyBtn text={linked.code} />}
                         </div>
                       : <button onClick={async()=>{
                           const nc = await onAddClient({ code:genCode(), reg_ids:[r.id], created_by:user.id, created_by_name:user.name, nombre:"", dni:"", phones:[], direccion:"", referencia:"" }, { reg_id:r.id })

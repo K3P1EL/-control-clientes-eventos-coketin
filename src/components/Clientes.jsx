@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { C } from "../lib/colors"
 import { today, fmtDate, canChangeTipo, genCode } from "../lib/helpers"
-import { lbl, inp, mi, btn, td, ib, DInput } from "./shared"
+import { lbl, inp, mi, btn, td, ib, DInput, SafeImg } from "./shared"
 import { parseOCRText } from "../services/ocr"
 import { incrementOCRCount } from "../services/config"
 import OCRPreviewModal from "./OCRPreviewModal"
@@ -470,7 +470,7 @@ export default function Clientes({
                       {(ct.contrato_archivos||[]).map((item,idx) => (
                         <div key={item.id||idx} style={{ borderRadius:10, overflow:"hidden", border:`2px solid ${errorFiles.has(item.id)?C.red:C.border}`, opacity:errorFiles.has(item.id)?.5:1 }}>
                           <div onClick={()=>setViewContratoImg(item)} style={{ cursor:"pointer", aspectRatio:"1" }}>
-                            {item.tipo==="image" ? <img src={item.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                            {item.tipo==="image" ? <SafeImg src={item.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
                             : item.tipo==="video" ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
                             : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.yellow,fontWeight:700 }}>PDF</div>}
                           </div>
@@ -624,7 +624,7 @@ export default function Clientes({
                           <div key={item.id||idx} style={{ borderRadius:12, overflow:"hidden", border:`2px solid ${isErr?C.red:C.border}`, opacity:isErr?.5:1, transition:"opacity .2s" }}>
                             <div onClick={()=>setViewContratoImg(item)} style={{ cursor:"pointer", aspectRatio:"1" }}>
                               {item.tipo==="image"
-                                ? <img src={item.url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                                ? <SafeImg src={item.url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                                 : item.tipo==="video"
                                 ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="32" height="32" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg><span style={{ fontSize:10,color:C.muted }}>Video</span></div>
                                 : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4 }}><svg width="28" height="28" fill="none" stroke={C.red} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><span style={{ fontSize:10,color:C.muted }}>PDF</span></div>}

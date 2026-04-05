@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { C } from "../lib/colors"
-import { inp, mi, btn, td, ib, sel, DInput } from "./shared"
+import { inp, mi, btn, td, ib, sel, DInput, toast, SafeImg } from "./shared"
 import { Bdg } from "./shared"
 import { fmtDate } from "../lib/helpers"
 
@@ -88,7 +88,7 @@ export default function Almacen({
             {(s.almacen_items||[]).map((it,idx) => (
               <div key={it.id} style={{ display:"flex", gap:6, alignItems:"center", padding:"8px 10px", background:idx%2?C.cardAlt+"66":"transparent", borderRadius:6, marginBottom:2 }}>
                 <DInput value={it.nombre} onCommit={v=>onUpdateItem(s.id,it.id,{nombre:v})} style={{ ...mi, flex:1 }} placeholder="Nombre del producto..." />
-                <DInput type="number" value={it.cantidad} onCommit={v=>onUpdateItem(s.id,it.id,{cantidad:v})} style={{ ...mi, width:50 }} placeholder="1" />
+                <DInput type="number" value={it.cantidad} onCommit={v=>{const n=Math.max(1,Number(v)||1);onUpdateItem(s.id,it.id,{cantidad:n})}} style={{ ...mi, width:50 }} placeholder="1" min="1" />
                 <button onClick={()=>onUpdateItem(s.id,it.id,{devuelto:!it.devuelto})} style={{ padding:"3px 8px", borderRadius:6, border:"none", cursor:"pointer", fontSize:10, fontWeight:700, background:it.devuelto?C.green+"33":C.yellow+"33", color:it.devuelto?C.green:C.yellow }}>
                   {it.devuelto?"✓ Devuelto":"Pendiente"}
                 </button>
@@ -109,7 +109,7 @@ export default function Almacen({
             {/* Archivos de SALIDA */}
             <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, borderLeft:`3px solid ${C.orange}` }}>
               <h3 style={{ fontSize:14, fontWeight:600, marginTop:0, marginBottom:10, color:C.orange }}>Lo que se lleva</h3>
-              <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingCount(c=>c+files.length);await Promise.all(files.map(f=>onAddAlmacenArchivo(s.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingCount(c=>Math.max(0,c-files.length)))}} />
+              <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingCount(c=>c+files.length);const failed=[];await Promise.all(files.map(f=>onAddAlmacenArchivo(s.id,f).catch(err=>failed.push(f.name))));setUploadingCount(c=>Math.max(0,c-files.length));if(failed.length)toast(`Error subiendo: ${failed.join(", ")}`)}} />
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                 <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.orange, cursor:"pointer", padding:"6px 14px", fontSize:11, fontWeight:600 }}>Subir foto</button>
                 {uploadingCount > 0 && <span style={{ fontSize:11, color:C.orange }}>{uploadingCount} subiendo...</span>}
@@ -119,9 +119,9 @@ export default function Almacen({
                 {(s.almacen_archivos||[]).map(ar => {
                   const isErr = errorFiles.has(ar.id)
                   return (
-                    <div key={ar.id} style={{ borderRadius:10, overflow:"hidden", border:`2px solid ${isErr?C.red:C.border}`, opacity:isErr?.5:1 }}>
+                    <div key={ar.id} style={{ borderRadius:10, overflow:"hidden", border:`2px solid ${isErr?C.red:C.border}`, opacity:isErr?0.5:1 }}>
                       <div onClick={()=>setViewFile(ar)} style={{ cursor:"pointer", aspectRatio:"1" }}>
-                        {ar.tipo?.startsWith("image") ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                        {ar.tipo?.startsWith("image") ? <SafeImg src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
                         : ar.tipo?.startsWith("video") ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
                         : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.yellow,fontWeight:700 }}>PDF</div>}
                       </div>
@@ -141,7 +141,7 @@ export default function Almacen({
             {/* Archivos de RECOJO */}
             <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, borderLeft:`3px solid ${C.green}` }}>
               <h3 style={{ fontSize:14, fontWeight:600, marginTop:0, marginBottom:10, color:C.green }}>Lo que se recoge</h3>
-              <input ref={fRefRecojo} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingRecojo(c=>c+files.length);await Promise.all(files.map(f=>onAddArchivoRecojo(s.id,f).catch(err=>alert("Error: "+err.message)))).finally(()=>setUploadingRecojo(c=>Math.max(0,c-files.length)))}} />
+              <input ref={fRefRecojo} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingRecojo(c=>c+files.length);const failed=[];await Promise.all(files.map(f=>onAddArchivoRecojo(s.id,f).catch(err=>failed.push(f.name))));setUploadingRecojo(c=>Math.max(0,c-files.length));if(failed.length)toast(`Error subiendo: ${failed.join(", ")}`)}} />
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                 <button onClick={()=>fRefRecojo.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.green, cursor:"pointer", padding:"6px 14px", fontSize:11, fontWeight:600 }}>Subir foto</button>
                 {uploadingRecojo > 0 && <span style={{ fontSize:11, color:C.green }}>{uploadingRecojo} subiendo...</span>}
@@ -151,7 +151,7 @@ export default function Almacen({
                 {(s.almacen_archivos_recojo||[]).map(ar => (
                   <div key={ar.id} style={{ borderRadius:10, overflow:"hidden", border:`2px solid ${C.border}` }}>
                     <div onClick={()=>setViewFile(ar)} style={{ cursor:"pointer", aspectRatio:"1" }}>
-                      {ar.tipo?.startsWith("image") ? <img src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                      {ar.tipo?.startsWith("image") ? <SafeImg src={ar.url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
                       : ar.tipo?.startsWith("video") ? <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center" }}><svg width="24" height="24" fill="none" stroke={C.purple} strokeWidth="2"><path d="M5 3l14 9-14 9V3z"/></svg></div>
                       : <div style={{ width:"100%",height:"100%",background:C.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.yellow,fontWeight:700 }}>PDF</div>}
                     </div>
@@ -260,7 +260,7 @@ export default function Almacen({
             const clientRegDeleted = linkedClient && (linkedClient.reg_ids||[]).length > 0 && (linkedClient.reg_ids||[]).every(rid => { const r = regs?.find(x=>x.id===rid); return !r || r.deleted })
             const borderColor = clientDeleted ? C.red : clientRegDeleted ? C.orange : EST_COLOR[s.estado] || C.muted
             return (
-              <button key={s.id} onClick={()=>setView(s.id)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", borderLeft:`4px solid ${borderColor}`, opacity:clientDeleted?.6:1 }}
+              <button key={s.id} onClick={()=>setView(s.id)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", borderLeft:`4px solid ${borderColor}`, opacity:clientDeleted?0.6:1 }}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
                 onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>

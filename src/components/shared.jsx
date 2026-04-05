@@ -74,6 +74,47 @@ export function DInput({ value, onCommit, tag = "input", ...props }) {
   return <Tag {...props} value={local} onChange={handleChange} onBlur={handleBlur} />
 }
 
+// ─── Safe image with fallback ─────────────────────────────────────────────────
+export function SafeImg({ src, alt = "", style, ...props }) {
+  const [err, setErr] = useState(false)
+  if (err || !src) return (
+    <div style={{ ...style, background: C.cardAlt, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <svg width="24" height="24" fill="none" stroke={C.muted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+    </div>
+  )
+  return <img src={src} alt={alt} style={style} onError={() => setErr(true)} {...props} />
+}
+
+// ─── Toast notifications ──────────────────────────────────────────────────────
+let _toastListener = null
+const _toastQueue = []
+
+export function toast(msg, type = "error") {
+  const t = { id: Date.now(), msg, type }
+  _toastQueue.push(t)
+  _toastListener?.([..._toastQueue])
+  setTimeout(() => {
+    const idx = _toastQueue.findIndex(x => x.id === t.id)
+    if (idx >= 0) _toastQueue.splice(idx, 1)
+    _toastListener?.([..._toastQueue])
+  }, 4000)
+}
+
+export function ToastContainer() {
+  const [toasts, setToasts] = useState([])
+  useEffect(() => { _toastListener = setToasts; return () => { _toastListener = null } }, [])
+  if (!toasts.length) return null
+  return (
+    <div style={{ position:"fixed", top:16, right:16, zIndex:9999, display:"flex", flexDirection:"column", gap:8 }}>
+      {toasts.map(t => (
+        <div key={t.id} style={{ background:t.type==="error"?C.danger:t.type==="success"?C.green:C.yellow, color:"#fff", padding:"10px 18px", borderRadius:10, fontSize:13, fontWeight:600, boxShadow:"0 4px 12px rgba(0,0,0,.3)", animation:"fadeIn .2s", maxWidth:360 }}>
+          {t.msg}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function AuthWrap({ title, sub, icon, iconBg, children }) {
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:C.bg, fontFamily:"'Segoe UI',sans-serif" }}>

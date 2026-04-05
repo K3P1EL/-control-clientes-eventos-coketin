@@ -50,12 +50,13 @@ export const fromInputDate = (d) => {
   try { const p = d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` } catch { return "" }
 }
 
-// Global rate limiter for tipo changes (3 per hour, shared across components)
+// Global rate limiter for tipo changes
+import { LIMITS } from "./constants"
 const _tipoLimit = { hour: 0, count: 0 }
 export const canChangeTipo = () => {
   const h = Math.floor(Date.now() / 3600000)
   if (_tipoLimit.hour !== h) { _tipoLimit.hour = h; _tipoLimit.count = 0 }
-  if (_tipoLimit.count >= 3) return false
+  if (_tipoLimit.count >= LIMITS.TIPO_CHANGES_PER_HOUR) return false
   _tipoLimit.count++
   return true
 }

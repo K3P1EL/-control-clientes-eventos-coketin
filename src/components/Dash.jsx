@@ -3,18 +3,20 @@ import { supabase } from "../lib/supabase"
 import { getOCRUsage } from "../services/config"
 import { listStorageFiles, deleteStorageFile } from "../services/storage"
 import { C } from "../lib/colors"
-import { Stat } from "./shared"
+import { Stat, SafeImg } from "./shared"
 import { today } from "../lib/helpers"
+import { LIMITS } from "../lib/constants"
 
-const BUCKET_LIMIT = 1 * 1024 * 1024 * 1024 // 1GB free tier
-const OCR_FREE = 1000
+const BUCKET_LIMIT = LIMITS.STORAGE_BUCKET_BYTES
+const OCR_FREE = LIMITS.OCR_FREE_TIER
 
 function StorageUsage() {
   const [usage, setUsage] = useState(null)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    (async () => {
+    let mounted = true
+    ;(async () => {
       try {
         let totalSize = 0
         for (const folder of ["registros", "contratos", "almacen"]) {
@@ -22,12 +24,13 @@ function StorageUsage() {
           if (listErr) throw listErr
           if (data) totalSize += data.reduce((sum, f) => sum + (f.metadata?.size || 0), 0)
         }
-        setUsage(totalSize)
+        if (mounted) setUsage(totalSize)
       } catch (e) {
         console.error("Storage usage error:", e)
-        setError(e.message)
+        if (mounted) setError(e.message)
       }
     })()
+    return () => { mounted = false }
   }, [])
 
   if (error) return <div style={{ color: C.muted, fontSize: 12 }}>No se pudo obtener el uso de storage</div>
@@ -150,12 +153,12 @@ function StorageBrowser() {
               const isDel = deleting.has(f.path)
               const isSel = selected.has(f.path)
               return (
-                <div key={f.name} onClick={()=>toggleSelect(f.path)} style={{ borderRadius:10, border:`2px solid ${isSel?C.accent:C.border}`, opacity:isDel?.3:1, transition:"opacity .2s, border-color .2s", cursor:"pointer", position:"relative" }}>
+                <div key={f.name} onClick={()=>toggleSelect(f.path)} style={{ borderRadius:10, border:`2px solid ${isSel?C.accent:C.border}`, opacity:isDel?0.3:1, transition:"opacity .2s, border-color .2s", cursor:"pointer", position:"relative" }}>
                   <div style={{ position:"absolute", top:6, left:6, zIndex:10, width:22, height:22, borderRadius:5, background:isSel?C.accent:"rgba(0,0,0,0.6)", border:`2px solid ${isSel?C.accent:"rgba(255,255,255,0.5)"}`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", boxShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>
                     {isSel && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </div>
                   <div onClick={e=>{e.stopPropagation();window.open(url,"_blank")}} style={{ aspectRatio:"1", cursor:"pointer", background:C.cardAlt, display:"flex", alignItems:"center", justifyContent:"center", borderRadius:"8px 8px 0 0", overflow:"hidden" }}>
-                    {isImage(f) ? <img src={url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
+                    {isImage(f) ? <SafeImg src={url} alt="" style={{ width:"100%",height:"100%",objectFit:"cover" }} />
                     : <div style={{ textAlign:"center" }}><svg width="24" height="24" fill="none" stroke={C.muted} strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><div style={{ fontSize:9, color:C.muted, marginTop:2 }}>{f.name.split('.').pop()?.toUpperCase()}</div></div>}
                   </div>
                   <div style={{ padding:"5px 6px", background:C.cardAlt, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -177,7 +180,11 @@ function StorageBrowser() {
 
 function OcrUsage() {
   const [usage, setUsage] = useState(null)
-  useEffect(() => { getOCRUsage().then(setUsage).catch(() => {}) }, [])
+  useEffect(() => {
+    let mounted = true
+    getOCRUsage().then(u => { if (mounted) setUsage(u) }).catch(() => {})
+    return () => { mounted = false }
+  }, [])
 
   const count = usage?.count || 0
   const pct = Math.min((count / OCR_FREE) * 100, 100)

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { C, estadoColors, ADMIN_EMAIL } from "../lib/colors"
-import { inp, btn } from "./shared"
+import { inp, btn, DInput } from "./shared"
 
 const ALL_PERMS = ["registro","fichas","clientes","almacen","inventario","agenda","pagos","auditoria","dashboard"]
 const VIS_OPTS  = [["always","Siempre"],["month","1 mes"],["week","1 semana"],["3days","3 días"],["today","Solo hoy"],["none","Ninguno"]]
@@ -59,7 +59,7 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
             {/* Row 1: Name, email, status, delete */}
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14, flexWrap:"wrap" }}>
               <div style={{ flex:1, minWidth:180 }}>
-                <input value={u.name||""} onChange={e=>onUpdateProfile(u.id,{name:e.target.value})} placeholder="Sin nombre" style={{ fontSize:16, fontWeight:700, color:C.text, background:"transparent", border:"none", borderBottom:`1px solid transparent`, outline:"none", padding:0, width:"100%" }} onFocus={e=>e.target.style.borderBottomColor=C.accent} onBlur={e=>e.target.style.borderBottomColor="transparent"} />
+                <DInput value={u.name||""} onCommit={v=>onUpdateProfile(u.id,{name:v})} placeholder="Sin nombre" style={{ fontSize:16, fontWeight:700, color:C.text, background:"transparent", border:"none", borderBottom:`1px solid transparent`, outline:"none", padding:0, width:"100%" }} onFocus={e=>e.target.style.borderBottomColor=C.accent} onBlur={e=>{e.target.style.borderBottomColor="transparent"}} />
                 <div style={{ fontSize:12, color:C.muted }}>{u.email}</div>
               </div>
               <button onClick={()=>togActive(u.id)} style={{ padding:"5px 16px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:u.active?C.green:C.red, color:"#fff" }}>
@@ -188,7 +188,7 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
           <div>
             <label style={{ display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:6 }}>Tamaño máximo de archivos (MB)</label>
             <input type="number" value={uploadCfg?.maxMB ?? 45} min={1} max={200}
-              onChange={e => onSetUploadCfg({ ...uploadCfg, maxMB: Number(e.target.value) || 45 })}
+              onChange={e => { const v = Math.max(1, Math.min(200, Number(e.target.value) || 1)); onSetUploadCfg({ ...uploadCfg, maxMB: v }) }}
               style={{ ...inp, marginBottom:0, width:120 }} />
           </div>
           <div>

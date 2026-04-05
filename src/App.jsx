@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { supabase } from "./lib/supabase"
 import { C } from "./lib/colors"
 import { today } from "./lib/helpers"
-import { CSS, Loader } from "./components/shared"
+import { CSS, Loader, ToastContainer } from "./components/shared"
 
 import { getSession } from "./services/auth"
 import { listProfiles, updateProfile } from "./services/profiles"
@@ -680,6 +680,7 @@ export default function App() {
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'Segoe UI',system-ui,sans-serif" }}>
       <style>{CSS}</style>
+      <ToastContainer />
       {mobSide && <div onClick={()=>setMobSide(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.5)", zIndex:40 }} />}
       <Side tab={tab} set={changeTab} adm={adm} open={mobSide} perms={user?.permissions||[]} />
       <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>

@@ -60,6 +60,7 @@ export default function Papelera({
   const selectAll = () => setSelected(new Set(items.map(i => i.id)))
 
   const restoreSelected = () => {
+    if (!window.confirm(`¿Restaurar ${selected.size} elemento${selected.size>1?"s":""}?`)) return
     selected.forEach(id => {
       const item = items.find(i => i.id === id)
       if (!item) return
