@@ -3,6 +3,8 @@ import { C, estadoColors, ADMIN_EMAIL } from "../lib/colors"
 import { inp, btn, DInput } from "./shared"
 
 const ALL_PERMS = ["registro","fichas","clientes","almacen","inventario","agenda","pagos","auditoria","dashboard"]
+const PERM_LABELS = { registro:"Registro", fichas:"Contratera", clientes:"Clientes", almacen:"Almacen", inventario:"Inventario", agenda:"Agenda", pagos:"Pagos", auditoria:"Auditoria", dashboard:"Dashboard" }
+const PERM_ICONS = { registro:"M3 3h12v12H3z", fichas:"M14 2H6a2 2 0 00-2 2v16h12a2 2 0 002-2V8z", clientes:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2", almacen:"M3 3h4l2 3h6l2-3h4v12H3z", inventario:"M4 4h16v4H4z", agenda:"M8 2v4M16 2v4M3 10h18", pagos:"M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2", auditoria:"M9 3a6 6 0 100 12A6 6 0 009 3z", dashboard:"M3 10h3v5H3zM8 6h3v9H8zM13 3h3v12h-3z" }
 const VIS_OPTS  = [["always","Siempre"],["month","1 mes"],["week","1 semana"],["3days","3 días"],["today","Solo hoy"],["none","Ninguno"]]
 
 const ALL_TYPES = [
@@ -55,78 +57,98 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
             onUpdateProfile(u.id, { locales: next })
           }
           return (
-          <div key={u.id} style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
-            {/* Row 1: Name, email, status, delete */}
-            <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14, flexWrap:"wrap" }}>
-              <div style={{ flex:1, minWidth:180 }}>
-                <DInput value={u.name||""} onCommit={v=>onUpdateProfile(u.id,{name:v})} placeholder="Sin nombre" style={{ fontSize:16, fontWeight:700, color:C.text, background:"transparent", border:"none", borderBottom:`1px solid transparent`, outline:"none", padding:0, width:"100%" }} onFocus={e=>e.target.style.borderBottomColor=C.accent} onBlur={e=>{e.target.style.borderBottomColor="transparent"}} />
-                <div style={{ fontSize:12, color:C.muted }}>{u.email}</div>
+          <div key={u.id} style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, overflow:"hidden" }}>
+            {/* Header */}
+            <div style={{ display:"flex", alignItems:"center", gap:12, padding:"16px 20px", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap" }}>
+              <div style={{ width:36, height:36, borderRadius:10, background:u.active?C.accent+"22":C.red+"22", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <svg width="18" height="18" fill="none" stroke={u.active?C.accent:C.red} strokeWidth="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8z"/></svg>
               </div>
-              <button onClick={()=>togActive(u.id)} style={{ padding:"5px 16px", borderRadius:20, border:"none", cursor:"pointer", fontSize:12, fontWeight:600, background:u.active?C.green:C.red, color:"#fff" }}>
+              <div style={{ flex:1, minWidth:150 }}>
+                <DInput value={u.name||""} onCommit={v=>onUpdateProfile(u.id,{name:v})} placeholder="Sin nombre" style={{ fontSize:16, fontWeight:700, color:C.text, background:"transparent", border:"none", outline:"none", padding:0, width:"100%" }} />
+                <div style={{ fontSize:11, color:C.muted }}>{u.email}</div>
+              </div>
+              <button onClick={()=>togActive(u.id)} style={{ padding:"5px 16px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:u.active?C.green:C.red, color:"#fff" }}>
                 {u.active?"Activo":"Inactivo"}
               </button>
-              <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
-                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"simple",can_toggle_view:false})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="simple"&&!u.can_toggle_view?C.yellow:C.bg, color:(u.view_mode||"completo")==="simple"&&!u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Simple</button>
-                <button onClick={()=>onUpdateProfile(u.id,{view_mode:"completo",can_toggle_view:false})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?C.accent:C.bg, color:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Completo</button>
-                <button onClick={()=>onUpdateProfile(u.id,{can_toggle_view:true})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:u.can_toggle_view?C.purple:C.bg, color:u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Puede elegir</button>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                <span style={{ fontSize:11, color:C.muted }}>Clientes:</span>
-                <select value={u.client_visibility||"always"} onChange={e=>setVis(u.id,e.target.value)} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none" }}>
-                  {VIS_OPTS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
               <button onClick={()=>{if(window.confirm("¿Eliminar este usuario?"))onDeleteProfile(u.id)}} title="Eliminar" style={{ background:C.danger+"22", border:"none", borderRadius:8, cursor:"pointer", color:C.danger, padding:"6px 8px" }}>
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
               </button>
             </div>
-            {/* Row 2: Locales */}
-            <div style={{ marginBottom:14 }}>
-              <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>Locales asignados</div>
-              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                {locales.map(l => (
-                  <button key={l} onClick={()=>togLocal(l)} style={{
-                    padding:"4px 14px", borderRadius:12, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
-                    background:userLocals.includes(l)?C.orange+"33":C.border,
-                    color:userLocals.includes(l)?C.orange:C.muted,
-                  }}>{l}</button>
-                ))}
-                {!locales.length && <span style={{ fontSize:11, color:C.muted }}>No hay locales configurados</span>}
+
+            <div style={{ padding:"16px 20px", display:"flex", flexDirection:"column", gap:14 }}>
+              {/* Modo de vista */}
+              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                <span style={{ fontSize:11, color:C.muted, fontWeight:600, minWidth:70 }}>Vista:</span>
+                <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
+                  <button onClick={()=>onUpdateProfile(u.id,{view_mode:"simple",can_toggle_view:false})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="simple"&&!u.can_toggle_view?C.yellow:C.bg, color:(u.view_mode||"completo")==="simple"&&!u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Simple</button>
+                  <button onClick={()=>onUpdateProfile(u.id,{view_mode:"completo",can_toggle_view:false})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?C.accent:C.bg, color:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Completo</button>
+                  <button onClick={()=>onUpdateProfile(u.id,{can_toggle_view:true})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:u.can_toggle_view?C.purple:C.bg, color:u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Puede elegir</button>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                  <span style={{ fontSize:11, color:C.muted }}>Clientes:</span>
+                  <select value={u.client_visibility||"always"} onChange={e=>setVis(u.id,e.target.value)} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none" }}>
+                    {VIS_OPTS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
               </div>
-            </div>
-            {/* Row 3: Permisos */}
-            <div style={{ marginBottom: (u.permissions||[]).includes("agenda") ? 14 : 0 }}>
-              <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>Permisos</div>
-              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                {ALL_PERMS.map(p => (
-                  <button key={p} onClick={()=>togPerm(u.id,p)} style={{
-                    padding:"4px 12px", borderRadius:12, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
-                    background:(u.permissions||[]).includes(p)?C.accent+"33":C.border,
-                    color:(u.permissions||[]).includes(p)?C.accent:C.muted,
-                  }}>{p}</button>
-                ))}
-              </div>
-            </div>
-            {/* Row 4: Agenda config */}
-            {(u.permissions||[]).includes("agenda") && (
-              <div style={{ background:C.cardAlt, borderRadius:10, padding:14 }}>
-                <div style={{ fontSize:11, color:C.muted, marginBottom:8 }}>Configuracion de Agenda</div>
-                <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                    <span style={{ fontSize:12, color:C.text }}>Proximos</span>
-                    <input type="number" value={u.agenda_days??30} min={0} max={365}
-                      onChange={e=>onUpdateProfile(u.id,{agenda_days:Number(e.target.value)||0})}
-                      style={{ width:55, padding:"5px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", textAlign:"center", fontWeight:700 }} />
-                    <span style={{ fontSize:12, color:C.text }}>dias</span>
-                  </div>
-                  <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
-                    {[["own","Sus contratos"],["all","Todo"],["local","Por local"]].map(([v,l])=>(
-                      <button key={v} onClick={()=>onUpdateProfile(u.id,{agenda_scope:v})} style={{ padding:"5px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:(u.agenda_scope||"own")===v?C.accent:C.bg, color:(u.agenda_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
+
+              {/* Locales */}
+              {locales.length > 0 && (
+                <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                  <span style={{ fontSize:11, color:C.muted, fontWeight:600, minWidth:70 }}>Locales:</span>
+                  <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                    {locales.map(l => (
+                      <button key={l} onClick={()=>togLocal(l)} style={{
+                        padding:"4px 12px", borderRadius:10, border:"none", cursor:"pointer", fontSize:10, fontWeight:600,
+                        background:userLocals.includes(l)?C.orange+"33":C.border,
+                        color:userLocals.includes(l)?C.orange:C.muted,
+                      }}>{l}</button>
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Permisos - grid visual */}
+              <div>
+                <span style={{ fontSize:11, color:C.muted, fontWeight:600 }}>Accesos:</span>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:6, marginTop:6 }}>
+                  {ALL_PERMS.map(p => {
+                    const active = (u.permissions||[]).includes(p)
+                    return (
+                      <button key={p} onClick={()=>togPerm(u.id,p)} style={{
+                        padding:"8px 6px", borderRadius:10, border:`1px solid ${active?C.accent+"44":C.border}`, cursor:"pointer",
+                        background:active?C.accent+"15":"transparent", display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+                        transition:"all .15s",
+                      }}>
+                        <svg width="16" height="16" fill="none" stroke={active?C.accent:C.muted} strokeWidth="2"><path d={PERM_ICONS[p]}/></svg>
+                        <span style={{ fontSize:10, fontWeight:600, color:active?C.accent:C.muted }}>{PERM_LABELS[p]}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            )}
+
+              {/* Agenda config */}
+              {(u.permissions||[]).includes("agenda") && (
+                <div style={{ background:C.cardAlt, borderRadius:10, padding:12 }}>
+                  <div style={{ fontSize:11, color:C.muted, fontWeight:600, marginBottom:8 }}>Configuracion de Agenda</div>
+                  <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <span style={{ fontSize:12, color:C.text }}>Proximos</span>
+                      <input type="number" value={u.agenda_days??30} min={0} max={365}
+                        onChange={e=>onUpdateProfile(u.id,{agenda_days:Number(e.target.value)||0})}
+                        style={{ width:55, padding:"5px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", textAlign:"center", fontWeight:700 }} />
+                      <span style={{ fontSize:12, color:C.text }}>dias</span>
+                    </div>
+                    <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
+                      {[["own","Sus contratos"],["all","Todo"],["local","Por local"]].map(([v,l])=>(
+                        <button key={v} onClick={()=>onUpdateProfile(u.id,{agenda_scope:v})} style={{ padding:"5px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:(u.agenda_scope||"own")===v?C.accent:C.bg, color:(u.agenda_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )})}
       </div>
