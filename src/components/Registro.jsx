@@ -559,7 +559,7 @@ export default memo(function Registro({
                     const isErronea = linked?.erronea
                     const hasFicha = !!linked && !isErronea
                     const isContractState = r.estado==="Proforma"||r.estado==="Contrato"
-                    const dis = isErronea ? [] : isContractState && hasFicha ? tags.filter(t=>t!=="Proforma"&&t!=="Contrato") : ["Proforma","Contrato"]
+                    const dis = isErronea ? ["Proforma","Contrato"] : isContractState && hasFicha ? tags.filter(t=>t!=="Proforma"&&t!=="Contrato") : ["Proforma","Contrato"]
                     return <TagSelect value={r.estado} onChange={v=>upd(r.id,"estado",v)} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} disabledTags={dis} />
                   })()}</div></td>
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
