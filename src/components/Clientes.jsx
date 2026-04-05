@@ -66,7 +66,8 @@ export default function Clientes({
   const [selectedFichas, setSelectedFichas] = useState(new Set())
   const [statusFilter, setStatusFilter] = useState(null) // null | "anterior" | "naranja" | "erronea"
   const [canalFilter, setCanalFilter] = useState(null) // null | "W" | "F"
-  const [sortBy, setSortBy] = useState("fecha_desc") // fecha_desc | fecha_asc | nombre_asc | nombre_desc
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
@@ -811,14 +812,14 @@ export default function Clientes({
         </div>
       </div>
 
-      {/* Sort + minimal filters */}
+      {/* Filters */}
       <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
-        <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
-          <option value="fecha_desc">Mas reciente</option>
-          <option value="fecha_asc">Mas antiguo</option>
-          <option value="nombre_asc">Nombre A-Z</option>
-          <option value="nombre_desc">Nombre Z-A</option>
-        </select>
+        <div style={{ display:"flex", gap:4, alignItems:"center" }}>
+          <span style={{ fontSize:11, color:C.muted }}>Desde</span>
+          <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 8px", fontSize:11 }} />
+          <span style={{ fontSize:11, color:C.muted }}>Hasta</span>
+          <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 8px", fontSize:11 }} />
+        </div>
         <select value={statusFilter||""} onChange={e=>setStatusFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
           <option value="">Todos los estados</option>
           <option value="normal">Normal</option>
@@ -831,24 +832,29 @@ export default function Clientes({
           <option value="F">Local</option>
           <option value="W">WhatsApp</option>
         </select>
-        {(statusFilter || canalFilter) && (
-          <button onClick={()=>{setStatusFilter(null);setCanalFilter(null)}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar filtros</button>
+        {(statusFilter || canalFilter || dateFrom || dateTo) && (
+          <button onClick={()=>{setStatusFilter(null);setCanalFilter(null);setDateFrom("");setDateTo("")}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar filtros</button>
         )}
       </div>
 
-      {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).length===0 ? (
-        <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
-          No hay fichas de clientes.
-        </div>
-      ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-          {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).sort((a,b) => {
-            if (sortBy==="fecha_desc") return new Date(b.created_at||0)-new Date(a.created_at||0)
-            if (sortBy==="fecha_asc") return new Date(a.created_at||0)-new Date(b.created_at||0)
-            if (sortBy==="nombre_asc") return (a.nombre||"").localeCompare(b.nombre||"")
-            if (sortBy==="nombre_desc") return (b.nombre||"").localeCompare(a.nombre||"")
-            return 0
-          }).map(c => {
+      {(() => {
+        const filtered = filteredClients.filter(c => {
+          if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
+          if (canalFilter && fichaCanal(c,regs)!==canalFilter) return false
+          if (dateFrom || dateTo) {
+            const d = c.created_at ? c.created_at.slice(0,10) : ""
+            if (dateFrom && d < dateFrom) return false
+            if (dateTo && d > dateTo) return false
+          }
+          return true
+        }).sort((a,b) => new Date(b.created_at||0)-new Date(a.created_at||0))
+        return filtered.length===0 ? (
+          <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
+            No hay fichas de clientes.
+          </div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+            {filtered.map(c => {
             const cts = getContratos(c)
             const visits = cts.length
             const lastCt = cts[cts.length-1]
@@ -900,7 +906,7 @@ export default function Clientes({
             )
           })}
         </div>
-      )}
+      )})()}
     </div>
   )
 }
