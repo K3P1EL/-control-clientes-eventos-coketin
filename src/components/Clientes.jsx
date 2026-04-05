@@ -69,7 +69,8 @@ export default memo(function Clientes({
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [expandedId, setExpandedId] = useState(null)
-  const [browseMode, setBrowseMode] = useState(false) // "Ver contratos" navigation mode
+  const [browseMode, setBrowseMode] = useState(false)
+  const browseList = useRef([]) // ordered client IDs for browse navigation
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
@@ -188,22 +189,22 @@ export default memo(function Clientes({
     const resto     = (Number(ct?.total)||0) - totalAdel
     const isSimple  = (user.view_mode || "completo") === "simple"
 
-    // Navigation: compute sorted list for prev/next
-    const navList = browseMode ? filteredClients.sort((a,b) => new Date(b.created_at||0)-new Date(a.created_at||0)) : []
-    const navIdx = navList.findIndex(x => x.id === view)
-    const goPrev = () => { if (navIdx > 0) { setView(navList[navIdx-1].id); setActiveContrato(0) } }
-    const goNext = () => { if (navIdx < navList.length-1) { setView(navList[navIdx+1].id); setActiveContrato(0) } }
+    // Navigation via pre-built browse list
+    const navIds = browseList.current
+    const navIdx = browseMode ? navIds.indexOf(view) : -1
+    const goPrev = () => { if (navIdx > 0) { setView(navIds[navIdx-1]); setActiveContrato(0) } }
+    const goNext = () => { if (navIdx < navIds.length-1) { setView(navIds[navIdx+1]); setActiveContrato(0) } }
 
     return (
       <div>
         {/* Browse mode navigation bar */}
-        {browseMode && navList.length > 0 && (
+        {browseMode && navIds.length > 0 && (
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:C.cardAlt, border:`1px solid ${C.border}`, borderRadius:10, padding:"8px 16px", marginBottom:14 }}>
             <button onClick={goPrev} disabled={navIdx<=0} style={{ background:navIdx>0?C.accent+"22":"transparent", border:`1px solid ${navIdx>0?C.accent+"44":C.border}`, borderRadius:8, color:navIdx>0?C.accent:C.muted, cursor:navIdx>0?"pointer":"default", padding:"6px 14px", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", gap:4, opacity:navIdx<=0?0.4:1 }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2L4 7l6 5"/></svg>Anterior
             </button>
-            <span style={{ fontSize:12, color:C.muted, fontWeight:600 }}>Ficha {navIdx+1} de {navList.length}</span>
-            <button onClick={goNext} disabled={navIdx>=navList.length-1} style={{ background:navIdx<navList.length-1?C.accent+"22":"transparent", border:`1px solid ${navIdx<navList.length-1?C.accent+"44":C.border}`, borderRadius:8, color:navIdx<navList.length-1?C.accent:C.muted, cursor:navIdx<navList.length-1?"pointer":"default", padding:"6px 14px", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", gap:4, opacity:navIdx>=navList.length-1?0.4:1 }}>
+            <span style={{ fontSize:12, color:C.muted, fontWeight:600 }}>Ficha {navIdx+1} de {navIds.length}</span>
+            <button onClick={goNext} disabled={navIdx>=navIds.length-1} style={{ background:navIdx<navIds.length-1?C.accent+"22":"transparent", border:`1px solid ${navIdx<navIds.length-1?C.accent+"44":C.border}`, borderRadius:8, color:navIdx<navIds.length-1?C.accent:C.muted, cursor:navIdx<navIds.length-1?"pointer":"default", padding:"6px 14px", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", gap:4, opacity:navIdx>=navIds.length-1?0.4:1 }}>
               Siguiente<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 2l6 5-6 5"/></svg>
             </button>
           </div>
@@ -829,7 +830,7 @@ export default memo(function Clientes({
             <button onClick={()=>setSelectedFichas(new Set(filteredClients.map(c=>c.id)))} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:11 }}>Seleccionar</button>
           )}
           {adm && filteredClients.length > 0 && (
-            <button onClick={()=>{setBrowseMode(true);const sorted=filteredClients.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));setView(sorted[0].id);setActiveContrato(0)}} style={{ background:C.accent+"18", border:`1px solid ${C.accent}44`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
+            <button onClick={()=>{const sorted=[...filteredClients].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));browseList.current=sorted.map(c=>c.id);setBrowseMode(true);setView(sorted[0].id);setActiveContrato(0)}} style={{ background:C.accent+"18", border:`1px solid ${C.accent}44`, borderRadius:8, color:C.accent, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="10" height="8" rx="1"/><path d="M5 3V1M9 3V1"/></svg>Ver contratos
             </button>
           )}
