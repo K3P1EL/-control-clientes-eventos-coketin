@@ -75,7 +75,7 @@ export function DInput({ value, onCommit, tag = "input", ...props }) {
 }
 
 // ─── Tag Select (colored dropdown) ────────────────────────────────────────────
-export function TagSelect({ value, onChange, tags, getColor, disabled }) {
+export function TagSelect({ value, onChange, tags, getColor, disabled, disabledTags = [] }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const btnRef = useRef(null)
@@ -124,14 +124,16 @@ export function TagSelect({ value, onChange, tags, getColor, disabled }) {
           {tags.map(t => {
             const tc = getColor(t)
             const isSel = value === t
+            const isDisabled = disabledTags.includes(t)
             return (
-              <button key={t} onClick={()=>{onChange(t);setOpen(false)}} style={{
+              <button key={t} onClick={()=>{if(!isDisabled){onChange(t);setOpen(false)}}} style={{
                 display:"flex", alignItems:"center", gap:8, width:"100%", padding:"6px 10px", border:"none",
-                borderRadius:6, background:isSel?tc+"22":"transparent", cursor:"pointer", fontSize:12,
-                color:isSel?tc:C.text, fontWeight:isSel?700:400, textAlign:"left",
+                borderRadius:6, background:isSel?tc+"22":"transparent", cursor:isDisabled?"default":"pointer", fontSize:12,
+                color:isDisabled?C.muted+"88":isSel?tc:C.text, fontWeight:isSel?700:400, textAlign:"left",
+                opacity:isDisabled?0.4:1,
               }}
-              onMouseEnter={e=>e.currentTarget.style.background=tc+"22"}
-              onMouseLeave={e=>{if(!isSel)e.currentTarget.style.background="transparent"}}>
+              onMouseEnter={e=>{if(!isDisabled)e.currentTarget.style.background=tc+"22"}}
+              onMouseLeave={e=>{if(!isSel&&!isDisabled)e.currentTarget.style.background="transparent"}}>
                 <span style={{ width:8, height:8, borderRadius:"50%", background:tc, flexShrink:0 }}/>
                 {t}
               </button>

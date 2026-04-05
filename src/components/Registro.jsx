@@ -552,7 +552,7 @@ export default memo(function Registro({
                   <td style={td}><div style={lock}><Bdg c={sc}><select value={r.sexo}  onChange={e=>upd(r.id,"sexo",e.target.value)}  style={sel} disabled={!canEdit}><option value="">--</option><option value="H">H</option><option value="M">M</option></select></Bdg></div></td>
                   <td style={td}><div style={lock}><DInput type="number" value={r.edad} onCommit={v=>upd(r.id,"edad",v)} style={{ ...mi, width:60 }} placeholder="--" disabled={!canEdit}/></div></td>
                   <td style={td}><div style={lock}><Bdg c={pc}><select value={r.pirana} onChange={e=>upd(r.id,"pirana",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option><option value="S">SI</option><option value="N">NO</option><option value="P">P</option></select></Bdg></div></td>
-                  <td style={td}><div style={lock}><TagSelect value={r.estado} onChange={v=>upd(r.id,"estado",v)} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} /></div></td>
+                  <td style={td}><div style={lock}><TagSelect value={r.estado} onChange={v=>upd(r.id,"estado",v)} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} disabledTags={["Proforma","Contrato"]} /></div></td>
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   {/* Ficha */}
                   <td style={{ ...td, pointerEvents:"auto", opacity:1 }}>{(() => {
