@@ -363,11 +363,28 @@ export default function App() {
   const onPermanentDeleteClient = useCallback(async (id) => {
     const backup = []
     setClients(prev => { backup.push(...prev.filter(c => c.id === id)); return prev.filter(c => c.id !== id) })
+    // Collect all storage file URLs from contratos and almacen
+    const client = backup[0]
+    const fileUrls = []
+    if (client) {
+      ;(client.contratos || []).forEach(ct => {
+        ;(ct.contrato_archivos || []).forEach(a => { if (a.url) fileUrls.push(a.url) })
+      })
+    }
+    const clientAlmacen = almacen.filter(s => s.client_id === id)
+    clientAlmacen.forEach(s => {
+      ;(s.almacen_archivos || []).forEach(a => { if (a.url) fileUrls.push(a.url) })
+      ;(s.almacen_archivos_recojo || []).forEach(a => { if (a.url) fileUrls.push(a.url) })
+    })
+    // Also remove almacen from state
+    setAlmacen(prev => prev.filter(s => s.client_id !== id))
+    // Delete storage files + DB record in parallel
+    fileUrls.forEach(url => deleteFileByUrl(url))
     deleteClient(id).catch(e => {
       if (backup.length) setClients(prev => [...prev, ...backup])
       console.error("permanentDeleteClient failed:", e); alert("Error eliminando")
     })
-  }, [])
+  }, [almacen])
   const onAddContrato = useCallback(async (clientId, payload) => {
     const tempId = `temp_${Date.now()}`
     const optimistic = { id: tempId, client_id: clientId, ...payload, adelantos: [], contrato_archivos: [], created_at: new Date().toISOString() }
