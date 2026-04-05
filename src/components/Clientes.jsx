@@ -467,15 +467,15 @@ export default memo(function Clientes({
                   <h3 style={{ fontSize:15, fontWeight:600, margin:0, color:C.accent }}>
                     {ct.tipo==="contrato"?"Contrato":"Proforma"}{contratos.length>1?` #${activeContrato+1}`:""}
                   </h3>
-                  {!isSimple && <div style={{ display:"flex", gap:6 }}>
+                  <div style={{ display:"flex", gap:6 }}>
                     <div style={{ display:"inline-flex", borderRadius:20, background:C.bg, padding:2 }}>
                       <button onClick={()=>{if(ct.tipo!=="proforma"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"proforma"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo!=="contrato"?C.yellow:C.bg, color:ct.tipo!=="contrato"?"#fff":C.muted, transition:"all .2s" }}>Proforma</button>
                       <button onClick={()=>{if(ct.tipo!=="contrato"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"contrato"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo==="contrato"?C.green:C.bg, color:ct.tipo==="contrato"?"#fff":C.muted, transition:"all .2s" }}>Contrato</button>
                     </div>
-                    <button onClick={()=>onUpdateContrato(c.id,ct.id,{estado:ct.estado==="finalizado"?"activo":"finalizado"})} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.estado==="finalizado"?C.blue+"33":C.border, color:ct.estado==="finalizado"?C.blue:C.muted }}>
+                    {!isSimple && <button onClick={()=>onUpdateContrato(c.id,ct.id,{estado:ct.estado==="finalizado"?"activo":"finalizado"})} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.estado==="finalizado"?C.blue+"33":C.border, color:ct.estado==="finalizado"?C.blue:C.muted }}>
                       {ct.estado==="finalizado"?"✓ Finalizado":"En curso"}
-                    </button>
-                  </div>}
+                    </button>}
+                  </div>
                 </div>
 
                 {/* Archivos arriba en modo simple */}
