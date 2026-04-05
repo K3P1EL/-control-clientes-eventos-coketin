@@ -560,7 +560,12 @@ export default memo(function Registro({
                     const hasFicha = !!linked && !isErronea
                     const isContractState = r.estado==="Proforma"||r.estado==="Contrato"
                     const dis = isErronea ? ["Proforma","Contrato"] : isContractState && hasFicha ? tags.filter(t=>t!=="Proforma"&&t!=="Contrato") : ["Proforma","Contrato"]
-                    return <TagSelect value={r.estado} onChange={v=>upd(r.id,"estado",v)} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} disabledTags={dis} />
+                    return <TagSelect value={r.estado} onChange={v=>{
+                      if ((v==="Proforma"||v==="Contrato") && v!==r.estado) {
+                        if (!canChangeTipo()) { alert(`Limite de cambios alcanzado (${LIMITS.TIPO_CHANGES_PER_HOUR} por hora)`); return }
+                      }
+                      upd(r.id,"estado",v)
+                    }} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} disabledTags={dis} />
                   })()}</div></td>
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   {/* Ficha */}
