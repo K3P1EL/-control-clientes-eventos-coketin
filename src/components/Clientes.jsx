@@ -70,6 +70,7 @@ export default memo(function Clientes({
   const [dateTo, setDateTo] = useState("")
   const [expandedId, setExpandedId] = useState(null)
   const [browseMode, setBrowseMode] = useState(false)
+  const [sortAsc, setSortAsc] = useState(false) // false = newest first
   const browseList = useRef([]) // ordered client IDs for browse navigation
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
@@ -840,6 +841,10 @@ export default memo(function Clientes({
 
       {/* Filters */}
       <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
+        <button onClick={()=>setSortAsc(!sortAsc)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer", display:"flex", alignItems:"center", gap:4 }}>
+          <svg width="12" height="12" fill="none" stroke={C.accent} strokeWidth="2"><path d={sortAsc?"M2 8l4 4 4-4":"M2 4l4-4 4 4"}/><path d={sortAsc?"M6 2v10":"M6 10V0"}/></svg>
+          {sortAsc?"Mas antiguo":"Mas reciente"}
+        </button>
         <div style={{ display:"flex", gap:6, alignItems:"center" }}>
           <span style={{ fontSize:11, color:C.muted }}>Desde</span>
           <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="Inicio" />
@@ -875,7 +880,7 @@ export default memo(function Clientes({
             if (dateTo && d > dateTo) return false
           }
           return true
-        }).sort((a,b) => new Date(b.created_at||0)-new Date(a.created_at||0))
+        }).sort((a,b) => sortAsc ? new Date(a.created_at||0)-new Date(b.created_at||0) : new Date(b.created_at||0)-new Date(a.created_at||0))
         return filtered.length===0 ? (
           <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
             No hay fichas de clientes.

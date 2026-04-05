@@ -13,8 +13,8 @@ export default function Head({ user, menu, onToggleViewMode }) {
             <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2"><rect x="2" y="2" width="10" height="10" rx="2"/></svg>
           </div>
           <div>
-            <div style={{ fontSize:14, fontWeight:700, color:C.accent }}>CONTROL DE REGISTRO DE CLIENTES</div>
-            <div style={{ fontSize:11, color:C.muted }}>Registra cada cliente al ingresar: datos, canal, segmentación y estado</div>
+            <div style={{ fontSize:14, fontWeight:700, color:C.accent }}>CONTROL DE CLIENTES Y CONTRATOS</div>
+            <div style={{ fontSize:11, color:C.muted }}>Gestiona fichas, contratos, proformas y seguimiento de eventos</div>
           </div>
         </div>
       </div>
