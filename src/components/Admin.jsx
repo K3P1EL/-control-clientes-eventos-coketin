@@ -17,6 +17,7 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
   const [nl,  setNl]  = useState("")
   const [npt, setNpt] = useState("")
   const [showUsers, setShowUsers] = useState(false)
+  const [openConfig, setOpenConfig] = useState(null) // "userId:perm" to track which config panel is open
 
   const togActive = (uid) => {
     const u = users.find(x=>x.id===uid)
@@ -108,46 +109,108 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                 </div>
               )}
 
-              {/* Permisos - grid visual */}
+              {/* Permisos - grid visual con config expandible */}
               <div>
                 <span style={{ fontSize:11, color:C.muted, fontWeight:600 }}>Accesos:</span>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:6, marginTop:6 }}>
                   {ALL_PERMS.map(p => {
                     const active = (u.permissions||[]).includes(p)
+                    const hasConfig = p === "agenda" || p === "fichas"
+                    const configOpen = openConfig === `${u.id}:${p}`
                     return (
-                      <button key={p} onClick={()=>togPerm(u.id,p)} style={{
-                        padding:"8px 6px", borderRadius:10, border:`1px solid ${active?C.accent+"44":C.border}`, cursor:"pointer",
+                      <button key={p} onClick={()=>{
+                        if (!active) { togPerm(u.id,p); if(hasConfig) setOpenConfig(`${u.id}:${p}`) }
+                        else if (hasConfig && active) setOpenConfig(configOpen?null:`${u.id}:${p}`)
+                        else togPerm(u.id,p)
+                      }} style={{
+                        padding:"8px 6px", borderRadius:10, border:`1px solid ${configOpen?C.accent:active?C.accent+"44":C.border}`, cursor:"pointer",
                         background:active?C.accent+"15":"transparent", display:"flex", flexDirection:"column", alignItems:"center", gap:4,
-                        transition:"all .15s",
+                        transition:"all .15s", position:"relative",
                       }}>
                         <svg width="16" height="16" fill="none" stroke={active?C.accent:C.muted} strokeWidth="2"><path d={PERM_ICONS[p]}/></svg>
                         <span style={{ fontSize:10, fontWeight:600, color:active?C.accent:C.muted }}>{PERM_LABELS[p]}</span>
+                        {hasConfig && active && <svg width="8" height="8" fill="none" stroke={C.accent} strokeWidth="2" style={{ position:"absolute", top:3, right:3 }}><circle cx="4" cy="4" r="3"/></svg>}
                       </button>
                     )
                   })}
                 </div>
-              </div>
 
-              {/* Agenda config */}
-              {(u.permissions||[]).includes("agenda") && (
-                <div style={{ background:C.cardAlt, borderRadius:10, padding:12 }}>
-                  <div style={{ fontSize:11, color:C.muted, fontWeight:600, marginBottom:8 }}>Configuracion de Agenda</div>
-                  <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                      <span style={{ fontSize:12, color:C.text }}>Proximos</span>
-                      <input type="number" value={u.agenda_days??30} min={0} max={365}
-                        onChange={e=>onUpdateProfile(u.id,{agenda_days:Number(e.target.value)||0})}
-                        style={{ width:55, padding:"5px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", textAlign:"center", fontWeight:700 }} />
-                      <span style={{ fontSize:12, color:C.text }}>dias</span>
+                {/* Config panel for Agenda */}
+                {openConfig === `${u.id}:agenda` && (u.permissions||[]).includes("agenda") && (
+                  <div style={{ background:C.cardAlt, borderRadius:10, padding:12, marginTop:8, animation:"fadeIn .15s" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <span style={{ fontSize:11, color:C.accent, fontWeight:700 }}>Config. Agenda</span>
+                      <button onClick={()=>setOpenConfig(null)} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:14 }}>×</button>
                     </div>
-                    <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
-                      {[["own","Sus contratos"],["all","Todo"],["local","Por local"]].map(([v,l])=>(
-                        <button key={v} onClick={()=>onUpdateProfile(u.id,{agenda_scope:v})} style={{ padding:"5px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:(u.agenda_scope||"own")===v?C.accent:C.bg, color:(u.agenda_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
-                      ))}
+                    <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <span style={{ fontSize:12, color:C.text }}>Proximos</span>
+                        <input type="number" value={u.agenda_days??30} min={0} max={365}
+                          onChange={e=>onUpdateProfile(u.id,{agenda_days:Math.max(0,Number(e.target.value)||0)})}
+                          style={{ width:55, padding:"5px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", textAlign:"center", fontWeight:700 }} />
+                        <span style={{ fontSize:12, color:C.text }}>dias</span>
+                      </div>
+                      <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
+                        {[["own","Sus contratos"],["all","Todo"]].map(([v,l])=>(
+                          <button key={v} onClick={()=>onUpdateProfile(u.id,{agenda_scope:v})} style={{ padding:"5px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:(u.agenda_scope||"own")===v?C.accent:C.bg, color:(u.agenda_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
+                        ))}
+                      </div>
                     </div>
+                    {locales.length > 0 && (
+                      <div style={{ marginTop:10 }}>
+                        <span style={{ fontSize:11, color:C.muted }}>Locales en agenda:</span>
+                        <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:4 }}>
+                          {locales.map(l => (
+                            <button key={l} onClick={()=>{
+                              const curr = u.agenda_locales || []
+                              onUpdateProfile(u.id, { agenda_locales: curr.includes(l)?curr.filter(x=>x!==l):[...curr,l] })
+                            }} style={{
+                              padding:"4px 10px", borderRadius:8, border:"none", cursor:"pointer", fontSize:10, fontWeight:600,
+                              background:(u.agenda_locales||[]).includes(l)?C.accent+"33":C.border,
+                              color:(u.agenda_locales||[]).includes(l)?C.accent:C.muted,
+                            }}>{l}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* Config panel for Contratera */}
+                {openConfig === `${u.id}:fichas` && (u.permissions||[]).includes("fichas") && (
+                  <div style={{ background:C.cardAlt, borderRadius:10, padding:12, marginTop:8, animation:"fadeIn .15s" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <span style={{ fontSize:11, color:C.accent, fontWeight:700 }}>Config. Contratera</span>
+                      <button onClick={()=>setOpenConfig(null)} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:14 }}>×</button>
+                    </div>
+                    <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
+                      <div style={{ display:"inline-flex", borderRadius:16, background:C.bg, padding:2 }}>
+                        <span style={{ fontSize:11, color:C.muted, padding:"5px 8px" }}>Ve:</span>
+                        {[["own","Solo sus fichas"],["all","Todas las fichas"]].map(([v,l])=>(
+                          <button key={v} onClick={()=>onUpdateProfile(u.id,{fichas_scope:v})} style={{ padding:"5px 14px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:(u.fichas_scope||"own")===v?C.accent:C.bg, color:(u.fichas_scope||"own")===v?"#fff":C.muted, transition:"all .2s" }}>{l}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {locales.length > 0 && (
+                      <div style={{ marginTop:10 }}>
+                        <span style={{ fontSize:11, color:C.muted }}>Locales visibles:</span>
+                        <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginTop:4 }}>
+                          {locales.map(l => (
+                            <button key={l} onClick={()=>{
+                              const curr = u.fichas_locales || []
+                              onUpdateProfile(u.id, { fichas_locales: curr.includes(l)?curr.filter(x=>x!==l):[...curr,l] })
+                            }} style={{
+                              padding:"4px 10px", borderRadius:8, border:"none", cursor:"pointer", fontSize:10, fontWeight:600,
+                              background:(u.fichas_locales||[]).includes(l)?C.accent+"33":C.border,
+                              color:(u.fichas_locales||[]).includes(l)?C.accent:C.muted,
+                            }}>{l}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )})}
