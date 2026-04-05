@@ -83,6 +83,8 @@ export async function listStorageFiles(folder) {
 
 // Delete file from storage by path
 export async function deleteStorageFile(path) {
-  const { error } = await supabase.storage.from('archivos').remove([path])
+  const { data, error } = await supabase.storage.from('archivos').remove([path])
+  console.log("Storage delete result:", { path, data, error })
   if (error) throw error
+  return data
 }
