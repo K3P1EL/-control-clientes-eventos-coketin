@@ -145,6 +145,8 @@ export default memo(function Registro({
         if (failed.length) alert(`Error subiendo: ${failed.join(", ")}`)
       }
       onUpdateReg(regId, { foto: "SI" })
+      // Auto-set estado to match tipo if new ficha was created
+      if (tipo) onUpdateReg(regId, { estado: tipo === "contrato" ? "Contrato" : "Proforma" })
     } catch (err) { alert("Error: " + err.message) }
     finally { setContractUploading(prev => { const s = new Set(prev); s.delete(regId); return s }) }
   }
