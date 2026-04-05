@@ -66,6 +66,7 @@ export default function Clientes({
   const [selectedFichas, setSelectedFichas] = useState(new Set())
   const [statusFilter, setStatusFilter] = useState(null) // null | "anterior" | "naranja" | "erronea"
   const [canalFilter, setCanalFilter] = useState(null) // null | "W" | "F"
+  const [sortBy, setSortBy] = useState("fecha_desc") // fecha_desc | fecha_asc | nombre_asc | nombre_desc
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
@@ -803,14 +804,6 @@ export default function Clientes({
             <button onClick={bulkDelete} style={{ background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Papelera ({selectedFichas.size})</button>
             <button onClick={()=>setSelectedFichas(new Set())} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:12 }}>Deseleccionar</button>
           </>}
-          {adm && (() => {
-            const borrados = filteredClients.filter(c => fichaStatus(c, regs) === "naranja").length
-            return borrados > 0 ? (
-              <button onClick={()=>setStatusFilter(statusFilter==="naranja"?null:"naranja")} style={{ background:statusFilter==="naranja"?C.orange+"33":C.orange+"18", border:`1px solid ${C.orange}44`, borderRadius:8, color:C.orange, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:700 }}>
-                Reg. borrados ({borrados})
-              </button>
-            ) : null
-          })()}
           {adm && filteredClients.length > 0 && selectedFichas.size === 0 && (
             <button onClick={()=>setSelectedFichas(new Set(filteredClients.map(c=>c.id)))} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"6px 10px", fontSize:11 }}>Seleccionar</button>
           )}
@@ -818,46 +811,29 @@ export default function Clientes({
         </div>
       </div>
 
-      {/* Color filters */}
-      <div style={{ display:"flex", gap:12, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
-        <div style={{ display:"flex", gap:5, alignItems:"center" }}>
-          <span style={{ fontSize:11, color:C.muted }}>Estado:</span>
-          {[
-            [null, "Todos", C.muted],
-            ["normal", "Normal", C.accent],
-            ["anterior", "Anterior", C.blue],
-            ["naranja", "Reg. borrado", C.orange],
-            ...(adm ? [["erronea", "Erronea", C.red]] : []),
-          ].map(([val, label, color]) => (
-            <button key={label} onClick={()=>setStatusFilter(statusFilter===val?null:val)} style={{
-              padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
-              background: statusFilter===val ? color+"33" : C.border,
-              color: statusFilter===val ? color : C.muted,
-              borderLeft: val ? `3px solid ${color}` : "none",
-            }}>{label}</button>
-          ))}
-        </div>
-        <div style={{ fontSize:10, color:C.muted, display:"flex", gap:10 }}>
-          <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.accent, marginRight:4 }}/>Normal</span>
-          <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.blue, marginRight:4 }}/>Sin registro</span>
-          <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.orange, marginRight:4 }}/>Reg. borrado</span>
-          {adm && <span><span style={{ display:"inline-block", width:8, height:8, borderRadius:2, background:C.red, marginRight:4 }}/>Erronea</span>}
-        </div>
-        <div style={{ display:"flex", gap:5, alignItems:"center" }}>
-          <span style={{ fontSize:11, color:C.muted }}>Canal:</span>
-          {[
-            [null, "Todos", C.muted],
-            ["F", "Local", C.purple],
-            ["W", "WhatsApp", "#25D366"],
-          ].map(([val, label, color]) => (
-            <button key={label} onClick={()=>setCanalFilter(canalFilter===val?null:val)} style={{
-              padding:"3px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
-              background: canalFilter===val ? color+"33" : C.border,
-              color: canalFilter===val ? color : C.muted,
-              borderLeft: val ? `3px solid ${color}` : "none",
-            }}>{label}</button>
-          ))}
-        </div>
+      {/* Sort + minimal filters */}
+      <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
+        <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
+          <option value="fecha_desc">Mas reciente</option>
+          <option value="fecha_asc">Mas antiguo</option>
+          <option value="nombre_asc">Nombre A-Z</option>
+          <option value="nombre_desc">Nombre Z-A</option>
+        </select>
+        <select value={statusFilter||""} onChange={e=>setStatusFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
+          <option value="">Todos los estados</option>
+          <option value="normal">Normal</option>
+          <option value="anterior">Sin registro</option>
+          <option value="naranja">Reg. borrado</option>
+          {adm && <option value="erronea">Erronea</option>}
+        </select>
+        <select value={canalFilter||""} onChange={e=>setCanalFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
+          <option value="">Todos los canales</option>
+          <option value="F">Local</option>
+          <option value="W">WhatsApp</option>
+        </select>
+        {(statusFilter || canalFilter) && (
+          <button onClick={()=>{setStatusFilter(null);setCanalFilter(null)}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar filtros</button>
+        )}
       </div>
 
       {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).length===0 ? (
@@ -866,7 +842,13 @@ export default function Clientes({
         </div>
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-          {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).map(c => {
+          {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).sort((a,b) => {
+            if (sortBy==="fecha_desc") return new Date(b.created_at||0)-new Date(a.created_at||0)
+            if (sortBy==="fecha_asc") return new Date(a.created_at||0)-new Date(b.created_at||0)
+            if (sortBy==="nombre_asc") return (a.nombre||"").localeCompare(b.nombre||"")
+            if (sortBy==="nombre_desc") return (b.nombre||"").localeCompare(a.nombre||"")
+            return 0
+          }).map(c => {
             const cts = getContratos(c)
             const visits = cts.length
             const lastCt = cts[cts.length-1]
