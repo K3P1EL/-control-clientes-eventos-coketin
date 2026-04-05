@@ -2,7 +2,7 @@ import { C } from "../lib/colors"
 
 const allItems = [
   { id:"registro",    label:"Registro",   d:"M3 3h12v12H3zM3 8h12" },
-  { id:"fichas",      label:"Fichas",     d:"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8" },
+  { id:"fichas",      label:"Contratera", d:"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8" },
   { id:"clientes",    label:"Clientes",   d:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8z" },
   { id:"almacen",     label:"Almacén",    d:"M3 3h4l2 3h6l2-3h4v12H3zM8 10h6M11 8v4" },
   { id:"inventario",  label:"Inventario", d:"M4 4h16v4H4zM6 8v8h12V8M10 11h4" },
