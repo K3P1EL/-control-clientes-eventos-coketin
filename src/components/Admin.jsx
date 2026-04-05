@@ -85,12 +85,6 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                   <button onClick={()=>onUpdateProfile(u.id,{view_mode:"completo",can_toggle_view:false})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?C.accent:C.bg, color:(u.view_mode||"completo")==="completo"&&!u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Completo</button>
                   <button onClick={()=>onUpdateProfile(u.id,{can_toggle_view:true})} style={{ padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:10, fontWeight:600, background:u.can_toggle_view?C.purple:C.bg, color:u.can_toggle_view?"#fff":C.muted, transition:"all .2s" }}>Puede elegir</button>
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                  <span style={{ fontSize:11, color:C.muted }}>Clientes:</span>
-                  <select value={u.client_visibility||"always"} onChange={e=>setVis(u.id,e.target.value)} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none" }}>
-                    {VIS_OPTS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-                  </select>
-                </div>
               </div>
 
               {/* Locales */}
@@ -115,7 +109,7 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:6, marginTop:6 }}>
                   {ALL_PERMS.map(p => {
                     const active = (u.permissions||[]).includes(p)
-                    const hasConfig = p === "agenda" || p === "fichas"
+                    const hasConfig = p === "agenda" || p === "fichas" || p === "registro"
                     const configOpen = openConfig === `${u.id}:${p}`
                     return (
                       <button key={p} onClick={()=>{
@@ -208,6 +202,24 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Config panel for Registro */}
+                {openConfig === `${u.id}:registro` && (u.permissions||[]).includes("registro") && (
+                  <div style={{ background:C.cardAlt, borderRadius:10, padding:12, marginTop:8, animation:"fadeIn .15s" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <span style={{ fontSize:11, color:C.accent, fontWeight:700 }}>Config. Registro</span>
+                      <button onClick={()=>setOpenConfig(null)} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:14 }}>×</button>
+                    </div>
+                    <div style={{ display:"flex", gap:16, alignItems:"center", flexWrap:"wrap" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <span style={{ fontSize:11, color:C.muted }}>Ve registros de:</span>
+                        <select value={u.client_visibility||"always"} onChange={e=>setVis(u.id,e.target.value)} style={{ padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:11, outline:"none" }}>
+                          {VIS_OPTS.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
