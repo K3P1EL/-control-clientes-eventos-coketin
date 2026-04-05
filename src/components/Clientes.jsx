@@ -857,7 +857,7 @@ export default function Clientes({
           No hay fichas de clientes.
         </div>
       ) : (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:14 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
           {filteredClients.filter(c => (!statusFilter || fichaStatus(c,regs)===statusFilter) && (!canalFilter || fichaCanal(c,regs)===canalFilter)).map(c => {
             const cts = getContratos(c)
             const visits = cts.length
@@ -868,41 +868,40 @@ export default function Clientes({
             const status = fichaStatus(c, regs)
             const sc = STATUS_COLORS[status]
             return (
-              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, borderLeft:`3px solid ${sc}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s", opacity:c.erronea?.7:1, position:"relative" }}>
+              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, borderLeft:`3px solid ${sc}`, borderRadius:10, padding:"10px 16px", cursor:"pointer", transition:"all .2s", opacity:c.erronea?.7:1, display:"flex", alignItems:"center", gap:12 }}>
                 {adm && (
-                  <div onClick={e=>toggleSelect(c.id,e)} style={{ position:"absolute", top:10, right:10, width:20, height:20, borderRadius:6, border:`2px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, background:selectedFichas.has(c.id)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", zIndex:1, transition:"all .15s" }}>
+                  <div onClick={e=>toggleSelect(c.id,e)} style={{ width:20, height:20, borderRadius:6, border:`2px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, background:selectedFichas.has(c.id)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, transition:"all .15s" }}>
                     {selectedFichas.has(c.id) && <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="3"><path d="M2 6l3 3 5-5"/></svg>}
                   </div>
                 )}
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6, paddingRight:adm?28:0 }}>
-                  <div>
+                <div style={{ width:4, height:32, borderRadius:2, background:sc, flexShrink:0 }} />
+                <div style={{ flex:"1 1 0", minWidth:0, display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
+                  <div style={{ minWidth:140, flex:"1 1 140px" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                      <span style={{ fontSize:15, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Sin nombre"}</span>
+                      <span style={{ fontSize:14, fontWeight:700, color:c.erronea?C.red:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.nombre||"Sin nombre"}</span>
                       {c.code && <span style={{ fontSize:9, fontWeight:700, color:C.cyan, fontFamily:"monospace", background:C.cyan+"18", padding:"1px 5px", borderRadius:4 }}>{c.code}</span>}
                       {c.erronea && <span style={{ fontSize:9, fontWeight:700, color:C.red, background:C.red+"22", padding:"1px 6px", borderRadius:4 }}>Erronea</span>}
                       {(() => { const ch = fichaCanal(c, regs); return ch === "W" ? <span style={{ fontSize:9, fontWeight:600, color:"#25D366", background:"#25D36618", padding:"1px 5px", borderRadius:4 }}>WA</span> : ch === "F" ? <span style={{ fontSize:9, fontWeight:600, color:C.purple, background:C.purple+"18", padding:"1px 5px", borderRadius:4 }}>Local</span> : null })()}
                     </div>
-                    <div style={{ fontSize:12, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
+                    <div style={{ fontSize:11, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
                   </div>
-                  <div style={{ display:"flex", gap:4, flexDirection:"column", alignItems:"flex-end" }}>
+                  {lastCt?.producto_interes && (Array.isArray(lastCt.producto_interes)?lastCt.producto_interes.length>0:lastCt.producto_interes) && (
+                    <div style={{ fontSize:11, color:C.accent, flex:"1 1 120px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {Array.isArray(lastCt.producto_interes)?lastCt.producto_interes.join(", "):lastCt.producto_interes}
+                    </div>
+                  )}
+                  <div style={{ display:"flex", gap:4, alignItems:"center", flexShrink:0 }}>
                     <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:lastCt?.tipo==="contrato"?C.green+"22":C.yellow+"22", color:lastCt?.tipo==="contrato"?C.green:C.yellow }}>
                       {lastCt?.tipo==="contrato"?"Contrato":"Proforma"}
                     </span>
-                    {visits>1 && <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.purple+"33", color:C.purple }}>{visits} visitas</span>}
+                    {visits>1 && <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.purple+"33", color:C.purple }}>{visits}x</span>}
                     {paid ? <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.green+"33", color:C.green }}>PAGADO</span>
-                      : Number(lastCt?.total)>0 ? <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.yellow+"33", color:C.yellow }}>DEBE S/{resto2.toFixed(0)}</span>
+                      : Number(lastCt?.total)>0 ? <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.yellow+"33", color:C.yellow }}>S/{resto2.toFixed(0)}</span>
                       : null}
                   </div>
-                </div>
-                {lastCt?.producto_interes && (Array.isArray(lastCt.producto_interes)?lastCt.producto_interes.length>0:lastCt.producto_interes) && (
-                  <div style={{ fontSize:12, color:C.accent, marginBottom:4 }}>
-                    {Array.isArray(lastCt.producto_interes)?lastCt.producto_interes.join(", "):lastCt.producto_interes}
-                  </div>
-                )}
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:4 }}>
-                  <span style={{ fontSize:11, color:C.muted }}>{c.created_by_name} — {fmtDate(c.created_at)}</span>
+                  <span style={{ fontSize:11, color:C.muted, flexShrink:0 }}>{c.created_by_name} — {fmtDate(c.created_at)}</span>
                   {adm && (
-                    <span onClick={async e=>{e.stopPropagation();await onUpdateClient(c.id,"hidden",!c.hidden)}} style={{ padding:"2px 8px", borderRadius:8, fontSize:10, fontWeight:600, cursor:"pointer", background:c.hidden?C.red+"22":C.green+"22", color:c.hidden?C.red:C.green }}>
+                    <span onClick={async e=>{e.stopPropagation();await onUpdateClient(c.id,"hidden",!c.hidden)}} style={{ padding:"2px 8px", borderRadius:8, fontSize:10, fontWeight:600, cursor:"pointer", background:c.hidden?C.red+"22":C.green+"22", color:c.hidden?C.red:C.green, flexShrink:0 }}>
                       {c.hidden?"Oculto":"Visible"}
                     </span>
                   )}
