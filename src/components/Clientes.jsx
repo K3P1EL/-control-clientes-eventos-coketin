@@ -820,20 +820,37 @@ export default memo(function Clientes({
           <span style={{ fontSize:11, color:C.muted }}>Hasta</span>
           <DatePicker value={dateTo} onChange={setDateTo} placeholder="Fin" />
         </div>
-        <select value={statusFilter||""} onChange={e=>setStatusFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
-          <option value="">Todos los estados</option>
-          <option value="normal">Normal</option>
-          <option value="anterior">Sin registro</option>
-          <option value="naranja">Reg. borrado</option>
-          {adm && <option value="erronea">Erronea</option>}
-        </select>
-        <select value={canalFilter||""} onChange={e=>setCanalFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
-          <option value="">Todos los canales</option>
-          <option value="F">Local</option>
-          <option value="W">WhatsApp</option>
-        </select>
+        {[
+          [null, "Todos", C.muted],
+          ["normal", "Con registro", C.accent],
+          ["anterior", "Registrado antes", C.blue],
+          ["naranja", "Reg. eliminado", C.orange],
+          ...(adm ? [["erronea", "Erronea", C.red]] : []),
+        ].map(([val, label, color]) => (
+          <button key={label} onClick={()=>setStatusFilter(statusFilter===val?null:val)} style={{
+            padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
+            background: statusFilter===val ? color+"33" : "transparent",
+            color: statusFilter===val ? color : C.muted,
+          }}>
+            <span style={{ display:"inline-block", width:7, height:7, borderRadius:"50%", background:color, marginRight:5, verticalAlign:"middle" }}/>{label}
+          </button>
+        ))}
+        <span style={{ width:1, height:18, background:C.border, margin:"0 2px" }}/>
+        {[
+          [null, "Todos", C.muted],
+          ["F", "Local", C.purple],
+          ["W", "WhatsApp", "#25D366"],
+        ].map(([val, label, color]) => (
+          <button key={label} onClick={()=>setCanalFilter(canalFilter===val?null:val)} style={{
+            padding:"4px 12px", borderRadius:14, border:"none", cursor:"pointer", fontSize:11, fontWeight:600,
+            background: canalFilter===val ? color+"33" : "transparent",
+            color: canalFilter===val ? color : C.muted,
+          }}>
+            {val && <span style={{ display:"inline-block", width:7, height:7, borderRadius:"50%", background:color, marginRight:5, verticalAlign:"middle" }}/>}{label}
+          </button>
+        ))}
         {(statusFilter || canalFilter || dateFrom || dateTo) && (
-          <button onClick={()=>{setStatusFilter(null);setCanalFilter(null);setDateFrom("");setDateTo("")}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar filtros</button>
+          <button onClick={()=>{setStatusFilter(null);setCanalFilter(null);setDateFrom("");setDateTo("")}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar</button>
         )}
       </div>
 
