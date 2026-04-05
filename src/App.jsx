@@ -297,7 +297,22 @@ export default function App() {
   const onUpdateReg = useCallback(async (id, patch) => {
     setRegs(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
     updateRegistro(id, patch).catch(e => { console.error("updateRegistro failed:", e); alert("Error guardando registro") })
-  }, [])
+    // Sync: changing estado to Proforma/Contrato updates ficha's contrato tipo
+    if (patch.estado === "Proforma" || patch.estado === "Contrato") {
+      const tipo = patch.estado === "Contrato" ? "contrato" : "proforma"
+      const client = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(id))
+      if (client) {
+        const lastCt = (client.contratos||[]).slice(-1)[0]
+        if (lastCt && lastCt.tipo !== tipo) {
+          setClients(prev => prev.map(c => {
+            if (c.id !== client.id) return c
+            return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === lastCt.id ? { ...ct, tipo } : ct) }
+          }))
+          updateContrato(lastCt.id, { tipo }).catch(() => {})
+        }
+      }
+    }
+  }, [clients])
   const onUploadRegPhoto = useCallback(async (registroId, file) => {
     const localUrl = URL.createObjectURL(file)
     setPhotos(prev => ({ ...prev, [registroId]: localUrl }))
