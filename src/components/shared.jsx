@@ -93,7 +93,13 @@ export function TagSelect({ value, onChange, tags, getColor, disabled }) {
     if (disabled) return
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect()
-      setPos({ top: r.bottom + 4, left: r.left })
+      const dropH = (tags.length + 1) * 32 + 12
+      const spaceBelow = window.innerHeight - r.bottom
+      if (spaceBelow < dropH) {
+        setPos({ top: r.top - dropH - 4, left: r.left })
+      } else {
+        setPos({ top: r.bottom + 4, left: r.left })
+      }
     }
     setOpen(!open)
   }
