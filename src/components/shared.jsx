@@ -74,6 +74,58 @@ export function DInput({ value, onCommit, tag = "input", ...props }) {
   return <Tag {...props} value={local} onChange={handleChange} onBlur={handleBlur} />
 }
 
+// ─── Tag Select (colored dropdown) ────────────────────────────────────────────
+export function TagSelect({ value, onChange, tags, getColor, disabled }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const color = value ? getColor(value) : C.border
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener("mousedown", close)
+    return () => document.removeEventListener("mousedown", close)
+  }, [open])
+
+  return (
+    <div ref={ref} style={{ position:"relative", display:"inline-block" }}>
+      <button onClick={()=>{if(!disabled)setOpen(!open)}} style={{
+        background:value?color+"22":"transparent", border:`1px solid ${value?color+"66":C.border}`,
+        borderRadius:14, padding:"3px 10px", cursor:disabled?"default":"pointer", display:"flex", alignItems:"center", gap:5, minWidth:44,
+      }}>
+        {value && <span style={{ width:7, height:7, borderRadius:"50%", background:color, flexShrink:0 }}/>}
+        <span style={{ fontSize:11, fontWeight:600, color:value?color:C.muted, whiteSpace:"nowrap" }}>{value||"--"}</span>
+        {!disabled && <svg width="8" height="8" fill="none" stroke={C.muted} strokeWidth="2"><path d="M1 2l3 3 3-3"/></svg>}
+      </button>
+      {open && (
+        <div style={{ position:"absolute", top:"100%", left:0, marginTop:4, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:4, zIndex:1000, boxShadow:"0 8px 20px rgba(0,0,0,.4)", minWidth:140, animation:"fadeIn .1s" }}>
+          <button onClick={()=>{onChange("");setOpen(false)}} style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"6px 10px", border:"none", borderRadius:6, background:"transparent", cursor:"pointer", fontSize:12, color:C.muted, textAlign:"left" }}
+            onMouseEnter={e=>e.currentTarget.style.background=C.border}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            <span style={{ width:8, height:8, borderRadius:"50%", background:C.border }}/>-- Sin estado
+          </button>
+          {tags.map(t => {
+            const tc = getColor(t)
+            const isSel = value === t
+            return (
+              <button key={t} onClick={()=>{onChange(t);setOpen(false)}} style={{
+                display:"flex", alignItems:"center", gap:8, width:"100%", padding:"6px 10px", border:"none",
+                borderRadius:6, background:isSel?tc+"22":"transparent", cursor:"pointer", fontSize:12,
+                color:isSel?tc:C.text, fontWeight:isSel?700:400, textAlign:"left",
+              }}
+              onMouseEnter={e=>e.currentTarget.style.background=tc+"22"}
+              onMouseLeave={e=>{if(!isSel)e.currentTarget.style.background="transparent"}}>
+                <span style={{ width:8, height:8, borderRadius:"50%", background:tc, flexShrink:0 }}/>
+                {t}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Date Picker ──────────────────────────────────────────────────────────────
 const DAYS = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"]
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]

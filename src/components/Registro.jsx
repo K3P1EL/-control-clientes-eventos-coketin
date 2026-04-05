@@ -3,7 +3,7 @@ import * as XLSX from "xlsx"
 import { C, estadoColors } from "../lib/colors"
 import { today, nowTime, genCode, canChangeTipo } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
-import { Bdg, DInput, lbl, inp, mi, sel, btn, td, ib } from "./shared"
+import { Bdg, DInput, TagSelect, lbl, inp, mi, sel, btn, td, ib } from "./shared"
 
 function getBg(val, map) { return map[val] || C.border }
 const toD  = d => { const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
@@ -21,6 +21,13 @@ function CopyBtn({ text }) {
   }
   useEffect(() => () => clearTimeout(t.current), [])
   return <button onClick={copy} title="Copiar codigo" style={{ background:C.cyan+"15", border:`1px solid ${C.cyan}33`, borderRadius:5, color:C.cyan, cursor:"pointer", padding:"1px 6px", fontSize:9, fontWeight:600, fontFamily:"monospace" }}>{copied?"Copiado!":text}</button>
+}
+
+function getTagColor(tag, tags) {
+  if (tag === "Contrato") return C.green
+  if (tag === "Proforma") return C.yellow
+  const ci = tags.filter(x => x !== "Proforma" && x !== "Contrato").indexOf(tag)
+  return ci >= 0 ? estadoColors[ci % estadoColors.length] : C.border
 }
 
 export default memo(function Registro({
@@ -490,7 +497,7 @@ export default memo(function Registro({
               const cc = getBg(r.canal,  { W:C.teal, F:C.purple })
               const sc = getBg(r.sexo,   { H:C.blue, M:C.pink })
               const pc = getBg(r.pirana, { S:C.red, P:C.yellow, N:C.muted })
-              const ec = r.estado==="Contrato"?C.green:r.estado==="Proforma"?C.yellow:(() => { const ci = tags.filter(x=>x!=="Proforma"&&x!=="Contrato").indexOf(r.estado); return ci >= 0 ? estadoColors[ci%estadoColors.length] : C.border })()
+              const ec = getTagColor(r.estado, tags)
               const isDrag = dragOverRow === r.id
               const rowBg = isDrag ? C.accent+"22" : isDel ? C.red+"0a" : isSel ? C.accent+"15" : i%2 ? C.cardAlt+"44" : "transparent"
 
@@ -545,7 +552,7 @@ export default memo(function Registro({
                   <td style={td}><div style={lock}><Bdg c={sc}><select value={r.sexo}  onChange={e=>upd(r.id,"sexo",e.target.value)}  style={sel} disabled={!canEdit}><option value="">--</option><option value="H">H</option><option value="M">M</option></select></Bdg></div></td>
                   <td style={td}><div style={lock}><DInput type="number" value={r.edad} onCommit={v=>upd(r.id,"edad",v)} style={{ ...mi, width:60 }} placeholder="--" disabled={!canEdit}/></div></td>
                   <td style={td}><div style={lock}><Bdg c={pc}><select value={r.pirana} onChange={e=>upd(r.id,"pirana",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option><option value="S">SI</option><option value="N">NO</option><option value="P">P</option></select></Bdg></div></td>
-                  <td style={td}><div style={lock}><Bdg c={ec}><select value={r.estado} onChange={e=>upd(r.id,"estado",e.target.value)} style={sel} disabled={!canEdit}><option value="">--</option>{tags.map(t=><option key={t} value={t}>{t}</option>)}</select></Bdg></div></td>
+                  <td style={td}><div style={lock}><TagSelect value={r.estado} onChange={v=>upd(r.id,"estado",v)} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} /></div></td>
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   {/* Ficha */}
                   <td style={{ ...td, pointerEvents:"auto", opacity:1 }}>{(() => {
