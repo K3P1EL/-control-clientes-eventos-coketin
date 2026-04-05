@@ -68,6 +68,7 @@ export default memo(function Clientes({
   const [canalFilter, setCanalFilter] = useState(null) // null | "W" | "F"
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [expandedId, setExpandedId] = useState(null)
   const toggleSelect = (id, e) => { e.stopPropagation(); setSelectedFichas(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s }) }
   const bulkDelete = () => { selectedFichas.forEach(id => onDeleteClient(id)); setSelectedFichas(new Set()) }
   const [contactSearch, setContactSearch] = useState("")
@@ -866,7 +867,8 @@ export default memo(function Clientes({
             const status = fichaStatus(c, regs)
             const sc = STATUS_COLORS[status]
             return (
-              <div key={c.id} onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setView(c.id);setActiveContrato(cts.length-1)}}} style={{ background:C.card, border:`1px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, borderLeft:`3px solid ${sc}`, borderRadius:10, padding:"10px 16px", cursor:"pointer", transition:"all .2s", opacity:c.erronea?.7:1, display:"flex", alignItems:"center", gap:12 }}>
+              <div key={c.id} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${selectedFichas.has(c.id)?C.accent:expandedId===c.id?C.accent+"66":C.border}`, transition:"all .2s" }}>
+                <div onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setExpandedId(expandedId===c.id?null:c.id)}}} style={{ background:C.card, borderLeft:`3px solid ${sc}`, padding:"10px 16px", cursor:"pointer", opacity:c.erronea?0.7:1, display:"flex", alignItems:"center", gap:12 }}>
                 {adm && (
                   <div onClick={e=>toggleSelect(c.id,e)} style={{ width:20, height:20, borderRadius:6, border:`2px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, background:selectedFichas.has(c.id)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, transition:"all .15s" }}>
                     {selectedFichas.has(c.id) && <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="3"><path d="M2 6l3 3 5-5"/></svg>}
@@ -883,11 +885,6 @@ export default memo(function Clientes({
                     </div>
                     <div style={{ fontSize:11, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
                   </div>
-                  {lastCt?.producto_interes && (Array.isArray(lastCt.producto_interes)?lastCt.producto_interes.length>0:lastCt.producto_interes) && (
-                    <div style={{ fontSize:11, color:C.accent, flex:"1 1 120px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                      {Array.isArray(lastCt.producto_interes)?lastCt.producto_interes.join(", "):lastCt.producto_interes}
-                    </div>
-                  )}
                   <div style={{ display:"flex", gap:4, alignItems:"center", flexShrink:0 }}>
                     <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:lastCt?.tipo==="contrato"?C.green+"22":C.yellow+"22", color:lastCt?.tipo==="contrato"?C.green:C.yellow }}>
                       {lastCt?.tipo==="contrato"?"Contrato":"Proforma"}
@@ -903,7 +900,46 @@ export default memo(function Clientes({
                       {c.hidden?"Oculto":"Visible"}
                     </span>
                   )}
+                  <svg width="14" height="14" fill="none" stroke={C.muted} strokeWidth="2" style={{ flexShrink:0, transition:"transform .2s", transform:expandedId===c.id?"rotate(180deg)":"rotate(0)" }}><path d="M3 5l4 4 4-4"/></svg>
                 </div>
+                </div>
+                {/* Expanded contracts panel */}
+                {expandedId===c.id && (
+                  <div style={{ background:C.cardAlt, borderTop:`1px solid ${C.border}`, padding:"12px 16px", animation:"fadeIn .15s" }}>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+                      {cts.map((ct, idx) => {
+                        const adel = (ct.adelantos||[]).filter(a=>!a.invalid).reduce((s,a)=>s+(Number(a.monto)||0),0)
+                        const r = (Number(ct.total)||0) - adel
+                        const p = r<=0 && Number(ct.total)>0
+                        return (
+                          <button key={ct.id} onClick={()=>{setView(c.id);setActiveContrato(idx)}} style={{
+                            background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 14px", cursor:"pointer",
+                            textAlign:"left", transition:"border-color .15s", minWidth:160, flex:"0 1 auto",
+                          }}
+                          onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+                          onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                              <span style={{ fontSize:11, fontWeight:700, color:ct.tipo==="contrato"?C.green:C.yellow }}>
+                                {ct.tipo==="contrato"?"Contrato":"Proforma"} #{idx+1}
+                              </span>
+                              {p && <span style={{ fontSize:9, fontWeight:700, color:C.green, background:C.green+"22", padding:"1px 6px", borderRadius:4 }}>PAGADO</span>}
+                              {!p && Number(ct.total)>0 && <span style={{ fontSize:9, fontWeight:700, color:C.yellow, background:C.yellow+"22", padding:"1px 6px", borderRadius:4 }}>S/{r.toFixed(0)}</span>}
+                            </div>
+                            <div style={{ fontSize:10, color:C.muted }}>{ct.fecha || "Sin fecha"}</div>
+                            {ct.producto_interes && (
+                              <div style={{ fontSize:10, color:C.accent, marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:180 }}>
+                                {Array.isArray(ct.producto_interes)?ct.producto_interes.join(", "):ct.producto_interes}
+                              </div>
+                            )}
+                          </button>
+                        )
+                      })}
+                      <button onClick={()=>{setView(c.id);setActiveContrato(cts.length-1)}} style={{ background:C.accent+"15", border:`1px dashed ${C.accent}44`, borderRadius:10, padding:"10px 14px", cursor:"pointer", color:C.accent, fontSize:12, fontWeight:700, minWidth:100 }}>
+                        Abrir ficha completa
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
