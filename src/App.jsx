@@ -344,6 +344,18 @@ export default function App() {
         }
       })
     }
+    // When removing erronea, restore estado from ficha's contrato tipo
+    if (patch.erronea === false) {
+      const client = clients.find(c => c.id === id)
+      const lastCt = (client?.contratos || []).slice(-1)[0]
+      if (lastCt?.tipo) {
+        const estado = lastCt.tipo === "contrato" ? "Contrato" : "Proforma"
+        ;(client?.reg_ids || []).forEach(rid => {
+          setRegs(prev => prev.map(r => r.id === rid ? { ...r, estado } : r))
+          updateRegistro(rid, { estado }).catch(() => {})
+        })
+      }
+    }
   }, [clients, regs])
   const onDeleteClient = useCallback(async (id) => {
     const ts = new Date().toISOString()
