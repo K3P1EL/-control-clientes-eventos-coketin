@@ -17,7 +17,9 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
   const [nl,  setNl]  = useState("")
   const [npt, setNpt] = useState("")
   const [showUsers, setShowUsers] = useState(false)
-  const [openConfig, setOpenConfig] = useState(null) // "userId:perm" to track which config panel is open
+  const [openConfig, setOpenConfig] = useState(null)
+  const [dragIdx, setDragIdx] = useState(null)
+  const [dragOverIdx, setDragOverIdx] = useState(null)
 
   const togActive = (uid) => {
     const u = users.find(x=>x.id===uid)
@@ -253,7 +255,24 @@ export default function Admin({ users, tags, locales, prodTags, uploadCfg, onSet
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           {tags.map((t,i) => (
-            <div key={t} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20, background:estadoColors[i%estadoColors.length]+"33", color:estadoColors[i%estadoColors.length], fontSize:13, fontWeight:600 }}>
+            <div key={t} draggable
+              onDragStart={()=>setDragIdx(i)}
+              onDragOver={e=>{e.preventDefault();setDragOverIdx(i)}}
+              onDragEnd={()=>{
+                if(dragIdx!==null && dragOverIdx!==null && dragIdx!==dragOverIdx){
+                  const next=[...tags]; const [item]=next.splice(dragIdx,1); next.splice(dragOverIdx,0,item); onSetTags(next)
+                }
+                setDragIdx(null);setDragOverIdx(null)
+              }}
+              style={{
+                display:"flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20,
+                background:estadoColors[i%estadoColors.length]+"33", color:estadoColors[i%estadoColors.length],
+                fontSize:13, fontWeight:600, cursor:"grab", transition:"transform .15s, opacity .15s",
+                opacity:dragIdx===i?0.4:1,
+                transform:dragOverIdx===i&&dragIdx!==i?"translateX(8px)":"none",
+                border:dragOverIdx===i&&dragIdx!==i?`2px dashed ${C.accent}`:"2px solid transparent",
+              }}>
+              <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity:0.4 }}><path d="M1 3h8M1 7h8"/></svg>
               {t}
               <button onClick={()=>remT(t)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", padding:0, lineHeight:1, fontSize:16 }}>×</button>
             </div>
