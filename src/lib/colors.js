@@ -7,9 +7,9 @@ export const C = {
 }
 
 export const estadoColors = [
-  C.blue, C.purple, C.orange, C.teal, C.pink,
-  C.red, C.cyan, "#4f46e5", "#f472b6", "#a78bfa",
-  "#fb923c", "#34d399", "#38bdf8", "#e879f9",
+  C.blue, C.purple, C.orange, C.red, C.pink,
+  C.cyan, "#4f46e5", "#e879f9", "#f472b6", "#a78bfa",
+  C.teal, "#fb923c", "#38bdf8", "#f43f5e",
 ]
 
 export const ADMIN_EMAIL = "k3p1elsor@gmail.com"
