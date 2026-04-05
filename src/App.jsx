@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react"
 import { supabase } from "./lib/supabase"
 import { C } from "./lib/colors"
 import { today } from "./lib/helpers"
@@ -20,16 +20,18 @@ import Register   from "./components/Register"
 import Pending    from "./components/Pending"
 import Side       from "./components/Side"
 import Head       from "./components/Head"
-import Registro   from "./components/Registro"
-import Clientes   from "./components/Clientes"
-import Contactos  from "./components/Contactos"
-import Almacen    from "./components/Almacen"
-import Papelera   from "./components/Papelera"
-import Inventario from "./components/Inventario"
-import Agenda     from "./components/Agenda"
-import Admin      from "./components/Admin"
-import Audit      from "./components/Audit"
-import Dash       from "./components/Dash"
+
+// Lazy load tab components — only loaded when user navigates to them
+const Registro   = lazy(() => import("./components/Registro"))
+const Clientes   = lazy(() => import("./components/Clientes"))
+const Contactos  = lazy(() => import("./components/Contactos"))
+const Almacen    = lazy(() => import("./components/Almacen"))
+const Papelera   = lazy(() => import("./components/Papelera"))
+const Inventario = lazy(() => import("./components/Inventario"))
+const Agenda     = lazy(() => import("./components/Agenda"))
+const Admin      = lazy(() => import("./components/Admin"))
+const Audit      = lazy(() => import("./components/Audit"))
+const Dash       = lazy(() => import("./components/Dash"))
 
 export default function App() {
   // ── Auth state ────────────────────────────────────────────────────────────
@@ -696,6 +698,7 @@ export default function App() {
           </div>
         )}
         <main style={{ flex:1, padding:24, overflow:"auto" }}>
+          <Suspense fallback={<div style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:60, color:C.muted }}><div style={{ width:28, height:28, border:`3px solid ${C.border}`, borderTop:`3px solid ${C.accent}`, borderRadius:"50%", animation:"spin 1s linear infinite" }} /></div>}>
           {tab==="registro" && (
             <Registro
               regs={regs} user={user} adm={adm} tags={tags} photos={photos}
@@ -763,6 +766,7 @@ export default function App() {
               onRestoreContacto={onRestoreContacto} onPermanentDeleteContacto={onPermanentDeleteContacto}
             />
           )}
+          </Suspense>
         </main>
       </div>
     </div>

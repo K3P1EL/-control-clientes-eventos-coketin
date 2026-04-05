@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, memo } from "react"
 import { C } from "../lib/colors"
 import { inp, mi, btn, td, ib, DInput } from "./shared"
 import { nowFull } from "../lib/helpers"
@@ -6,7 +6,7 @@ import { nowFull } from "../lib/helpers"
 const EST_COLORS_INV = { bueno:C.green, dañado:C.yellow, reparacion:C.orange, baja:C.red }
 const estLabel = e => ({ reparacion:"En reparacion", baja:"De baja" })[e] || (e ? e.charAt(0).toUpperCase()+e.slice(1) : "Bueno")
 
-export default function Inventario({ inventario, user, adm, onAddInventario, onUpdateInventario, onDeleteInventario }) {
+export default memo(function Inventario({ inventario, user, adm, onAddInventario, onUpdateInventario, onDeleteInventario }) {
   const [search, setSearch] = useState("")
   const [editId, setEditId] = useState(null)
   const [filterCat, setFilterCat] = useState("")
@@ -127,4 +127,4 @@ export default function Inventario({ inventario, user, adm, onAddInventario, onU
       )}
     </div>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, memo } from "react"
 import { C } from "../lib/colors"
 import { today, fmtDate, canChangeTipo, genCode } from "../lib/helpers"
 import { lbl, inp, mi, btn, td, ib, DInput, SafeImg } from "./shared"
@@ -28,7 +28,7 @@ function fichaCanal(c, regs) {
   return first?.canal || null
 }
 
-export default function Clientes({
+export default memo(function Clientes({
   clients, user, adm, regs, users, prodTags, visionKey, contactos,
   navClientId, clearNavClient, changeTab,
   goToReg, goToAlmacen,
@@ -909,4 +909,4 @@ export default function Clientes({
       )})()}
     </div>
   )
-}
+})

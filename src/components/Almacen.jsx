@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, memo } from "react"
 import { C } from "../lib/colors"
 import { inp, mi, btn, td, ib, sel, DInput, toast, SafeImg } from "./shared"
 import { Bdg } from "./shared"
@@ -8,7 +8,7 @@ const ESTADOS    = ["por_recoger","recogido","en_uso","entregado","devuelto"]
 const EST_LABEL  = { por_recoger:"Por recoger", recogido:"Recogido", en_uso:"En uso", entregado:"Entregado", devuelto:"Devuelto" }
 const EST_COLOR  = { por_recoger:C.yellow, recogido:C.blue, en_uso:C.purple, entregado:C.accent, devuelto:C.green }
 
-export default function Almacen({
+export default memo(function Almacen({
   almacen, clients, regs, user, adm,
   navClientId, clearNav, goToClient,
   onAddSalida, onUpdateSalida, onDeleteSalida,
@@ -281,4 +281,4 @@ export default function Almacen({
       )}
     </div>
   )
-}
+})

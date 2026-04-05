@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, memo } from "react"
 import * as XLSX from "xlsx"
 import { C, estadoColors } from "../lib/colors"
 import { today, nowTime, genCode, canChangeTipo } from "../lib/helpers"
@@ -23,7 +23,7 @@ function CopyBtn({ text }) {
   return <button onClick={copy} title="Copiar codigo" style={{ background:C.cyan+"15", border:`1px solid ${C.cyan}33`, borderRadius:5, color:C.cyan, cursor:"pointer", padding:"1px 6px", fontSize:9, fontWeight:600, fontFamily:"monospace" }}>{copied?"Copiado!":text}</button>
 }
 
-export default function Registro({
+export default memo(function Registro({
   regs, user, adm, tags, photos, clients, locales, users,
   navRegId, navRegDate, clearNavReg,
   onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onDeleteClient, onAddContratoArchivo, onDeleteContratoArchivo, onUpdateContrato, goToClient,
@@ -598,4 +598,4 @@ export default function Registro({
       )}
     </div>
   )
-}
+})
