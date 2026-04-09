@@ -88,6 +88,12 @@ export default memo(function Clientes({
 
   useEffect(() => { if (navClientId) { setView(navClientId); clearNavClient() } }, [navClientId, clearNavClient])
 
+  // Safety net: if an admin ends up with viewEmp === null after mount
+  // (stale localStorage / HMR / cached bundle), force "__all__".
+  useEffect(() => {
+    if (adm && viewEmp === null) setViewEmp("__all__")
+  }, [adm, viewEmp])
+
   // If we have a saved view but no viewEmp yet (admin refresh), auto-set viewEmp to show the client
   useEffect(() => {
     if (view && !viewEmp && adm) {

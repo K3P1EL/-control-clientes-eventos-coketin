@@ -47,6 +47,13 @@ export default memo(function Registro({
     }
   }, [navRegId, clearNavReg])
 
+  // Safety net: if an admin somehow ends up with viewUser === null (stale
+  // localStorage, HMR quirk, old cached bundle), force "__all__" so they
+  // land in General — Todos instead of the employee grid.
+  useEffect(() => {
+    if (adm && viewUser === null) setViewUser("__all__")
+  }, [adm, viewUser])
+
   useEffect(() => {
     if (locales.length && !locales.includes(selLocal)) setSelLocal(locales[0])
   }, [locales])
