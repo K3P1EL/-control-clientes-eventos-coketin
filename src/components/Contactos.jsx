@@ -115,8 +115,10 @@ export default function Contactos({ contactos, user, adm, onAddContacto, onUpdat
             <input value={newPhoneCreate} onChange={e=>setNewPhoneCreate(e.target.value)} placeholder="Numero" style={{ ...inp, marginBottom:0 }} />
           </div>
           <button onClick={async()=>{
-            if(!newName.trim()) { alert("El nombre es obligatorio"); return }
-            // Validate optional fields if provided
+            // Require at least one of: name, DNI, phone — so the user can
+            // create a quick lead with only a phone number, only a DNI, etc.
+            const hasAny = newName.trim() || newDni.trim() || newPhoneCreate.trim()
+            if (!hasAny) { alert("Ingresa al menos nombre, DNI o celular"); return }
             let dniClean = ""
             if (newDni.trim()) {
               const v = validateDNI(newDni)
