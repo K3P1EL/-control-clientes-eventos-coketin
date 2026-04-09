@@ -14,8 +14,8 @@ export default function CoberturaExtra({ workers, diasOpBase, cobExtra, setCobEx
   const cobExtraNota = cobExtra?.nota || ""
 
   return (
-    <div className="mt-5 bg-zinc-800/40 rounded-xl border border-amber-500/20 overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-800/40 transition-all">
+    <div className="mt-5 bg-zinc-800/60 rounded-xl border border-amber-500/30 overflow-hidden">
+      <button onClick={() => setOpen(!open)} className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-700/40 transition-all">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-amber-400">👤 Cobertura extra</h3>
           {cobExtraDias > 0 && !open && (
