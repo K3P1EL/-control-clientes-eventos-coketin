@@ -1,0 +1,98 @@
+import { useState, useMemo } from "react"
+import { cDark } from "../../ui/darkStyles"
+import DarkBadge from "../../ui/DarkBadge"
+import DarkStatCard from "../../ui/DarkStatCard"
+import { formatMoney, calcContract } from "../../../../lib/finanzas/helpers"
+
+// Tabular view of contracts with stat cards, search, status filter,
+// and per-row edit/delete buttons.
+export default function TablaView({
+  filtered, filteredSummary, filterSem, filterMes, currentWeekNum, quickLabel,
+  filterEstado, setFilterEstado, search, setSearch, setQuickAll,
+  onEdit, onDelete,
+}) {
+  const stats = useMemo(() => ({
+    total: filtered.reduce((a, c) => a + (c.total || 0), 0),
+    ganancia: filtered.reduce((a, c) => a + calcContract(c).ganancia, 0),
+    enCaja: filtered.reduce((a, c) => a + calcContract(c).enCaja, 0),
+    pendiente: filtered.reduce((a, c) => a + calcContract(c).pendiente, 0),
+  }), [filtered])
+
+  return (
+    <>
+      {quickLabel !== "Todo" && (
+        <div style={{ fontSize: 12, color: "#52525b" }}>
+          <span style={{ color: "#38bdf8", fontWeight: 700 }}>{quickLabel}</span> · {filtered.length} contrato{filtered.length !== 1 ? "s" : ""}
+        </div>
+      )}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+        <DarkStatCard label="Contratos" value={filtered.length} icon="📋" accent="#818cf8" />
+        <DarkStatCard label="Ganancia" value={formatMoney(filteredSummary.ganancia)} icon="💰" accent="#34d399" />
+        <DarkStatCard label="En Caja" value={formatMoney(filteredSummary.enCaja)} icon="🏦" accent="#38bdf8" />
+        <DarkStatCard label="Pendiente" value={formatMoney(filteredSummary.pendiente)} icon="⏳" accent={filteredSummary.pendiente > 0 ? "#f87171" : "#34d399"} />
+        <DarkStatCard label="Yape" value={formatMoney(filteredSummary.ingresoYape)} icon="📱" accent="#a78bfa" />
+        <DarkStatCard label="Efectivo" value={formatMoney(filteredSummary.ingresoEfectivo)} icon="💵" accent="#4ade80" />
+      </div>
+      <div style={cDark.card}>
+        <div style={{ padding: "10px 16px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", borderBottom: "1px solid rgba(63,63,70,0.4)" }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." style={{ ...cDark.select, width: 160 }} />
+          <select value={filterEstado} onChange={e => setFilterEstado(e.target.value)} style={cDark.select}>
+            <option value="">Todos estados</option>
+            <option value="Pagado">Pagado</option>
+            <option value="Pendiente">Pendiente</option>
+          </select>
+          {(filterSem || filterMes || filterEstado || search) && (
+            <button onClick={setQuickAll} style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✕ Limpiar</button>
+          )}
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr>
+                {["Código", "Cliente", "Total", "Adelanto", "Cobro", "Desc.", "Ganancia", "En Caja", "Estado", "Dep.", "Notas", ""].map(h =>
+                  <th key={h} style={cDark.th}>{h}</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={12} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros</td></tr>
+              ) : filtered.map(c => {
+                const calc = calcContract(c)
+                return (
+                  <tr key={c.id} style={{ borderBottom: "1px solid rgba(63,63,70,0.3)" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(39,39,42,0.4)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <td style={cDark.td}><span style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace", fontSize: 12 }}>{c.id}</span></td>
+                    <td style={cDark.td}>{c.cliente || "—"}</td>
+                    <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7" }}>{formatMoney(c.total)}</td>
+                    <td style={cDark.td}>{c.noTrackAdel ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.adelanto)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalAdel} · {c.recibioAdel}</div></>}</td>
+                    <td style={cDark.td}>{c.noTrackCobro ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.cobro)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalCobro} · {c.recibioCobro}</div></>}</td>
+                    <td style={cDark.td}>{c.descuento > 0 ? <span style={{ color: "#f87171" }}>-{formatMoney(c.descuento)}</span> : "—"}</td>
+                    <td style={{ ...cDark.td, fontWeight: 700, color: "#34d399" }}>{formatMoney(calc.ganancia)}</td>
+                    <td style={cDark.td}>{formatMoney(calc.enCaja)}</td>
+                    <td style={cDark.td}>{calc.pendiente > 0 ? <DarkBadge color="red">{formatMoney(calc.pendiente)}</DarkBadge> : <DarkBadge color="green">Pagado</DarkBadge>}</td>
+                    <td style={cDark.td}>{c.depend ? <DarkBadge color="yellow">SÍ</DarkBadge> : <span style={{ color: "#3f3f46" }}>No</span>}</td>
+                    <td style={{ ...cDark.td, fontSize: 11, color: "#71717a", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.notas}</td>
+                    <td style={{ ...cDark.td, whiteSpace: "nowrap" }}>
+                      <button onClick={() => onEdit(c)} style={cDark.iconBtn} title="Editar">✏️</button>
+                      <button onClick={() => onDelete(c.id)} style={cDark.iconBtn} title="Eliminar">🗑️</button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {filtered.length > 0 && (
+            <div style={{ padding: "12px 16px", borderTop: "2px solid rgba(63,63,70,0.5)", display: "flex", gap: 20, fontSize: 12, fontWeight: 700, color: "#a1a1aa", flexWrap: "wrap" }}>
+              <span>Total: {formatMoney(stats.total)}</span>
+              <span>Ganancia: {formatMoney(stats.ganancia)}</span>
+              <span>En Caja: {formatMoney(stats.enCaja)}</span>
+              <span>Pendiente: {formatMoney(stats.pendiente)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
