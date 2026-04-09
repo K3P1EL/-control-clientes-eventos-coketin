@@ -350,34 +350,21 @@ export default function App() {
 
   // ── CLIENT ops ────────────────────────────────────────────────────────────
   const onAddClient = useCallback(async (clientPayload, contratoPayload = {}) => {
-    // Fully-optimistic create: we generate the UUID on the client so the new
-    // ficha can be added to state and navigated to BEFORE any network round-trip.
-    // Supabase accepts a client-supplied id on uuid PK columns.
-    const newId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)
-    const optimistic = {
-      id: newId,
-      ...clientPayload,
-      reg_ids: clientPayload.reg_ids || [],
-      created_at: new Date().toISOString(),
-      contratos: [],
-    }
-    setClients(prev => [...prev, optimistic])
+    // Step 1: create the client and add it to state IMMEDIATELY so the UI can
+    // navigate to the new ficha without waiting on the second round-trip.
+    const data = await createClient({ ...clientPayload, reg_ids: clientPayload.reg_ids || [] })
+    setClients(prev => [...prev, { ...data, contratos: [] }])
 
-    // Background: real insert. If it fails, roll back the optimistic entry.
-    createClient({ id: newId, ...clientPayload, reg_ids: clientPayload.reg_ids || [] })
-      .catch(e => {
-        logError("createClient", e); alert("Error creando ficha")
-        setClients(prev => prev.filter(c => c.id !== newId))
-      })
-
-    // Background: default contrato. Splice it in when it lands.
-    createContrato({ client_id: newId, fecha: today(), tipo: "proforma", estado: "activo", total: 0, producto_interes: [], ...contratoPayload })
+    // Step 2: create the default contrato in the background. When it lands we
+    // splice it into the existing client entry. Errors are surfaced via alert
+    // because the user is already looking at the ficha by the time this runs.
+    createContrato({ client_id: data.id, fecha: today(), tipo: "proforma", estado: "activo", total: 0, producto_interes: [], ...contratoPayload })
       .then(ct => {
-        setClients(prev => prev.map(c => c.id === newId ? { ...c, contratos: [...(c.contratos || []), ct] } : c))
+        setClients(prev => prev.map(c => c.id === data.id ? { ...c, contratos: [...(c.contratos || []), ct] } : c))
       })
       .catch(e => { logError("createContrato", e); alert("Error creando contrato inicial") })
 
-    return optimistic
+    return { ...data, contratos: [] }
   }, [])
   const onUpdateClient = useCallback(async (id, fieldOrPatch, val) => {
     const patch = typeof fieldOrPatch === "string" ? { [fieldOrPatch]: val } : fieldOrPatch
