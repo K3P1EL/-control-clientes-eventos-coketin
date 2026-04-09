@@ -89,6 +89,46 @@ export default memo(function Clientes({
 
   useEffect(() => { if (navClientId) { setView(navClientId); clearNavClient() } }, [navClientId, clearNavClient])
 
+  // ── Memoized data derivations ───────────────────────────────────────────
+  // Declared HERE (before any early returns) so hook order stays constant
+  // across "list view", "ficha detail view", and "employee grid".
+  const filteredClients = useMemo(() => {
+    const getMyClients = (userId, isAdmView) => {
+      const myRegIds = regs.filter(r=>r.user_id===userId).map(r=>r.id)
+      const usr = users.find(u=>u.id===userId)
+      const vis = isAdmView ? "always" : (usr?.client_visibility||"always")
+      if (vis==="none" && !isAdmView) return []
+      const now = new Date()
+      const maxAge = {today:1,"3days":3,week:7,month:30}[vis] || Infinity
+      return clients.filter(c => {
+        const owns = c.created_by===userId || (c.reg_ids||[]).some(rid=>myRegIds.includes(rid))
+        if (!owns) return false
+        if (c.hidden && !isAdmView) return false
+        if (maxAge===Infinity) return true
+        try { const d=new Date(c.created_at); return (now-d)/86400000 <= maxAge } catch { return true }
+      })
+    }
+    const base = adm
+      ? (viewEmp==="__all__" ? clients : getMyClients(viewEmp, true))
+      : getMyClients(user.id, false)
+    return base.filter(c => !c.deleted_at && (adm || !c.erronea))
+  }, [clients, regs, users, adm, viewEmp, user.id])
+
+  const filteredSorted = useMemo(() => {
+    return filteredClients.filter(c => {
+      if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
+      if (canalFilter && fichaCanal(c,regs)!==canalFilter) return false
+      if (dateFrom || dateTo) {
+        if (!c.created_at) return false
+        const dt = new Date(c.created_at)
+        const d = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`
+        if (dateFrom && d < dateFrom) return false
+        if (dateTo && d > dateTo) return false
+      }
+      return true
+    }).sort((a,b) => sortAsc ? new Date(a.created_at||0)-new Date(b.created_at||0) : new Date(b.created_at||0)-new Date(a.created_at||0))
+  }, [filteredClients, regs, statusFilter, canalFilter, dateFrom, dateTo, sortAsc])
+
   // If we have a saved view but no viewEmp yet (admin refresh), auto-set viewEmp to show the client
   useEffect(() => {
     if (view && !viewEmp && adm) {
@@ -654,46 +694,8 @@ export default memo(function Clientes({
   }
 
   // ── List view ─────────────────────────────────────────────────────────────
-  // Memoize BEFORE any early return. Hook order must be identical across
-  // every render or React throws on the transition null → "__all__".
-  const filteredClients = useMemo(() => {
-    const getMyClients = (userId, isAdmView) => {
-      const myRegIds = regs.filter(r=>r.user_id===userId).map(r=>r.id)
-      const usr = users.find(u=>u.id===userId)
-      const vis = isAdmView ? "always" : (usr?.client_visibility||"always")
-      if (vis==="none" && !isAdmView) return []
-      const now = new Date()
-      const maxAge = {today:1,"3days":3,week:7,month:30}[vis] || Infinity
-      return clients.filter(c => {
-        const owns = c.created_by===userId || (c.reg_ids||[]).some(rid=>myRegIds.includes(rid))
-        if (!owns) return false
-        if (c.hidden && !isAdmView) return false
-        if (maxAge===Infinity) return true
-        try { const d=new Date(c.created_at); return (now-d)/86400000 <= maxAge } catch { return true }
-      })
-    }
-    const base = adm
-      ? (viewEmp==="__all__" ? clients : getMyClients(viewEmp, true))
-      : getMyClients(user.id, false)
-    return base.filter(c => !c.deleted_at && (adm || !c.erronea))
-  }, [clients, regs, users, adm, viewEmp, user.id])
 
-  const filteredSorted = useMemo(() => {
-    return filteredClients.filter(c => {
-      if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
-      if (canalFilter && fichaCanal(c,regs)!==canalFilter) return false
-      if (dateFrom || dateTo) {
-        if (!c.created_at) return false
-        const dt = new Date(c.created_at)
-        const d = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`
-        if (dateFrom && d < dateFrom) return false
-        if (dateTo && d > dateTo) return false
-      }
-      return true
-    }).sort((a,b) => sortAsc ? new Date(a.created_at||0)-new Date(b.created_at||0) : new Date(b.created_at||0)-new Date(a.created_at||0))
-  }, [filteredClients, regs, statusFilter, canalFilter, dateFrom, dateTo, sortAsc])
-
-  // Admin: employee grid (early return AFTER hooks)
+  // Admin: employee grid (early return — all hooks above this point)
   if (adm && viewEmp === null) {
     return <EmployeeGrid clients={clients} addNew={addNew} setViewEmp={setViewEmp} />
   }
