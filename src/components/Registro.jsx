@@ -152,15 +152,9 @@ export default memo(function Registro({
     }
   }
 
-  // ── ADMIN: employee grid ──────────────────────────────────────────────────
-  if (adm && viewUser === null) {
-    return <RegistroEmployeeGrid regs={regs} setViewUser={setViewUser} />
-  }
-
   // ── Table view ────────────────────────────────────────────────────────────
-  // Memoize the filter + slice chain so typing into an input or updating
-  // one row's field doesn't force a full recompute over `regs` (which can
-  // be hundreds of entries).
+  // Memoize BEFORE the early return for the employee grid. Hook order must
+  // be identical on every render, and the grid branch exits early below.
   const rows = useMemo(() => {
     const filterByDate = (r) => {
       if (!adm || dateRange === "dia") return r.fecha === date
@@ -184,6 +178,11 @@ export default memo(function Registro({
   }, [regs, adm, dateRange, date, viewUser, user.id])
 
   const total = useMemo(() => rows.filter(r=>!r.deleted).length, [rows])
+
+  // ── ADMIN: employee grid ──────────────────────────────────────────────────
+  if (adm && viewUser === null) {
+    return <RegistroEmployeeGrid regs={regs} setViewUser={setViewUser} />
+  }
   const viewName = adm
     ? (viewUser==="__all__" ? "General — Todos" : (rows[0]?.empleado || users.find(u=>u.id===viewUser)?.name || "Empleado"))
     : user.name

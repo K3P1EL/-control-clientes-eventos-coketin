@@ -654,15 +654,8 @@ export default memo(function Clientes({
   }
 
   // ── List view ─────────────────────────────────────────────────────────────
-
-  // Admin: employee grid
-  if (adm && viewEmp === null) {
-    return <EmployeeGrid clients={clients} addNew={addNew} setViewEmp={setViewEmp} />
-  }
-
-  // Memoized visibility-filtered list. Recomputes only when the underlying
-  // data (clients/regs/users) or the selected employee view changes — not
-  // when the user toggles unrelated UI state like `expandedId` or filters.
+  // Memoize BEFORE any early return. Hook order must be identical across
+  // every render or React throws on the transition null → "__all__".
   const filteredClients = useMemo(() => {
     const getMyClients = (userId, isAdmView) => {
       const myRegIds = regs.filter(r=>r.user_id===userId).map(r=>r.id)
@@ -684,13 +677,7 @@ export default memo(function Clientes({
       : getMyClients(user.id, false)
     return base.filter(c => !c.deleted_at && (adm || !c.erronea))
   }, [clients, regs, users, adm, viewEmp, user.id])
-  const viewEmpName = adm && viewEmp && viewEmp!=="__all__" && viewEmp!=="__mine__"
-    ? (users.find(u=>u.id===viewEmp)?.name || "Empleado")
-    : null
 
-  // Second stage: filter by status/canal/date + sort. Memoized so that
-  // unrelated state changes (expanding a row, opening a modal, etc.) don't
-  // re-sort the whole list.
   const filteredSorted = useMemo(() => {
     return filteredClients.filter(c => {
       if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
@@ -705,6 +692,15 @@ export default memo(function Clientes({
       return true
     }).sort((a,b) => sortAsc ? new Date(a.created_at||0)-new Date(b.created_at||0) : new Date(b.created_at||0)-new Date(a.created_at||0))
   }, [filteredClients, regs, statusFilter, canalFilter, dateFrom, dateTo, sortAsc])
+
+  // Admin: employee grid (early return AFTER hooks)
+  if (adm && viewEmp === null) {
+    return <EmployeeGrid clients={clients} addNew={addNew} setViewEmp={setViewEmp} />
+  }
+
+  const viewEmpName = adm && viewEmp && viewEmp!=="__all__" && viewEmp!=="__mine__"
+    ? (users.find(u=>u.id===viewEmp)?.name || "Empleado")
+    : null
 
   return (
     <div>
