@@ -75,7 +75,7 @@ export function DInput({ value, onCommit, tag = "input", ...props }) {
 }
 
 // ─── Tag Select (colored dropdown) ────────────────────────────────────────────
-export function TagSelect({ value, onChange, tags, getColor, disabled, disabledTags = [] }) {
+export function TagSelect({ value, onChange, tags, getColor, disabled, disabledTags = [], allowClear = true }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const btnRef = useRef(null)
@@ -116,11 +116,13 @@ export function TagSelect({ value, onChange, tags, getColor, disabled, disabledT
       </button>
       {open && (
         <div ref={ref} style={{ position:"fixed", top:pos.top, left:pos.left, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:4, zIndex:9999, boxShadow:"0 8px 20px rgba(0,0,0,.4)", minWidth:160, maxHeight:300, overflowY:"auto", animation:"fadeIn .1s" }}>
-          <button onClick={()=>{onChange("");setOpen(false)}} style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"6px 10px", border:"none", borderRadius:6, background:"transparent", cursor:"pointer", fontSize:12, color:C.muted, textAlign:"left" }}
-            onMouseEnter={e=>e.currentTarget.style.background=C.border}
-            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-            <span style={{ width:8, height:8, borderRadius:"50%", background:C.border }}/>-- Sin estado
-          </button>
+          {allowClear && (
+            <button onClick={()=>{onChange("");setOpen(false)}} style={{ display:"flex", alignItems:"center", gap:8, width:"100%", padding:"6px 10px", border:"none", borderRadius:6, background:"transparent", cursor:"pointer", fontSize:12, color:C.muted, textAlign:"left" }}
+              onMouseEnter={e=>e.currentTarget.style.background=C.border}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <span style={{ width:8, height:8, borderRadius:"50%", background:C.border }}/>-- Sin estado
+            </button>
+          )}
           {tags.map(t => {
             const tc = getColor(t)
             const isSel = value === t

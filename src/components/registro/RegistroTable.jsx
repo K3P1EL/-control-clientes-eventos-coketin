@@ -124,7 +124,7 @@ export default memo(function RegistroTable({
                         if (!canChangeTipo()) { alert(`Limite de cambios alcanzado (${LIMITS.TIPO_CHANGES_PER_HOUR} por hora)`); return }
                       }
                       upd(r.id,"estado",v)
-                    }} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} disabledTags={dis} />
+                    }} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} disabledTags={dis} allowClear={!hasFicha} />
                   })()}</div></td>
                   <td style={td}><div style={lock}><DInput value={r.observaciones} onCommit={v=>upd(r.id,"observaciones",v)} style={{ ...mi, width:120 }} placeholder="..." disabled={!canEdit}/></div></td>
                   <td style={{ ...td, pointerEvents:"auto", opacity:1 }}>{(() => {
