@@ -40,7 +40,7 @@ function fichaCanal(c, regs) {
 
 export default memo(function Clientes({
   clients, user, adm, regs, users, prodTags, visionKey, contactos,
-  navClientId, clearNavClient, changeTab,
+  navClientId, clearNavClient, changeTab, returnToTab,
   goToReg, goToAlmacen,
   onAddClient, onUpdateClient, onDeleteClient,
   onAddContrato, onUpdateContrato,
@@ -55,10 +55,11 @@ export default memo(function Clientes({
   const [phoneInput,     setPhoneInput]     = useState("")
   const [viewEmp,        setViewEmp_]       = useState(() => {
     if (!adm) return "__mine__"
-    // Default to "__all__" (Todos) for admin so bouncing between tabs always
-    // lands in a useful view, never the employee grid by surprise. The grid
-    // is still reachable via the Volver button in the list header.
-    return getStr("client_viewEmp", "__all__")
+    const saved = getStr("client_viewEmp")
+    if (saved) return saved
+    // If a client view is open, default to __all__ so it renders the ficha.
+    if (getStr("client_view")) return "__all__"
+    return null
   })
   const setViewEmp = (v) => { setViewEmp_(v); setStr("client_viewEmp", v) }
   const [ocrLoading,     setOcrLoading]     = useState(false)
@@ -87,12 +88,6 @@ export default memo(function Clientes({
   const ocrRef = useRef(null)
 
   useEffect(() => { if (navClientId) { setView(navClientId); clearNavClient() } }, [navClientId, clearNavClient])
-
-  // Safety net: if an admin ends up with viewEmp === null after mount
-  // (stale localStorage / HMR / cached bundle), force "__all__".
-  useEffect(() => {
-    if (adm && viewEmp === null) setViewEmp("__all__")
-  }, [adm, viewEmp])
 
   // If we have a saved view but no viewEmp yet (admin refresh), auto-set viewEmp to show the client
   useEffect(() => {
@@ -246,7 +241,7 @@ export default memo(function Clientes({
               alert("Ficha no creada: no tiene nombre, DNI, celular ni archivos.")
             }
             setView(null);setActiveContrato(0);setBrowseMode(false)
-            const rt = getStr("return_tab"); if (rt && rt !== "fichas") { setStr("return_tab", null); changeTab(rt) }
+            const rt = getStr("return_tab"); if (rt && rt !== "fichas") { setStr("return_tab", null); (returnToTab || changeTab)(rt) }
           }} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>

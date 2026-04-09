@@ -18,12 +18,11 @@ export default memo(function Registro({
   onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onDeleteClient, onAddContratoArchivo, onDeleteContratoArchivo, onUpdateContrato, goToClient,
 }) {
   const [date,      setDate]      = useState(today())
-  // For admin: default to "__all__" (General view) instead of null. The
-  // employee-picker grid is still reachable via the toolbar's Volver button.
-  // This makes the default robust against any edge case where reg_viewUser
-  // gets cleared (cache, HMR, browser quirks) — bouncing between tabs always
-  // lands back in a useful view, never the grid by surprise.
-  const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; return getStr("reg_viewUser", "__all__") })
+  // Admin defaults to null (employee grid). When localStorage has a saved
+  // value (persisted via the returnToTab flow from the Ficha Volver button),
+  // we restore that instead — so going Registro → +Ficha → Volver returns
+  // to the exact same view.
+  const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; return getStr("reg_viewUser") })
   const setViewUser = (v) => { setViewUser_(v); setStr("reg_viewUser", v) }
   const [selLocal,  setSelLocal]  = useState(locales[0] || "")
   const [dateRange, setDateRange] = useState("dia")
@@ -46,13 +45,6 @@ export default memo(function Registro({
       clearNavReg()
     }
   }, [navRegId, clearNavReg])
-
-  // Safety net: if an admin somehow ends up with viewUser === null (stale
-  // localStorage, HMR quirk, old cached bundle), force "__all__" so they
-  // land in General — Todos instead of the employee grid.
-  useEffect(() => {
-    if (adm && viewUser === null) setViewUser("__all__")
-  }, [adm, viewUser])
 
   useEffect(() => {
     if (locales.length && !locales.includes(selLocal)) setSelLocal(locales[0])

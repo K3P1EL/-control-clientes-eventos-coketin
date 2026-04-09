@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react"
 import { supabase } from "./lib/supabase"
 import { C } from "./lib/colors"
 import { today } from "./lib/helpers"
-import { getStr, setStr } from "./lib/storage"
+import { getStr, setStr, remove as removeLS } from "./lib/storage"
 import { logError } from "./lib/logger"
 import { CSS, Loader, ToastContainer } from "./components/shared"
 
@@ -745,10 +745,20 @@ export default function App() {
   const changeTab = (t) => {
     if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
     setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null); setTempAlmAccess(null)
-    // We deliberately do NOT clear client_view/client_viewEmp/almacen_view/reg_viewUser
-    // here — the whole point of persisting them is to remember the admin's last
-    // selected employee/ficha when they bounce between tabs. Only client_view (open
-    // ficha) is reset when the Volver button inside the ficha runs.
+    // Sidebar tab-switching resets the per-tab "selected employee/ficha" views,
+    // so every explicit navigation lands on the grid. Internal flows like the
+    // ficha's Volver button use `returnToTab` instead to preserve the origin.
+    removeLS("client_view"); removeLS("client_viewEmp"); removeLS("almacen_view"); removeLS("reg_viewUser")
+  }
+
+  // Used ONLY by the ficha Volver button to navigate back to the origin tab
+  // without clearing that tab's view state. The origin tab was saved earlier
+  // into return_tab by goToClient/goToReg/goToAlmacen, and crucially the
+  // origin's viewUser/viewEmp keys are still in localStorage because those
+  // helpers use setTab (not changeTab) — they never clear them.
+  const returnToTab = (t) => {
+    if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
+    setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null); setTempAlmAccess(null)
   }
 
   return (
@@ -785,7 +795,7 @@ export default function App() {
           {tab==="fichas" && (
             <Clientes
               clients={clients} user={user} adm={adm} regs={regs} users={users} prodTags={prodTags} visionKey={visionKey} contactos={contactos}
-              navClientId={navClientId} clearNavClient={()=>setNavClientId(null)} changeTab={changeTab}
+              navClientId={navClientId} clearNavClient={()=>setNavClientId(null)} changeTab={changeTab} returnToTab={returnToTab}
               goToReg={goToReg} goToAlmacen={goToAlmacen}
               onAddClient={onAddClient} onUpdateClient={onUpdateClient} onDeleteClient={onDeleteClient}
               onAddContrato={onAddContrato}
