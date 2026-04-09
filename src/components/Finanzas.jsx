@@ -23,7 +23,7 @@ export default function Finanzas() {
   // so we don't need to wrap ourselves in a colored container — we just inherit
   // the dark zinc-950 from above. That avoids any rim/gap from the parent padding.
   return (
-    <div className="text-zinc-100" style={{ fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+    <div className="finanzas-root text-zinc-100" style={{ fontFamily: "'DM Sans',system-ui,sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
       <header className="border-b border-zinc-800/80 pb-4 mb-6">

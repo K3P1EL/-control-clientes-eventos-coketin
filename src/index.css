@@ -8,6 +8,22 @@
   padding: 0;
 }
 
+/* Scoped reset for the Finanzas module only.
+   Tailwind preflight is disabled globally so the rest of the app keeps
+   its native button look. Inside .finanzas-root we DO want buttons and
+   inputs to be transparent by default so the dark theme renders right. */
+.finanzas-root button {
+  background-color: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+}
+.finanzas-root input,
+.finanzas-root select,
+.finanzas-root textarea {
+  font: inherit;
+}
+
 body {
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: #0f1923;
