@@ -340,11 +340,21 @@ export default function App() {
 
   // ── CLIENT ops ────────────────────────────────────────────────────────────
   const onAddClient = useCallback(async (clientPayload, contratoPayload = {}) => {
+    // Step 1: create the client and add it to state IMMEDIATELY so the UI can
+    // navigate to the new ficha without waiting on the second round-trip.
     const data = await createClient({ ...clientPayload, reg_ids: clientPayload.reg_ids || [] })
-    const ct   = await createContrato({ client_id: data.id, fecha: today(), tipo: "proforma", estado: "activo", total: 0, producto_interes: [], ...contratoPayload })
-    const full = { ...data, contratos: [ct] }
-    setClients(prev => [...prev, full])
-    return full
+    setClients(prev => [...prev, { ...data, contratos: [] }])
+
+    // Step 2: create the default contrato in the background. When it lands we
+    // splice it into the existing client entry. Errors are surfaced via alert
+    // because the user is already looking at the ficha by the time this runs.
+    createContrato({ client_id: data.id, fecha: today(), tipo: "proforma", estado: "activo", total: 0, producto_interes: [], ...contratoPayload })
+      .then(ct => {
+        setClients(prev => prev.map(c => c.id === data.id ? { ...c, contratos: [...(c.contratos || []), ct] } : c))
+      })
+      .catch(e => { logError("createContrato", e); alert("Error creando contrato inicial") })
+
+    return { ...data, contratos: [] }
   }, [])
   const onUpdateClient = useCallback(async (id, fieldOrPatch, val) => {
     const patch = typeof fieldOrPatch === "string" ? { [fieldOrPatch]: val } : fieldOrPatch
