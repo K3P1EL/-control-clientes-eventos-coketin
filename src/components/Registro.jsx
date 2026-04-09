@@ -5,6 +5,9 @@ import { today, nowTime, genCode, canChangeTipo } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
 import { Bdg, DInput, TagSelect, lbl, inp, mi, sel, btn, td, ib } from "./shared"
 import { getStr, setStr } from "../lib/storage"
+import RegistroEmployeeGrid from "./registro/RegistroEmployeeGrid"
+import RegistroToolbar from "./registro/RegistroToolbar"
+import DeleteRegistroModal from "./registro/DeleteRegistroModal"
 
 function getBg(val, map) { return map[val] || C.border }
 const toD  = d => { const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
@@ -169,55 +172,7 @@ export default memo(function Registro({
 
   // ── ADMIN: employee grid ──────────────────────────────────────────────────
   if (adm && viewUser === null) {
-    const empMap = {}
-    regs.forEach(r => {
-      if (!empMap[r.user_id]) empMap[r.user_id] = { id:r.user_id, name:r.empleado, total:0, todayCount:0 }
-      empMap[r.user_id].total++
-      if (r.fecha === today()) empMap[r.user_id].todayCount++
-    })
-    const employees = Object.values(empMap)
-    const todayTotal = regs.filter(r => r.fecha===today()).length
-
-    return (
-      <div>
-        <h2 style={{ margin:"0 0 6px", fontSize:20, fontWeight:700 }}>Registro de Clientes</h2>
-        <p style={{ color:C.muted, fontSize:13, margin:"0 0 24px" }}>Selecciona un empleado para ver sus registros.</p>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:16 }}>
-          {/* General */}
-          <button onClick={()=>setViewUser("__all__")} style={{ background:`linear-gradient(135deg,${C.accent}22,${C.accent}08)`, border:`2px solid ${C.accent}44`, borderRadius:16, padding:"24px 20px", cursor:"pointer", textAlign:"left", transition:"all .2s" }}
-            onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
-            onMouseLeave={e=>e.currentTarget.style.borderColor=C.accent+"44"}>
-            <div style={{ width:44,height:44,background:C.accent+"33",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14 }}>
-              <svg width="22" height="22" fill="none" stroke={C.accent} strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-            </div>
-            <div style={{ fontSize:16,fontWeight:700,color:C.text,marginBottom:4 }}>General</div>
-            <div style={{ fontSize:12,color:C.muted }}>Todos los empleados</div>
-            <div style={{ display:"flex",gap:16,marginTop:12 }}>
-              <div><div style={{ fontSize:20,fontWeight:700,color:C.accent }}>{todayTotal}</div><div style={{ fontSize:10,color:C.muted }}>Hoy</div></div>
-              <div><div style={{ fontSize:20,fontWeight:700,color:C.muted }}>{regs.length}</div><div style={{ fontSize:10,color:C.muted }}>Total</div></div>
-            </div>
-          </button>
-          {employees.map((emp,idx) => {
-            const cc = [C.blue,C.teal,C.purple,C.pink,C.orange,C.cyan,C.yellow,C.green][idx%8]
-            const ini = emp.name.split(" ").map(w=>w[0]?.toUpperCase()).join("").slice(0,2)
-            return (
-              <button key={emp.id} onClick={()=>setViewUser(emp.id)} style={{ background:C.card, border:`2px solid ${C.border}`, borderRadius:16, padding:"24px 20px", cursor:"pointer", textAlign:"left", transition:"all .2s" }}
-                onMouseEnter={e=>e.currentTarget.style.borderColor=cc}
-                onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-                <div style={{ width:44,height:44,background:cc+"33",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,fontSize:16,fontWeight:700,color:cc }}>{ini}</div>
-                <div style={{ fontSize:16,fontWeight:700,color:C.text,marginBottom:4 }}>{emp.name}</div>
-                <div style={{ fontSize:12,color:C.muted }}>Empleado</div>
-                <div style={{ display:"flex",gap:16,marginTop:12 }}>
-                  <div><div style={{ fontSize:20,fontWeight:700,color:cc }}>{emp.todayCount}</div><div style={{ fontSize:10,color:C.muted }}>Hoy</div></div>
-                  <div><div style={{ fontSize:20,fontWeight:700,color:C.muted }}>{emp.total}</div><div style={{ fontSize:10,color:C.muted }}>Total</div></div>
-                </div>
-              </button>
-            )
-          })}
-          {!employees.length && <div style={{ gridColumn:"1/-1", background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>No hay empleados con registros aún.</div>}
-        </div>
-      </div>
-    )
+    return <RegistroEmployeeGrid regs={regs} setViewUser={setViewUser} />
   }
 
   // ── Table view ────────────────────────────────────────────────────────────
@@ -272,75 +227,17 @@ export default memo(function Registro({
 
   return (
     <div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          {adm && (
-            <button onClick={()=>setViewUser(null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
-            </button>
-          )}
-          <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>{viewName}</h2>
-          {adm && <span style={{ fontSize:12, color:C.muted }}>{rows.length} registros</span>}
-        </div>
-        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-          {adm ? (
-            <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
-              <div style={{ display:"flex", gap:0 }}>
-                {[["dia","Día"],["semana","Semana"],["mes","Mes"],["año","Año"],["todo","Todo"]].map(([v,l]) => (
-                  <button key={v} onClick={()=>setDateRange(v)} style={{
-                    padding:"6px 10px", border:`1px solid ${C.border}`,
-                    background:dateRange===v?C.accent+"22":C.inputBg,
-                    color:dateRange===v?C.accent:C.muted, cursor:"pointer", fontSize:11, fontWeight:600,
-                    borderRadius:v==="dia"?"8px 0 0 8px":v==="todo"?"0 8px 8px 0":"0",
-                    borderLeft:v==="dia"?undefined:"none",
-                  }}>{l}</button>
-                ))}
-              </div>
-              {dateRange !== "todo" && (
-                <div style={{ display:"flex", alignItems:"center", gap:0 }}>
-                  <button onClick={()=>shift(-1)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.text, borderRadius:"8px 0 0 8px", padding:"6px 8px", cursor:"pointer", fontSize:14, lineHeight:1 }}>‹</button>
-                  <input type="date" value={toD(date)} onChange={e=>setDate(fromD(e.target.value))} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderLeft:"none", borderRight:"none", color:C.text, padding:"6px 10px", fontSize:12, outline:"none" }} />
-                  <button onClick={()=>shift(1)}  style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.text, borderRadius:"0 8px 8px 0", padding:"6px 8px", cursor:"pointer", fontSize:14, lineHeight:1 }}>›</button>
-                </div>
-              )}
-              {date !== today() && dateRange !== "todo" && (
-                <button onClick={()=>setDate(today())} style={{ background:C.accent+"22", border:`1px solid ${C.accent}44`, color:C.accent, borderRadius:8, padding:"6px 10px", cursor:"pointer", fontSize:11, fontWeight:600 }}>Hoy</button>
-              )}
-            </div>
-          ) : (
-            <div style={{ background:C.inputBg, padding:"8px 14px", borderRadius:8, border:`1px solid ${C.border}`, color:C.text, fontSize:13, display:"flex", alignItems:"center", gap:6 }}>
-              <svg width="14" height="14" fill="none" stroke={C.muted} strokeWidth="2"><rect x="3" y="4" width="14" height="14" rx="2"/><path d="M16 2v4M8 2v4M3 10h14"/></svg>
-              {date}
-            </div>
-          )}
-          <div style={{ display:"flex", alignItems:"center", gap:6, background:C.orange+"22", border:`1px solid ${C.orange}44`, borderRadius:8, padding:"6px 12px" }}>
-            <svg width="14" height="14" fill="none" stroke={C.orange} strokeWidth="2"><path d="M3 9l2-7h6l2 7M3 9h12M3 9l1 4h10l1-4"/></svg>
-            <select value={selLocal} onChange={e=>setSelLocal(e.target.value)} style={{ background:"transparent", border:"none", color:C.orange, fontSize:13, fontWeight:600, cursor:"pointer", outline:"none" }}>
-              {locales.map(l => <option key={l} value={l} style={{ background:C.card, color:C.text }}>{l}</option>)}
-            </select>
-          </div>
-          <div style={{ display:"inline-flex", borderRadius:8, background:C.bg, padding:2, border:`1px solid ${C.border}` }}>
-            <button onClick={()=>setShowAll(true)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:showAll?C.accent:C.bg, color:showAll?"#fff":C.muted, transition:"all .2s" }}>Todo el dia</button>
-            <button onClick={()=>setShowAll(false)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:!showAll?C.accent:C.bg, color:!showAll?"#fff":C.muted, transition:"all .2s" }}>Ultimos 5</button>
-          </div>
-          <div style={{ display:"inline-flex", borderRadius:10, overflow:"hidden", border:`1px solid ${C.accent}44` }}>
-            <button onClick={()=>addReg("F")} style={{ padding:"8px 16px", border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.accent, color:"#fff", display:"flex", alignItems:"center", gap:6 }}>
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l2-7h6l2 7M3 9h12M3 9l1 4h10l1-4"/></svg>
-              + Local
-            </button>
-            <button onClick={()=>addReg("W")} style={{ padding:"8px 16px", border:"none", borderLeft:`1px solid rgba(255,255,255,.2)`, cursor:"pointer", fontSize:13, fontWeight:700, background:"#25D366", color:"#fff", display:"flex", alignItems:"center", gap:6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
-              + WhatsApp
-            </button>
-          </div>
-          {adm && (
-            <button onClick={exportExcel} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:8, color:C.green, cursor:"pointer", padding:"6px 12px", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v10H4V3h5l3 3z"/><path d="M9 3v3h3"/></svg>
-              Excel
-            </button>
-          )}
-        </div>
-      </div>
+      <RegistroToolbar
+        adm={adm}
+        viewName={viewName}
+        rowsCount={rows.length}
+        date={date} setDate={setDate}
+        dateRange={dateRange} setDateRange={setDateRange}
+        shift={shift}
+        selLocal={selLocal} setSelLocal={setSelLocal} locales={locales}
+        showAll={showAll} setShowAll={setShowAll}
+        setViewUser={setViewUser} addReg={addReg} exportExcel={exportExcel}
+      />
 
       <input ref={cRef} type="file" accept="image/jpeg,image/png,application/pdf,video/mp4,video/quicktime" multiple style={{ display:"none" }} onChange={onContractFile} />
 
@@ -440,39 +337,12 @@ export default memo(function Registro({
       )}
 
       {/* Delete confirmation modal */}
-      {delConfirm && (() => {
-        const { regId, linked } = delConfirm
-        const cts = linked ? (linked.contratos||[]) : []
-        const totalArch = cts.reduce((s,ct) => s + (ct.contrato_archivos||[]).length, 0)
-        const totalAdel = cts.reduce((s,ct) => s + (ct.adelantos||[]).length, 0)
-        return (
-          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={()=>setDelConfirm(null)}>
-            <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.red}44`, padding:24, maxWidth:400, width:"100%" }}>
-              <h3 style={{ margin:"0 0 8px", fontSize:17, fontWeight:700, color:C.red }}>Eliminar registro</h3>
-              {linked ? <>
-                <p style={{ margin:"0 0 12px", fontSize:13, color:C.muted }}>Este registro tiene una ficha vinculada:</p>
-                <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:6 }}>{linked.nombre||"Sin nombre"} <span style={{ fontSize:11, color:C.cyan, fontFamily:"monospace" }}>{linked.code}</span></div>
-                  {cts.length > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:4 }}><span style={{ color:C.muted }}>Contratos</span><span style={{ color:C.yellow, fontWeight:600 }}>{cts.length}</span></div>}
-                  {totalAdel > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:4 }}><span style={{ color:C.muted }}>Adelantos</span><span style={{ color:C.yellow, fontWeight:600 }}>{totalAdel}</span></div>}
-                  {totalArch > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:12 }}><span style={{ color:C.muted }}>Archivos</span><span style={{ color:C.yellow, fontWeight:600 }}>{totalArch}</span></div>}
-                </div>
-                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                  <button onClick={()=>{setDelConfirm(null);onHardDeleteReg(regId)}} style={{ padding:10, borderRadius:10, border:`1px solid ${C.border}`, background:C.cardAlt, color:C.text, cursor:"pointer", fontSize:13, fontWeight:600, textAlign:"left" }}>Solo borrar el registro <span style={{ fontSize:11, color:C.muted, display:"block" }}>La ficha y sus datos se mantienen</span></button>
-                  <button onClick={()=>{setDelConfirm(null);onHardDeleteReg(regId);onDeleteClient(linked.id)}} style={{ padding:10, borderRadius:10, border:`1px solid ${C.red}44`, background:C.red+"15", color:C.red, cursor:"pointer", fontSize:13, fontWeight:700, textAlign:"left" }}>Borrar registro + ficha <span style={{ fontSize:11, color:C.red+"aa", display:"block" }}>Se eliminan contratos, adelantos y archivos</span></button>
-                  <button onClick={()=>setDelConfirm(null)} style={{ padding:8, background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:12, textAlign:"center" }}>Cancelar</button>
-                </div>
-              </> : <>
-                <p style={{ margin:"0 0 16px", fontSize:13, color:C.muted }}>Este registro no tiene ficha vinculada. Se eliminara permanentemente.</p>
-                <div style={{ display:"flex", gap:10 }}>
-                  <button onClick={()=>setDelConfirm(null)} style={{ flex:1, padding:10, borderRadius:10, background:"transparent", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer", fontSize:13, fontWeight:600 }}>Cancelar</button>
-                  <button onClick={()=>{setDelConfirm(null);onHardDeleteReg(regId)}} style={{ flex:1, padding:10, borderRadius:10, background:C.danger, border:"none", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>Eliminar</button>
-                </div>
-              </>}
-            </div>
-          </div>
-        )
-      })()}
+      <DeleteRegistroModal
+        delConfirm={delConfirm}
+        setDelConfirm={setDelConfirm}
+        onHardDeleteReg={onHardDeleteReg}
+        onDeleteClient={onDeleteClient}
+      />
 
       <div style={{ overflowX:"auto", borderRadius:12, border:`1px solid ${C.border}` }}>
         <table style={{ width:"100%", borderCollapse:"collapse", minWidth:1300, fontSize:13 }}>
