@@ -10,6 +10,9 @@ import { getStr, setStr } from "../lib/storage"
 import { validatePhone } from "../lib/validation"
 import OCRPreviewModal from "./OCRPreviewModal"
 import LinkPopup from "./LinkPopup"
+import EmployeeGrid from "./clientes/EmployeeGrid"
+import FichaFilters from "./clientes/FichaFilters"
+import FichaListRow from "./clientes/FichaListRow"
 
 const parseProds = (pi) => Array.isArray(pi) ? pi : (pi||"").split(",").map(s=>s.trim()).filter(Boolean)
 
@@ -756,46 +759,7 @@ export default memo(function Clientes({
 
   // Admin: employee grid
   if (adm && viewEmp === null) {
-    const empMap = {}
-    clients.filter(c => !c.deleted_at).forEach(c => {
-      if (!empMap[c.created_by]) empMap[c.created_by] = { id:c.created_by, name:c.created_by_name, count:0 }
-      empMap[c.created_by].count++
-    })
-    const employees = Object.values(empMap)
-    const cardColors = [C.blue,C.teal,C.purple,C.pink,C.orange,C.cyan,C.yellow,C.green]
-    return (
-      <div>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-          <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>Clientes</h2>
-          <button onClick={addNew} style={{ ...btn, background:C.blue }}>+ Registrar Anterior</button>
-        </div>
-        <p style={{ color:C.muted, fontSize:13, margin:"0 0 20px" }}>Selecciona un empleado para ver sus clientes.</p>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:14 }}>
-          <button onClick={()=>setViewEmp("__all__")} style={{ background:`linear-gradient(135deg,${C.accent}22,${C.accent}08)`, border:`2px solid ${C.accent}44`, borderRadius:16, padding:"20px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s" }}
-            onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
-            onMouseLeave={e=>e.currentTarget.style.borderColor=C.accent+"44"}>
-            <div style={{ width:40,height:40,background:C.accent+"33",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12 }}>
-              <svg width="20" height="20" fill="none" stroke={C.accent} strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-            </div>
-            <div style={{ fontSize:16, fontWeight:700, color:C.text }}>Todos</div>
-            <div style={{ fontSize:12, color:C.muted }}>{clients.filter(c=>!c.deleted_at).length} clientes</div>
-          </button>
-          {employees.map((emp,idx) => {
-            const cc = cardColors[idx%8]
-            const ini = emp.name.split(" ").map(w=>w[0]?.toUpperCase()).join("").slice(0,2)
-            return (
-              <button key={emp.id} onClick={()=>setViewEmp(emp.id)} style={{ background:C.card, border:`2px solid ${C.border}`, borderRadius:16, padding:"20px 18px", cursor:"pointer", textAlign:"left", transition:"all .2s" }}
-                onMouseEnter={e=>e.currentTarget.style.borderColor=cc}
-                onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-                <div style={{ width:40,height:40,background:cc+"33",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12,fontSize:15,fontWeight:700,color:cc }}>{ini}</div>
-                <div style={{ fontSize:16,fontWeight:700,color:C.text }}>{emp.name}</div>
-                <div style={{ fontSize:12,color:C.muted }}>{emp.count} clientes</div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    )
+    return <EmployeeGrid clients={clients} addNew={addNew} setViewEmp={setViewEmp} />
   }
 
   // Filter
@@ -853,34 +817,14 @@ export default memo(function Clientes({
         </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
-        <button onClick={()=>setSortAsc(!sortAsc)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer", display:"flex", alignItems:"center", gap:4 }}>
-          <svg width="12" height="12" fill="none" stroke={C.accent} strokeWidth="2"><path d={sortAsc?"M2 8l4 4 4-4":"M2 4l4-4 4 4"}/><path d={sortAsc?"M6 2v10":"M6 10V0"}/></svg>
-          {sortAsc?"Mas antiguo":"Mas reciente"}
-        </button>
-        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-          <span style={{ fontSize:11, color:C.muted }}>Desde</span>
-          <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="Inicio" />
-          <span style={{ fontSize:11, color:C.muted }}>Hasta</span>
-          <DatePicker value={dateTo} onChange={setDateTo} placeholder="Fin" />
-        </div>
-        <select value={statusFilter||""} onChange={e=>setStatusFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:statusFilter?STATUS_COLORS[statusFilter]:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
-          <option value="">Todos los estados</option>
-          <option value="normal" style={{color:C.accent}}>Con registro</option>
-          <option value="anterior" style={{color:C.blue}}>Registrado antes</option>
-          <option value="naranja" style={{color:C.orange}}>Reg. eliminado</option>
-          {adm && <option value="erronea" style={{color:C.red}}>Erronea</option>}
-        </select>
-        <select value={canalFilter||""} onChange={e=>setCanalFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:canalFilter==="F"?C.purple:canalFilter==="W"?"#25D366":C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
-          <option value="">Todos los canales</option>
-          <option value="F" style={{color:C.purple}}>Local</option>
-          <option value="W" style={{color:"#25D366"}}>WhatsApp</option>
-        </select>
-        {(statusFilter || canalFilter || dateFrom || dateTo) && (
-          <button onClick={()=>{setStatusFilter(null);setCanalFilter(null);setDateFrom("");setDateTo("")}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar</button>
-        )}
-      </div>
+      <FichaFilters
+        adm={adm}
+        sortAsc={sortAsc} setSortAsc={setSortAsc}
+        dateFrom={dateFrom} setDateFrom={setDateFrom}
+        dateTo={dateTo} setDateTo={setDateTo}
+        statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+        canalFilter={canalFilter} setCanalFilter={setCanalFilter}
+      />
 
       {(() => {
         const filtered = filteredClients.filter(c => {
@@ -901,92 +845,23 @@ export default memo(function Clientes({
           </div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            {filtered.map(c => {
-            const cts = getContratos(c)
-            const visits = cts.length
-            const lastCt = cts[cts.length-1]
-            const totalAdel2 = (lastCt?.adelantos||[]).filter(a=>!a.invalid).reduce((s,a)=>s+(Number(a.monto)||0),0)
-            const resto2 = (Number(lastCt?.total)||0) - totalAdel2
-            const paid = resto2<=0 && Number(lastCt?.total)>0
-            const status = fichaStatus(c, regs)
-            const sc = STATUS_COLORS[status]
-            return (
-              <div key={c.id} style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${selectedFichas.has(c.id)?C.accent:expandedId===c.id?C.accent+"66":C.border}`, transition:"all .2s" }}>
-                <div onClick={()=>{if(selectedFichas.size>0){toggleSelect(c.id,{stopPropagation:()=>{}})}else{setExpandedId(expandedId===c.id?null:c.id)}}} style={{ background:C.card, borderLeft:`3px solid ${sc}`, padding:"10px 16px", cursor:"pointer", opacity:c.erronea?0.7:1, display:"flex", alignItems:"center", gap:12 }}>
-                {adm && (
-                  <div onClick={e=>toggleSelect(c.id,e)} style={{ width:20, height:20, borderRadius:6, border:`2px solid ${selectedFichas.has(c.id)?C.accent:C.border}`, background:selectedFichas.has(c.id)?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, transition:"all .15s" }}>
-                    {selectedFichas.has(c.id) && <svg width="12" height="12" fill="none" stroke="#fff" strokeWidth="3"><path d="M2 6l3 3 5-5"/></svg>}
-                  </div>
-                )}
-                <div style={{ width:4, height:32, borderRadius:2, background:sc, flexShrink:0 }} />
-                <div style={{ flex:"1 1 0", minWidth:0, display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
-                  <div style={{ minWidth:140, flex:"1 1 140px" }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                      <span style={{ fontSize:14, fontWeight:700, color:c.erronea?C.red:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.nombre||"Sin nombre"}</span>
-                      {c.code && <span style={{ fontSize:9, fontWeight:700, color:C.cyan, fontFamily:"monospace", background:C.cyan+"18", padding:"1px 5px", borderRadius:4 }}>{c.code}</span>}
-                      {c.erronea && <span style={{ fontSize:9, fontWeight:700, color:C.red, background:C.red+"22", padding:"1px 6px", borderRadius:4 }}>Erronea</span>}
-                      {(() => { const ch = fichaCanal(c, regs); return ch === "W" ? <span style={{ fontSize:9, fontWeight:600, color:"#25D366", background:"#25D36618", padding:"1px 5px", borderRadius:4 }}>WA</span> : ch === "F" ? <span style={{ fontSize:9, fontWeight:600, color:C.purple, background:C.purple+"18", padding:"1px 5px", borderRadius:4 }}>Local</span> : null })()}
-                    </div>
-                    <div style={{ fontSize:11, color:C.muted }}>{(c.phones||[])[0]||"Sin número"}</div>
-                  </div>
-                  <div style={{ display:"flex", gap:4, alignItems:"center", flexShrink:0 }}>
-                    <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:lastCt?.tipo==="contrato"?C.green+"22":C.yellow+"22", color:lastCt?.tipo==="contrato"?C.green:C.yellow }}>
-                      {lastCt?.tipo==="contrato"?"Contrato":"Proforma"}
-                    </span>
-                    {visits>1 && <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.purple+"33", color:C.purple }}>{visits}x</span>}
-                    {paid ? <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.green+"33", color:C.green }}>PAGADO</span>
-                      : Number(lastCt?.total)>0 ? <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:C.yellow+"33", color:C.yellow }}>S/{resto2.toFixed(0)}</span>
-                      : null}
-                  </div>
-                  <span style={{ fontSize:11, color:C.muted, flexShrink:0 }}>{c.created_by_name} — {fmtDate(c.created_at)}</span>
-                  {adm && (
-                    <span onClick={async e=>{e.stopPropagation();await onUpdateClient(c.id,"hidden",!c.hidden)}} style={{ padding:"2px 8px", borderRadius:8, fontSize:10, fontWeight:600, cursor:"pointer", background:c.hidden?C.red+"22":C.green+"22", color:c.hidden?C.red:C.green, flexShrink:0 }}>
-                      {c.hidden?"Oculto":"Visible"}
-                    </span>
-                  )}
-                  <svg width="14" height="14" fill="none" stroke={C.muted} strokeWidth="2" style={{ flexShrink:0, transition:"transform .2s", transform:expandedId===c.id?"rotate(180deg)":"rotate(0)" }}><path d="M3 5l4 4 4-4"/></svg>
-                </div>
-                </div>
-                {/* Expanded contracts panel */}
-                {expandedId===c.id && (
-                  <div style={{ background:C.cardAlt, borderTop:`1px solid ${C.border}`, padding:"12px 16px", animation:"fadeIn .15s" }}>
-                    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
-                      {cts.map((ct, idx) => {
-                        const adel = (ct.adelantos||[]).filter(a=>!a.invalid).reduce((s,a)=>s+(Number(a.monto)||0),0)
-                        const r = (Number(ct.total)||0) - adel
-                        const p = r<=0 && Number(ct.total)>0
-                        return (
-                          <button key={ct.id} onClick={()=>{setView(c.id);setActiveContrato(idx)}} style={{
-                            background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 14px", cursor:"pointer",
-                            textAlign:"left", transition:"border-color .15s", minWidth:160, flex:"0 1 auto",
-                          }}
-                          onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
-                          onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                              <span style={{ fontSize:11, fontWeight:700, color:ct.tipo==="contrato"?C.green:C.yellow }}>
-                                {ct.tipo==="contrato"?"Contrato":"Proforma"} #{idx+1}
-                              </span>
-                              {p && <span style={{ fontSize:9, fontWeight:700, color:C.green, background:C.green+"22", padding:"1px 6px", borderRadius:4 }}>PAGADO</span>}
-                              {!p && Number(ct.total)>0 && <span style={{ fontSize:9, fontWeight:700, color:C.yellow, background:C.yellow+"22", padding:"1px 6px", borderRadius:4 }}>S/{r.toFixed(0)}</span>}
-                            </div>
-                            <div style={{ fontSize:10, color:C.muted }}>{ct.fecha || "Sin fecha"}</div>
-                            {ct.producto_interes && (
-                              <div style={{ fontSize:10, color:C.accent, marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:180 }}>
-                                {Array.isArray(ct.producto_interes)?ct.producto_interes.join(", "):ct.producto_interes}
-                              </div>
-                            )}
-                          </button>
-                        )
-                      })}
-                      <button onClick={()=>{setView(c.id);setActiveContrato(cts.length-1)}} style={{ background:C.accent+"15", border:`1px dashed ${C.accent}44`, borderRadius:10, padding:"10px 14px", cursor:"pointer", color:C.accent, fontSize:12, fontWeight:700, minWidth:100 }}>
-                        Abrir ficha completa
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+            {filtered.map(c => (
+              <FichaListRow
+                key={c.id}
+                c={c}
+                regs={regs}
+                adm={adm}
+                selected={selectedFichas.has(c.id)}
+                expanded={expandedId === c.id}
+                onToggleSelect={(id) => toggleSelect(id, { stopPropagation: () => {} })}
+                onToggleExpand={() => {
+                  if (selectedFichas.size > 0) toggleSelect(c.id, { stopPropagation: () => {} })
+                  else setExpandedId(expandedId === c.id ? null : c.id)
+                }}
+                onOpenFicha={(id, idx) => { setView(id); setActiveContrato(idx) }}
+                onUpdateClient={onUpdateClient}
+              />
+            ))}
         </div>
       )})()}
     </div>
