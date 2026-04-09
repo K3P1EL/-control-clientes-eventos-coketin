@@ -1,0 +1,91 @@
+import { useCallback } from "react"
+import Card from "../../ui/Card"
+import { MESES } from "../../../../lib/finanzas/constants"
+
+const STATE_COLORS = {
+  "Operó": "bg-emerald-500/20 border-emerald-500/40 text-emerald-300",
+  "Descanso": "bg-amber-500/20 border-amber-500/40 text-amber-300",
+  "Feriado": "bg-red-500/20 border-red-500/40 text-red-300",
+  "Cerrado": "bg-zinc-700/40 border-zinc-600/40 text-zinc-400",
+}
+
+// Per-day calendar where the user marks what really happened.
+// Past days are auto-filled (Operó or Descanso) but every cell is overridable.
+export default function TrackerTab({
+  year, setYear, month, setMonth,
+  diasCalendario, diasOpBase, calendarDays,
+  tracker, effectiveTracker, trackerData, setTrackerData,
+}) {
+  const updateTracker = useCallback((dia, val) => {
+    setTrackerData(prev => {
+      const key = `${year}-${month}`
+      const current = prev[key] || {}
+      const updated = { ...current, [dia]: val === current[dia] ? "" : val }
+      return { ...prev, [key]: updated }
+    })
+  }, [year, month, setTrackerData])
+
+  const semanas = [...new Set(calendarDays.map(d => d.semana))]
+
+  return (
+    <Card title="Tracker del mes" icon="📅" accent="sky">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => { if (month === 1) { setMonth(12); setYear(year - 1) } else setMonth(month - 1) }}
+          className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-all text-lg">‹</button>
+        <div className="flex items-center gap-2">
+          <select value={month} onChange={e => setMonth(Number(e.target.value))}
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-200 font-semibold focus:outline-none focus:border-sky-500/60 appearance-none cursor-pointer text-center">
+            {MESES.slice(1).map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+          </select>
+          <select value={year} onChange={e => setYear(Number(e.target.value))}
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-200 font-semibold focus:outline-none focus:border-sky-500/60 appearance-none cursor-pointer text-center">
+            {Array.from({ length: 11 }, (_, i) => 2020 + i).map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <div className="text-[10px] text-zinc-500 ml-1">{diasCalendario}d · {diasOpBase} op.</div>
+        </div>
+        <button onClick={() => { if (month === 12) { setMonth(1); setYear(year + 1) } else setMonth(month + 1) }}
+          className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-all text-lg">›</button>
+      </div>
+      <div className="mb-4 flex items-center gap-4 text-xs text-zinc-500 flex-wrap">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500/60 inline-block"></span>Operó</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-500/60 inline-block"></span>Descanso</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500/60 inline-block"></span>Feriado</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-zinc-600/60 inline-block"></span>Cerrado</span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>Editado</span>
+      </div>
+      <div className="mb-3 text-[10px] text-zinc-600">Días pasados se llenan auto. Solo editá lo que fue diferente.</div>
+      <div className="space-y-1">
+        {semanas.map(sem => (
+          <div key={sem}>
+            <div className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1 mt-3">Semana {sem}</div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {calendarDays.filter(d => d.semana === sem).map(d => {
+                const st = effectiveTracker[d.dia] || ""
+                const isOverride = !!tracker[d.dia]
+                return (
+                  <div key={d.dia} className={`rounded-xl border p-2 cursor-pointer transition-all ${STATE_COLORS[st] || "bg-zinc-800/40 border-zinc-700/40 text-zinc-500 hover:border-zinc-600"}`}>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-base font-bold font-mono">{d.dia}</span>
+                      <div className="flex items-center gap-1">
+                        {isOverride && <span className="w-1.5 h-1.5 rounded-full bg-sky-400" title="Editado"></span>}
+                        <span className="text-[9px] uppercase">{d.nombre.slice(0, 3)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-0.5 mt-1">
+                      {["Operó", "Descanso", "Feriado", "Cerrado"].map(opt => (
+                        <button key={opt} onClick={() => updateTracker(d.dia, opt)}
+                          className={`text-[8px] px-1.5 py-0.5 rounded-md transition-all ${st === opt ? "opacity-100 font-bold" : "opacity-40 hover:opacity-70"} ${opt === "Operó" ? "bg-emerald-500/30" : opt === "Descanso" ? "bg-amber-500/30" : opt === "Feriado" ? "bg-red-500/30" : "bg-zinc-600/30"}`}>
+                          {opt.slice(0, 3)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
