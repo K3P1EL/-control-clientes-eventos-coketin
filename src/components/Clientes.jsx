@@ -13,6 +13,9 @@ import LinkPopup from "./LinkPopup"
 import EmployeeGrid from "./clientes/EmployeeGrid"
 import FichaFilters from "./clientes/FichaFilters"
 import FichaListRow from "./clientes/FichaListRow"
+import DeleteFichaModal from "./clientes/DeleteFichaModal"
+import FichaLightbox from "./clientes/FichaLightbox"
+import PaymentsPanel from "./clientes/PaymentsPanel"
 
 const parseProds = (pi) => Array.isArray(pi) ? pi : (pi||"").split(",").map(s=>s.trim()).filter(Boolean)
 
@@ -276,64 +279,13 @@ export default memo(function Clientes({
           <span style={{ color:C.muted, fontSize:11, marginLeft:"auto" }}>No se eliminara, solo queda marcada para revision</span>
         </div>}
 
-        {/* Delete confirmation modal */}
-        {deleteConfirm === c.id && (() => {
-          const cts = c.contratos || []
-          const totalArchivos = cts.reduce((s,ct) => s + (ct.contrato_archivos||[]).length, 0)
-          const totalAdelantos = cts.reduce((s,ct) => s + (ct.adelantos||[]).length, 0)
-          const regCount = (c.reg_ids||[]).length
-          const hasData = cts.length > 0 || totalArchivos > 0 || totalAdelantos > 0 || regCount > 0
-          return (
-            <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={()=>setDeleteConfirm(null)}>
-              <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.red}44`, padding:24, maxWidth:420, width:"100%" }}>
-                <h3 style={{ margin:"0 0 8px", fontSize:17, fontWeight:700, color:C.red }}>Eliminar ficha</h3>
-                <p style={{ margin:"0 0 16px", fontSize:13, color:C.muted }}>Se movera a la papelera <strong style={{ color:C.text }}>{c.nombre||c.code||"esta ficha"}</strong> con sus datos vinculados:</p>
-                {hasData ? (
-                  <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16, display:"flex", flexDirection:"column", gap:8 }}>
-                    {cts.length > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
-                      <span style={{ color:C.text }}>Contratos</span>
-                      <span style={{ color:C.yellow, fontWeight:700 }}>{cts.length}</span>
-                    </div>}
-                    {totalAdelantos > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
-                      <span style={{ color:C.text }}>Adelantos/Pagos</span>
-                      <span style={{ color:C.yellow, fontWeight:700 }}>{totalAdelantos}</span>
-                    </div>}
-                    {totalArchivos > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
-                      <span style={{ color:C.text }}>Archivos subidos</span>
-                      <span style={{ color:C.yellow, fontWeight:700 }}>{totalArchivos}</span>
-                    </div>}
-                    {regCount > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
-                      <span style={{ color:C.text }}>Registros vinculados</span>
-                      <span style={{ color:C.muted, fontWeight:700 }}>{regCount} (no se borran)</span>
-                    </div>}
-                  </div>
-                ) : (
-                  <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16, fontSize:13, color:C.muted, textAlign:"center" }}>Sin datos vinculados</div>
-                )}
-                <div style={{ fontSize:11, color:C.muted, marginBottom:16, background:C.accent+"11", padding:"8px 12px", borderRadius:6 }}>Se movera a la Papelera. Podras restaurarlo en los proximos 10 dias.</div>
-                <div style={{ display:"flex", gap:10 }}>
-                  <button onClick={()=>setDeleteConfirm(null)} style={{ flex:1, padding:10, borderRadius:10, background:"transparent", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer", fontSize:13, fontWeight:600 }}>Cancelar</button>
-                  <button onClick={()=>{setDeleteConfirm(null);onDeleteClient(c.id);setView(null)}} style={{ flex:1, padding:10, borderRadius:10, background:C.danger, border:"none", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>Mover a papelera</button>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
+        <DeleteFichaModal
+          c={deleteConfirm === c.id ? c : null}
+          onCancel={()=>setDeleteConfirm(null)}
+          onConfirm={()=>{setDeleteConfirm(null);onDeleteClient(c.id);setView(null)}}
+        />
 
-        {/* Lightbox */}
-        {viewContratoImg && (
-          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={()=>setViewContratoImg(null)}>
-            <div onClick={e=>e.stopPropagation()} style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center" }}>
-              <button onClick={()=>setViewContratoImg(null)} style={{ position:"absolute", top:-14, right:-14, background:C.danger, border:"none", borderRadius:"50%", color:"#fff", width:30, height:30, cursor:"pointer", fontSize:18, fontWeight:700, zIndex:1 }}>×</button>
-              {viewContratoImg.tipo==="image"
-                ? <img src={viewContratoImg.url} alt="" style={{ maxWidth:"90vw", maxHeight:"85vh", borderRadius:8, objectFit:"contain" }} />
-                : viewContratoImg.tipo==="video"
-                ? <video src={viewContratoImg.url} controls autoPlay style={{ maxWidth:"90vw", maxHeight:"85vh", borderRadius:8 }} />
-                : <embed src={viewContratoImg.url} type="application/pdf" style={{ width:"85vw", height:"85vh", borderRadius:8 }} />}
-              {viewContratoImg.nombre && <div style={{ marginTop:8, color:"#fff", fontSize:12 }}>{viewContratoImg.nombre}</div>}
-            </div>
-          </div>
-        )}
+        <FichaLightbox item={viewContratoImg} onClose={()=>setViewContratoImg(null)} />
 
         {/* Link popup */}
         {linking && <LinkPopup c={c} clients={clients} onMergeClients={onMergeClients} setLinking={setLinking} setView={setView} setActiveContrato={setActiveContrato} />}
@@ -687,68 +639,14 @@ export default memo(function Clientes({
             <div style={{ marginTop:12, fontSize:11, color:C.muted }}>Creado por {c.created_by_name} — {fmtDate(c.created_at)}</div>
           </div>
 
-          {/* RIGHT: Pagos — hidden in simple */}
-          {!isSimple && ct && (adm||(user.permissions||[]).includes("pagos")) && (
-            <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20 }}>
-              <h3 style={{ fontSize:15, fontWeight:600, marginTop:0, marginBottom:12, color:C.accent }}>Pagos y Adelantos</h3>
-              <div style={{ background:C.cardAlt, borderRadius:10, padding:"12px 14px", marginBottom:16 }}>
-                <label style={{ fontSize:12, color:C.muted, display:"block", marginBottom:6 }}>Costo total del contrato</label>
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                  <span style={{ fontSize:16, color:C.muted, fontWeight:600 }}>S/</span>
-                  <DInput type="number" value={ct.total||""} onCommit={v=>onUpdateContrato(c.id,ct.id,{total:v})} style={{ ...inp, marginBottom:0, fontSize:20, fontWeight:700, flex:1 }} placeholder="Ej: 500" />
-                </div>
-              </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-                <div style={{ background:C.cardAlt, borderRadius:10, padding:12, textAlign:"center" }}>
-                  <div style={{ fontSize:11, color:C.muted, marginBottom:4 }}>Adelantado</div>
-                  <div style={{ fontSize:20, fontWeight:700, color:C.green }}>S/ {totalAdel.toFixed(2)}</div>
-                </div>
-                <div style={{ background:C.cardAlt, borderRadius:10, padding:12, textAlign:"center" }}>
-                  <div style={{ fontSize:11, color:C.muted, marginBottom:4 }}>Resta</div>
-                  <div style={{ fontSize:20, fontWeight:700, color:resto<=0&&Number(ct.total)>0?C.green:C.yellow }}>S/ {resto.toFixed(2)}</div>
-                  {resto<=0&&Number(ct.total)>0 && <div style={{ fontSize:10, color:C.green, fontWeight:600 }}>✓ PAGADO</div>}
-                </div>
-              </div>
-              {Number(ct.total)>0 && (
-                <div style={{ background:C.cardAlt, borderRadius:20, height:10, marginBottom:16, overflow:"hidden" }}>
-                  <div style={{ width:`${Math.min(100,totalAdel/Number(ct.total)*100)}%`, height:"100%", background:resto<=0?C.green:C.accent, borderRadius:20, transition:"width .3s" }} />
-                </div>
-              )}
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                <span style={{ fontSize:14, fontWeight:600 }}>Historial de pagos</span>
-                <button onClick={()=>onAddAdelanto(c.id,ct.id,{monto:0,fecha:today(),nota:""})} style={{ background:C.accent+"22", border:`1px solid ${C.accent}44`, borderRadius:6, color:C.accent, cursor:"pointer", padding:"4px 12px", fontSize:12, fontWeight:700 }}>+ Adelanto</button>
-              </div>
-              {!(ct.adelantos?.length) && <div style={{ padding:20, textAlign:"center", color:C.muted, fontSize:13, background:C.cardAlt, borderRadius:8 }}>Sin pagos. Haz clic en "+ Adelanto".</div>}
-              {(ct.adelantos||[]).map((a,idx) => {
-                const locked = a.locked, inv = a.invalid
-                return (
-                  <div key={a.id} style={{ display:"flex", gap:6, alignItems:"center", padding:"8px 10px", background:inv?C.red+"0a":(idx%2?C.cardAlt+"66":"transparent"), borderRadius:6, marginBottom:2 }}>
-                    <span style={{ fontSize:11, color:inv?C.red:C.muted, width:18, ...(inv?{textDecoration:"line-through"}:{}) }}>{idx+1}</span>
-                    <input type="date" value={a.fecha?a.fecha.split("/").length===3?`${a.fecha.split("/")[2]}-${a.fecha.split("/")[1]}-${a.fecha.split("/")[0]}`:(a.fecha||""):(a.fecha||"")} onChange={e=>{const p=e.target.value.split("-");onUpdateAdelanto(c.id,ct.id,a.id,{fecha:`${p[2]}/${p[1]}/${p[0]}`})}} style={{ ...mi, width:110, fontSize:11, ...((locked||inv)?{opacity:.5}:{}) }} disabled={locked||inv} />
-                    <div style={{ display:"flex", alignItems:"center", gap:2 }}>
-                      <span style={{ fontSize:11, color:C.muted, ...(inv?{textDecoration:"line-through"}:{}) }}>S/</span>
-                      <DInput type="number" value={a.monto||""} onCommit={v=>onUpdateAdelanto(c.id,ct.id,a.id,{monto:v})} style={{ ...mi, width:65, fontWeight:600, ...((locked||inv)?{opacity:.5,textDecoration:inv?"line-through":"none"}:{}) }} placeholder="0" disabled={locked||inv} />
-                    </div>
-                    <DInput value={a.nota||""} onCommit={v=>onUpdateAdelanto(c.id,ct.id,a.id,{nota:v})} style={{ ...mi, flex:1 }} placeholder="Nota..." />
-                    <div style={{ display:"flex", alignItems:"center", gap:3, flexShrink:0 }}>
-                      {inv ? <>
-                        <span style={{ padding:"2px 6px", borderRadius:4, fontSize:9, fontWeight:700, background:C.red+"33", color:C.red }}>INVÁLIDO</span>
-                        {adm && <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{invalid:false})} style={{ background:C.green+"22", border:"none", borderRadius:4, color:C.green, cursor:"pointer", padding:"2px 5px", fontSize:10, fontWeight:700 }}>↩</button>}
-                        {adm && <button onClick={()=>{if(window.confirm("¿Eliminar este adelanto?"))onDeleteAdelanto(c.id,ct.id,a.id)}} style={{ ...ib, color:C.danger }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4h8M9 4V10a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg></button>}
-                      </> : !locked ? <>
-                        <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{locked:true})} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:6, color:C.green, cursor:"pointer", padding:"3px 6px", fontSize:11, fontWeight:700 }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 6l3 3 5-5"/></svg></button>
-                        <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{invalid:true})} style={{ background:C.red+"15", border:"none", borderRadius:6, color:C.red, cursor:"pointer", padding:"3px 6px", fontSize:9, fontWeight:700 }}>✗</button>
-                      </> : <>
-                        <span style={{ padding:"2px 6px", borderRadius:4, fontSize:10, fontWeight:700, background:C.green+"33", color:C.green }}>✓</span>
-                        <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{invalid:true})} style={{ background:C.red+"15", border:"none", borderRadius:6, color:C.red, cursor:"pointer", padding:"3px 6px", fontSize:9, fontWeight:700 }}>✗</button>
-                        {adm && <button onClick={()=>onUpdateAdelanto(c.id,ct.id,a.id,{locked:false})} style={{ ...ib, color:C.yellow }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="8" height="6" rx="1"/><path d="M4 5V3a2 2 0 014 0"/></svg></button>}
-                        {adm && <button onClick={()=>{if(window.confirm("¿Eliminar este adelanto?"))onDeleteAdelanto(c.id,ct.id,a.id)}} style={{ ...ib, color:C.danger }}><svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 4h8M9 4V10a1 1 0 01-1 1H4a1 1 0 01-1-1V4"/></svg></button>}
-                      </>}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+          {!isSimple && (
+            <PaymentsPanel
+              c={c} ct={ct} adm={adm} user={user}
+              onUpdateContrato={onUpdateContrato}
+              onAddAdelanto={onAddAdelanto}
+              onUpdateAdelanto={onUpdateAdelanto}
+              onDeleteAdelanto={onDeleteAdelanto}
+            />
           )}
         </div>
       </div>
