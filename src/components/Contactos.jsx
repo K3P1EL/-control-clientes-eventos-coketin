@@ -2,12 +2,15 @@ import { useState } from "react"
 import { C } from "../lib/colors"
 import { fmtDate } from "../lib/helpers"
 import { inp, btn, DInput } from "./shared"
+import { validatePhone, validateDNI } from "../lib/validation"
 
 export default function Contactos({ contactos, user, adm, onAddContacto, onUpdateContacto, onDeleteContacto }) {
   const [search, setSearch] = useState("")
   const [view, setView] = useState(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState("")
+  const [newDni, setNewDni] = useState("")
+  const [newPhoneCreate, setNewPhoneCreate] = useState("")
   const [newPhone, setNewPhone] = useState("")
 
   const active = contactos.filter(c => !c.deleted_at)
@@ -98,17 +101,45 @@ export default function Contactos({ contactos, user, adm, onAddContacto, onUpdat
 
       {/* Quick add */}
       {adding && (
-        <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.accent}44`, padding:16, marginBottom:16, display:"flex", gap:10, alignItems:"flex-end" }}>
-          <div style={{ flex:1 }}>
+        <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.accent}44`, padding:16, marginBottom:16, display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
+          <div style={{ flex:"2 1 220px", minWidth:180 }}>
             <label style={{ display:"block", fontSize:11, color:C.muted, marginBottom:4 }}>Nombre</label>
             <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Nombre del cliente" style={{ ...inp, marginBottom:0 }} autoFocus />
           </div>
+          <div style={{ flex:"1 1 140px", minWidth:120 }}>
+            <label style={{ display:"block", fontSize:11, color:C.muted, marginBottom:4 }}>DNI</label>
+            <input value={newDni} onChange={e=>setNewDni(e.target.value.replace(/\D/g,""))} placeholder="Documento" maxLength={15} style={{ ...inp, marginBottom:0 }} />
+          </div>
+          <div style={{ flex:"1 1 160px", minWidth:140 }}>
+            <label style={{ display:"block", fontSize:11, color:C.muted, marginBottom:4 }}>Celular</label>
+            <input value={newPhoneCreate} onChange={e=>setNewPhoneCreate(e.target.value)} placeholder="Numero" style={{ ...inp, marginBottom:0 }} />
+          </div>
           <button onClick={async()=>{
-            if(!newName.trim()) return
-            const nc = await onAddContacto({ nombre:newName.trim(), created_by:user.id, created_by_name:user.name })
-            setNewName(""); setAdding(false); setView(nc.id)
+            if(!newName.trim()) { alert("El nombre es obligatorio"); return }
+            // Validate optional fields if provided
+            let dniClean = ""
+            if (newDni.trim()) {
+              const v = validateDNI(newDni)
+              if (!v.ok) { alert(v.error); return }
+              dniClean = v.value
+            }
+            let phones = []
+            if (newPhoneCreate.trim()) {
+              const v = validatePhone(newPhoneCreate)
+              if (!v.ok) { alert(v.error); return }
+              phones = [v.value]
+            }
+            const nc = await onAddContacto({
+              nombre: newName.trim(),
+              dni: dniClean,
+              phones,
+              created_by: user.id,
+              created_by_name: user.name,
+            })
+            setNewName(""); setNewDni(""); setNewPhoneCreate("")
+            setAdding(false); setView(nc.id)
           }} style={{ ...btn, whiteSpace:"nowrap" }}>Crear</button>
-          <button onClick={()=>{setAdding(false);setNewName("")}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"10px 16px", fontSize:13 }}>Cancelar</button>
+          <button onClick={()=>{setAdding(false);setNewName("");setNewDni("");setNewPhoneCreate("")}} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, color:C.muted, cursor:"pointer", padding:"10px 16px", fontSize:13 }}>Cancelar</button>
         </div>
       )}
 
