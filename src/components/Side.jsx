@@ -12,10 +12,13 @@ const allItems = [
   { id:"papelera",    label:"Papelera",   d:"M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6M10 10v6M14 10v6" },
 ]
 const adminItem = { id:"admin", label:"Admin", d:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zM19 8l2 2-2 2M21 10h-6" }
+// Finanzas is admin-only — Coketín's personal financial control panel.
+// Lives at the end of the sidebar, just before Admin.
+const finanzasItem = { id:"finanzas", label:"Finanzas", d:"M3 17l4-4 4 4 7-7M14 6h7v7" }
 
 export default function Side({ tab, set, adm, open, perms }) {
   const items = adm
-    ? [...allItems, adminItem]
+    ? [...allItems, finanzasItem, adminItem]
     : allItems.filter(t => (perms||[]).includes(t.id))
 
   return (

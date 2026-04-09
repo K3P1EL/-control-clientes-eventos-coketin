@@ -39,6 +39,7 @@ const Agenda     = lazy(() => import("./components/Agenda"))
 const Admin      = lazy(() => import("./components/Admin"))
 const Audit      = lazy(() => import("./components/Audit"))
 const Dash       = lazy(() => import("./components/Dash"))
+const Finanzas   = lazy(() => import("./components/Finanzas"))
 
 export default function App() {
   // ── Auth state ────────────────────────────────────────────────────────────
@@ -831,6 +832,7 @@ export default function App() {
           {tab==="agenda"    && <Agenda clients={clients} user={user} adm={adm} goToClient={goToClient} onUpdateContrato={onUpdateContrato} />}
           {tab==="auditoria" && <Audit regs={regs} photos={photos} />}
           {tab==="dashboard" && <Dash regs={regs} adm={adm} />}
+          {tab==="finanzas" && adm && <Finanzas />}
           {tab==="admin" && adm && (
             <Admin
               users={users} tags={tags} locales={locales} prodTags={prodTags}
