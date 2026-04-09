@@ -6,6 +6,7 @@ import { C } from "../lib/colors"
 import { Stat, SafeImg } from "./shared"
 import { today } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
+import { logError } from "../lib/logger"
 
 const BUCKET_LIMIT = LIMITS.STORAGE_BUCKET_BYTES
 const OCR_FREE = LIMITS.OCR_FREE_TIER
@@ -26,7 +27,7 @@ function StorageUsage() {
         }
         if (mounted) setUsage(totalSize)
       } catch (e) {
-        console.error("Storage usage error:", e)
+        logError("StorageUsage", e)
         if (mounted) setError(e.message)
       }
     })()

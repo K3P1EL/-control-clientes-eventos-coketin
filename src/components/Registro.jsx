@@ -4,6 +4,7 @@ import { C, estadoColors } from "../lib/colors"
 import { today, nowTime, genCode, canChangeTipo } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
 import { Bdg, DInput, TagSelect, lbl, inp, mi, sel, btn, td, ib } from "./shared"
+import { getStr, setStr } from "../lib/storage"
 
 function getBg(val, map) { return map[val] || C.border }
 const toD  = d => { const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
@@ -36,8 +37,8 @@ export default memo(function Registro({
   onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onDeleteClient, onAddContratoArchivo, onDeleteContratoArchivo, onUpdateContrato, goToClient,
 }) {
   const [date,      setDate]      = useState(today())
-  const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; try { return localStorage.getItem("reg_viewUser") || null } catch { return null } })
-  const setViewUser = (v) => { setViewUser_(v); try { if (v) localStorage.setItem("reg_viewUser", v); else localStorage.removeItem("reg_viewUser") } catch {} }
+  const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; return getStr("reg_viewUser") })
+  const setViewUser = (v) => { setViewUser_(v); setStr("reg_viewUser", v) }
   const [selLocal,  setSelLocal]  = useState(locales[0] || "")
   const [dateRange, setDateRange] = useState("dia")
   const [showAll,   setShowAll]   = useState(true) // true=todo el dia, false=ultimos 3

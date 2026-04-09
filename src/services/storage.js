@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { logError, logWarn } from '../lib/logger'
 
 const DEFAULTS = { maxMB: 45, quality: 0.85, allowedTypes: ['image/jpeg','image/png','application/pdf','video/mp4','video/quicktime'] }
 
@@ -42,7 +43,7 @@ export async function uploadFile(folder, fileName, file, cfg) {
     try {
       uploadBlob = await compressImage(file, quality)
       contentType = "image/jpeg"
-    } catch (e) { console.warn("Compresion fallida, subiendo original:", e.message); uploadBlob = file }
+    } catch (e) { logWarn("storage.compress", "Compresion fallida, subiendo original", { msg: e.message }); uploadBlob = file }
   }
 
   if (uploadBlob.size > maxBytes) {
@@ -71,7 +72,7 @@ export async function deleteFileByUrl(url) {
   const path = urlToPath(url)
   if (!path) return
   const { error } = await supabase.storage.from('archivos').remove([path])
-  if (error) console.error("Storage delete error:", error.message)
+  if (error) logError("storage.deleteFileByUrl", error, { path })
 }
 
 // List all files in a folder
@@ -84,7 +85,6 @@ export async function listStorageFiles(folder) {
 // Delete file from storage by path
 export async function deleteStorageFile(path) {
   const { data, error } = await supabase.storage.from('archivos').remove([path])
-  console.log("Storage delete result:", { path, data, error })
   if (error) throw error
   return data
 }

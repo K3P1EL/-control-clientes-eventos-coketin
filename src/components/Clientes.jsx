@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef, memo } from "react"
 import { C } from "../lib/colors"
-import { today, fmtDate, canChangeTipo, genCode } from "../lib/helpers"
+import { today, fmtDate, canChangeTipo, genCode, canScanOCR, OCR_PER_HOUR_LIMIT } from "../lib/helpers"
+import { LIMITS } from "../lib/constants"
+import { getOCRUsage } from "../services/config"
 import { lbl, inp, mi, btn, td, ib, DInput, SafeImg, DatePicker } from "./shared"
 import { parseOCRText } from "../services/ocr"
 import { incrementOCRCount } from "../services/config"
+import { getStr, setStr } from "../lib/storage"
+import { validatePhone } from "../lib/validation"
 import OCRPreviewModal from "./OCRPreviewModal"
 import LinkPopup from "./LinkPopup"
 
@@ -38,22 +42,20 @@ export default memo(function Clientes({
   onAddContratoArchivo, onDeleteContratoArchivo,
   onMergeClients, onAddContacto,
 }) {
-  const [view,           setView_]          = useState(() => { try { const v = localStorage.getItem("client_view"); return v || null } catch { return null } })
-  const setView = (v) => { setView_(v || null); try { if (v) localStorage.setItem("client_view", v); else localStorage.removeItem("client_view") } catch {} }
+  const [view,           setView_]          = useState(() => getStr("client_view"))
+  const setView = (v) => { setView_(v || null); setStr("client_view", v) }
   const [activeContrato, setActiveContrato] = useState(0)
   const [linking,        setLinking]        = useState(false)
   const [phoneInput,     setPhoneInput]     = useState("")
   const [viewEmp,        setViewEmp_]       = useState(() => {
     if (!adm) return "__mine__"
-    try {
-      const saved = localStorage.getItem("client_viewEmp")
-      if (saved) return saved
-      // If a client view is open, default to __all__ so it renders the ficha
-      if (localStorage.getItem("client_view")) return "__all__"
-      return null
-    } catch { return null }
+    const saved = getStr("client_viewEmp")
+    if (saved) return saved
+    // If a client view is open, default to __all__ so it renders the ficha
+    if (getStr("client_view")) return "__all__"
+    return null
   })
-  const setViewEmp = (v) => { setViewEmp_(v); try { if (v) localStorage.setItem("client_viewEmp", v); else localStorage.removeItem("client_viewEmp") } catch {} }
+  const setViewEmp = (v) => { setViewEmp_(v); setStr("client_viewEmp", v) }
   const [ocrLoading,     setOcrLoading]     = useState(false)
   const [ocrParsed,      setOcrParsed]      = useState(null) // parseOCRText result
   const [ocrRawText,     setOcrRawText]     = useState("")
@@ -98,6 +100,18 @@ export default memo(function Clientes({
     setOcrLoading(true); setOcrParsed(null); setOcrRawText(""); setOcrClientId(clientId)
     try {
       if (!visionKey) throw new Error("API key de Google Vision no configurada. Ve a Admin > Configuracion del Sistema.")
+      // Per-hour client-side rate limit (anti-runaway)
+      if (!canScanOCR()) throw new Error(`Limite de OCR alcanzado: ${OCR_PER_HOUR_LIMIT} escaneos por hora. Espera un momento.`)
+      // Monthly free-tier cap (server-side counter)
+      try {
+        const usage = await getOCRUsage()
+        if (usage.count >= LIMITS.OCR_FREE_TIER) {
+          throw new Error(`Cuota mensual de OCR alcanzada (${LIMITS.OCR_FREE_TIER}). Vuelve el proximo mes.`)
+        }
+      } catch (e) {
+        // If the cap check fails due to network, allow the call but log it
+        if (e.message?.startsWith("Cuota mensual")) throw e
+      }
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader()
         r.onload = () => res(r.result.split(",")[1])
@@ -221,7 +235,7 @@ export default memo(function Clientes({
               alert("Ficha no creada: no tiene nombre, DNI, celular ni archivos.")
             }
             setView(null);setActiveContrato(0);setBrowseMode(false)
-            try { const rt = localStorage.getItem("return_tab"); if (rt && rt !== "fichas") { localStorage.removeItem("return_tab"); changeTab(rt) } } catch {}
+            const rt = getStr("return_tab"); if (rt && rt !== "fichas") { setStr("return_tab", null); changeTab(rt) }
           }} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>
@@ -439,8 +453,8 @@ export default memo(function Clientes({
             {/* Celulares */}
             <label style={lbl}>Celulares</label>
             <div style={{ display:"flex", gap:6, marginBottom:6 }}>
-              <input value={phoneInput} onChange={e=>setPhoneInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&phoneInput.trim()){const ph=[...(c.phones||[])];if(!ph.includes(phoneInput.trim())){ph.push(phoneInput.trim());onUpdateClient(c.id,"phones",ph)}setPhoneInput("")}}} style={{ ...inp, marginBottom:0, flex:1 }} placeholder="Ingresa número y pulsa ↵" />
-              <button onClick={()=>{if(!phoneInput.trim())return;const ph=[...(c.phones||[])];if(!ph.includes(phoneInput.trim())){ph.push(phoneInput.trim());onUpdateClient(c.id,"phones",ph)}setPhoneInput("")}} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:8, color:C.green, cursor:"pointer", padding:"8px 12px", fontSize:14, fontWeight:700 }}>✓</button>
+              <input value={phoneInput} onChange={e=>setPhoneInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){const v=validatePhone(phoneInput);if(!v.ok){alert(v.error);return}const ph=[...(c.phones||[])];if(!ph.includes(v.value)){ph.push(v.value);onUpdateClient(c.id,"phones",ph)}setPhoneInput("")}}} style={{ ...inp, marginBottom:0, flex:1 }} placeholder="Ingresa número y pulsa ↵" />
+              <button onClick={()=>{const v=validatePhone(phoneInput);if(!v.ok){alert(v.error);return}const ph=[...(c.phones||[])];if(!ph.includes(v.value)){ph.push(v.value);onUpdateClient(c.id,"phones",ph)}setPhoneInput("")}} style={{ background:C.green+"22", border:`1px solid ${C.green}44`, borderRadius:8, color:C.green, cursor:"pointer", padding:"8px 12px", fontSize:14, fontWeight:700 }}>✓</button>
             </div>
             <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
               {(c.phones||[]).map((ph,idx)=>(

@@ -60,3 +60,15 @@ export const canChangeTipo = () => {
   _tipoLimit.count++
   return true
 }
+
+// OCR rate limiter — caps per-user calls per hour to avoid runaway Vision API costs
+const OCR_PER_HOUR = 30
+const _ocrLimit = { hour: 0, count: 0 }
+export const canScanOCR = () => {
+  const h = Math.floor(Date.now() / 3600000)
+  if (_ocrLimit.hour !== h) { _ocrLimit.hour = h; _ocrLimit.count = 0 }
+  if (_ocrLimit.count >= OCR_PER_HOUR) return false
+  _ocrLimit.count++
+  return true
+}
+export const OCR_PER_HOUR_LIMIT = OCR_PER_HOUR

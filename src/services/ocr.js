@@ -1,3 +1,5 @@
+import { isValidDNI, validatePhone, isValidContrato } from '../lib/validation'
+
 export function parseOCRText(rawText) {
   const text = rawText || ''
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
@@ -118,6 +120,21 @@ export function parseOCRText(rawText) {
   // --- DESCRIPCION ---
   result.descripcion_servicios = extractDescripcion(lines)
   if (result.descripcion_servicios) result.confianza.descripcion_servicios = 'medio'
+
+  // --- Validación final: descartar valores que no pasen las reglas ---
+  if (result.dni && !isValidDNI(result.dni)) {
+    result.dni = ''
+    delete result.confianza.dni
+  }
+  if (result.telefono) {
+    const tv = validatePhone(result.telefono)
+    if (tv.ok) result.telefono = tv.value
+    else { result.telefono = ''; delete result.confianza.telefono }
+  }
+  if (result.numero_contrato && !isValidContrato(result.numero_contrato)) {
+    result.numero_contrato = ''
+    delete result.confianza.numero_contrato
+  }
 
   return result
 }

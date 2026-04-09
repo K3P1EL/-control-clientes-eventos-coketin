@@ -3,6 +3,7 @@ import { C } from "../lib/colors"
 import { inp, mi, btn, td, ib, sel, DInput, toast, SafeImg } from "./shared"
 import { Bdg } from "./shared"
 import { fmtDate } from "../lib/helpers"
+import { getStr, setStr } from "../lib/storage"
 
 const ESTADOS    = ["por_recoger","recogido","en_uso","entregado","devuelto"]
 const EST_LABEL  = { por_recoger:"Por recoger", recogido:"Recogido", en_uso:"En uso", entregado:"Entregado", devuelto:"Devuelto" }
@@ -16,8 +17,8 @@ export default memo(function Almacen({
   onAddAlmacenArchivo, onDeleteAlmacenArchivo,
   onAddArchivoRecojo, onDeleteArchivoRecojo,
 }) {
-  const [view,      setView_]     = useState(() => { try { const v = localStorage.getItem("almacen_view"); return v || null } catch { return null } })
-  const setView = (v) => { setView_(v || null); try { if (v) localStorage.setItem("almacen_view", v); else localStorage.removeItem("almacen_view") } catch {} }
+  const [view,      setView_]     = useState(() => getStr("almacen_view"))
+  const setView = (v) => { setView_(v || null); setStr("almacen_view", v) }
   const [viewFile,  setViewFile]  = useState(null)
   const [searchCl,  setSearchCl]  = useState("")
   const [uploadingCount, setUploadingCount] = useState(0)

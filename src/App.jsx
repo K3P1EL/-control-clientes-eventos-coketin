@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react"
 import { supabase } from "./lib/supabase"
 import { C } from "./lib/colors"
 import { today } from "./lib/helpers"
+import { getStr, setStr, remove as removeLS } from "./lib/storage"
+import { logError } from "./lib/logger"
 import { CSS, Loader, ToastContainer } from "./components/shared"
 
 import { getSession } from "./services/auth"
@@ -82,24 +84,24 @@ export default function App() {
   })
 
   // ── Navigation ────────────────────────────────────────────────────────────
-  const [tab,            setTab_]           = useState(() => { try { return localStorage.getItem("app_tab") || "registro" } catch { return "registro" } })
-  const setTab = useCallback((t) => { setTab_(t); try { localStorage.setItem("app_tab", t) } catch {} }, [])
+  const [tab,            setTab_]           = useState(() => getStr("app_tab", "registro"))
+  const setTab = useCallback((t) => { setTab_(t); setStr("app_tab", t) }, [])
   const [mobSide,        setMobSide]        = useState(false)
   const [navClientId,    setNavClientId]    = useState(null)
   const [navRegId,       setNavRegId]       = useState(null)
   const [navRegDate,     setNavRegDate]     = useState(null)
   const [navAlmClientId, setNavAlmClientId] = useState(null)
 
-  const goToClient  = useCallback((id)        => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavClientId(id); setTab("fichas") }, [])
-  const goToReg     = useCallback((uid, date) => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }, [])
-  const goToAlmacen = useCallback((id)        => { try { localStorage.setItem("return_tab", localStorage.getItem("app_tab")||"") } catch {}; setNavAlmClientId(id); setTab("almacen") }, [])
+  const goToClient  = useCallback((id)        => { setStr("return_tab", getStr("app_tab", "")); setNavClientId(id); setTab("fichas") }, [])
+  const goToReg     = useCallback((uid, date) => { setStr("return_tab", getStr("app_tab", "")); setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }, [])
+  const goToAlmacen = useCallback((id)        => { setStr("return_tab", getStr("app_tab", "")); setNavAlmClientId(id); setTab("almacen") }, [])
 
   // ── Load all data ─────────────────────────────────────────────────────────
   const safe = (promise, fallback) => {
     let timerId
     const timer = new Promise(resolve => { timerId = setTimeout(() => resolve(fallback), 5000) })
     return Promise.race([
-      promise.then(r => { clearTimeout(timerId); return r }).catch(e => { clearTimeout(timerId); console.error("[data]", e.message); return fallback }),
+      promise.then(r => { clearTimeout(timerId); return r }).catch(e => { clearTimeout(timerId); logError("data", e); return fallback }),
       timer
     ])
   }
@@ -169,7 +171,7 @@ export default function App() {
         const rows = await res.json()
         if (Array.isArray(rows) && rows.length > 0) profile = rows[0]
       } catch (fetchErr) {
-        console.error("Profile fetch error:", fetchErr.message)
+        logError("Profile fetch", fetchErr)
       }
 
       // Fallback: build profile from session data
@@ -185,14 +187,14 @@ export default function App() {
           view_mode: "completo",
         }
         supabase.from("profiles").upsert(profile).then(({ error }) => {
-          if (error) console.error("Profile upsert error:", error.message)
+          if (error) logError("Profile upsert", error)
         })
       }
 
       setUser(profile)
       setAuthState("logged_in")
     } catch (e) {
-      console.error("handleLogin error:", e)
+      logError("handleLogin", e)
       setAuthState("logged_out")
     } finally {
       loginInProgress.current = false
@@ -213,7 +215,7 @@ export default function App() {
         if (session?.user) return handleLoginRef.current(session.user)
         else setAuthState("logged_out")
       })
-      .catch(e => { console.error("getSession error:", e); setAuthState("logged_out") })
+      .catch(e => { logError("getSession", e); setAuthState("logged_out") })
       .finally(() => clearTimeout(fallback))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -296,7 +298,7 @@ export default function App() {
   }, [])
   const onUpdateReg = useCallback(async (id, patch) => {
     setRegs(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
-    updateRegistro(id, patch).catch(e => { console.error("updateRegistro failed:", e); alert("Error guardando registro") })
+    updateRegistro(id, patch).catch(e => { logError("updateRegistro", e); alert("Error guardando registro") })
     // Sync: changing estado to Proforma/Contrato updates ficha's contrato tipo
     if (patch.estado === "Proforma" || patch.estado === "Contrato") {
       const tipo = patch.estado === "Contrato" ? "contrato" : "proforma"
@@ -333,7 +335,7 @@ export default function App() {
   }, [])
   const onHardDeleteReg = useCallback(async (id) => {
     setRegs(prev => prev.filter(r => r.id !== id))
-    deleteRegistro(id).catch(e => { console.error("deleteRegistro failed:", e); alert("Error eliminando registro") })
+    deleteRegistro(id).catch(e => { logError("deleteRegistro", e); alert("Error eliminando registro") })
   }, [])
 
   // ── CLIENT ops ────────────────────────────────────────────────────────────
@@ -347,7 +349,7 @@ export default function App() {
   const onUpdateClient = useCallback(async (id, fieldOrPatch, val) => {
     const patch = typeof fieldOrPatch === "string" ? { [fieldOrPatch]: val } : fieldOrPatch
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
-    updateClient(id, patch).catch(e => { console.error("updateClient failed:", e); alert("Error guardando cliente") })
+    updateClient(id, patch).catch(e => { logError("updateClient", e); alert("Error guardando cliente") })
     // When marking as erronea, clear Proforma/Contrato estado from linked registros
     if (patch.erronea === true) {
       const client = clients.find(c => c.id === id)
@@ -380,7 +382,7 @@ export default function App() {
     updateClient(id, { deleted_at: ts }).catch(e => {
       setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
       setAlmacen(prev => prev.map(s => s.client_id === id ? { ...s, deleted_at: null } : s))
-      console.error("deleteClient failed:", e); alert("Error eliminando")
+      logError("deleteClient", e); alert("Error eliminando")
     })
     // Update almacen salidas in DB
     almacen.filter(s => s.client_id === id && !s.deleted_at).forEach(s => {
@@ -393,7 +395,7 @@ export default function App() {
     setAlmacen(prev => prev.map(s => s.client_id === id && s.deleted_at ? { ...s, deleted_at: null } : s))
     updateClient(id, { deleted_at: null }).catch(e => {
       setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c))
-      console.error("restoreClient failed:", e); alert("Error restaurando")
+      logError("restoreClient", e); alert("Error restaurando")
     })
     // Restore almacen salidas in DB
     almacen.filter(s => s.client_id === id && s.deleted_at).forEach(s => {
@@ -422,7 +424,7 @@ export default function App() {
     fileUrls.forEach(url => deleteFileByUrl(url))
     deleteClient(id).catch(e => {
       if (backup.length) setClients(prev => [...prev, ...backup])
-      console.error("permanentDeleteClient failed:", e); alert("Error eliminando")
+      logError("permanentDeleteClient", e); alert("Error eliminando")
     })
   }, [almacen])
   const onAddContrato = useCallback(async (clientId, payload) => {
@@ -443,7 +445,7 @@ export default function App() {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, ...patch } : ct) }
     }))
-    updateContrato(contratoId, patch).catch(e => { console.error("updateContrato failed:", e); alert("Error guardando contrato") })
+    updateContrato(contratoId, patch).catch(e => { logError("updateContrato", e); alert("Error guardando contrato") })
     // Auto-update linked registro estado when tipo changes
     if (patch.tipo) {
       const client = clients.find(c => c.id === clientId)
@@ -484,7 +486,7 @@ export default function App() {
         return { ...ct, adelantos: (ct.adelantos||[]).map(a => a.id === adelantoId ? { ...a, ...patch } : a) }
       })}
     }))
-    updateAdelanto(adelantoId, patch).catch(e => { console.error("updateAdelanto failed:", e); alert("Error guardando adelanto") })
+    updateAdelanto(adelantoId, patch).catch(e => { logError("updateAdelanto", e); alert("Error guardando adelanto") })
   }, [])
   const onDeleteAdelanto = useCallback(async (clientId, contratoId, adelantoId) => {
     setClients(prev => prev.map(c => {
@@ -494,7 +496,7 @@ export default function App() {
         return { ...ct, adelantos: (ct.adelantos||[]).filter(a => a.id !== adelantoId) }
       })}
     }))
-    deleteAdelanto(adelantoId).catch(e => { console.error("deleteAdelanto failed:", e); alert("Error eliminando adelanto") })
+    deleteAdelanto(adelantoId).catch(e => { logError("deleteAdelanto", e); alert("Error eliminando adelanto") })
   }, [])
   const onAddContratoArchivo = useCallback(async (clientId, contratoId, file) => {
     const localUrl = URL.createObjectURL(file)
@@ -543,7 +545,7 @@ export default function App() {
         return { ...ct, contrato_archivos: (ct.contrato_archivos||[]).filter(a => a.id !== archivoId) }
       })}
     }))
-    deleteContratoArchivo(archivoId).catch(e => { console.error("deleteContratoArchivo failed:", e); alert("Error eliminando archivo") })
+    deleteContratoArchivo(archivoId).catch(e => { logError("deleteContratoArchivo", e); alert("Error eliminando archivo") })
     if (fileUrl) deleteFileByUrl(fileUrl)
   }, [])
   const onMergeClients = useCallback(async (targetId, sourceId) => {
@@ -570,11 +572,11 @@ export default function App() {
   }, [user])
   const onUpdateSalida = useCallback(async (id, patch) => {
     setAlmacen(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
-    updateSalida(id, patch).catch(e => { console.error("updateSalida failed:", e); alert("Error guardando salida") })
+    updateSalida(id, patch).catch(e => { logError("updateSalida", e); alert("Error guardando salida") })
   }, [])
   const onDeleteSalida = useCallback(async (id) => {
     setAlmacen(prev => prev.filter(s => s.id !== id))
-    deleteSalida(id).catch(e => { console.error("deleteSalida failed:", e); alert("Error eliminando salida") })
+    deleteSalida(id).catch(e => { logError("deleteSalida", e); alert("Error eliminando salida") })
   }, [])
   const onAddItem = useCallback(async (salidaId, payload) => {
     const tempId = `temp_${Date.now()}`
@@ -591,11 +593,11 @@ export default function App() {
   }, [])
   const onUpdateItem = useCallback(async (salidaId, itemId, patch) => {
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).map(it => it.id === itemId ? { ...it, ...patch } : it) } : s))
-    updateItem(itemId, patch).catch(e => { console.error("updateItem failed:", e); alert("Error guardando item") })
+    updateItem(itemId, patch).catch(e => { logError("updateItem", e); alert("Error guardando item") })
   }, [])
   const onDeleteItem = useCallback(async (salidaId, itemId) => {
     setAlmacen(prev => prev.map(s => s.id === salidaId ? { ...s, almacen_items: (s.almacen_items||[]).filter(it => it.id !== itemId) } : s))
-    deleteItem(itemId).catch(e => { console.error("deleteItem failed:", e); alert("Error eliminando item") })
+    deleteItem(itemId).catch(e => { logError("deleteItem", e); alert("Error eliminando item") })
   }, [])
   const onAddAlmacenArchivo = useCallback(async (salidaId, file) => {
     const localUrl = URL.createObjectURL(file)
@@ -617,7 +619,7 @@ export default function App() {
   const onDeleteAlmacenArchivo = useCallback(async (salidaId, archivoId) => {
     let fileUrl = null
     setAlmacen(prev => prev.map(s => { if (s.id !== salidaId) return s; const ar = (s.almacen_archivos||[]).find(a=>a.id===archivoId); if(ar) fileUrl=ar.url; return { ...s, almacen_archivos: (s.almacen_archivos||[]).filter(a => a.id !== archivoId) } }))
-    deleteAlmacenArchivo(archivoId).catch(e => { console.error("deleteAlmacenArchivo failed:", e); alert("Error eliminando archivo") })
+    deleteAlmacenArchivo(archivoId).catch(e => { logError("deleteAlmacenArchivo", e); alert("Error eliminando archivo") })
     if (fileUrl) deleteFileByUrl(fileUrl)
   }, [])
   const onAddArchivoRecojo = useCallback(async (salidaId, file) => {
@@ -640,7 +642,7 @@ export default function App() {
   const onDeleteArchivoRecojo = useCallback(async (salidaId, archivoId) => {
     let fileUrl = null
     setAlmacen(prev => prev.map(s => { if (s.id !== salidaId) return s; const ar = (s.almacen_archivos_recojo||[]).find(a=>a.id===archivoId); if(ar) fileUrl=ar.url; return { ...s, almacen_archivos_recojo: (s.almacen_archivos_recojo||[]).filter(a => a.id !== archivoId) } }))
-    deleteArchivoRecojo(archivoId).catch(e => { console.error("deleteArchivoRecojo failed:", e); alert("Error eliminando archivo") })
+    deleteArchivoRecojo(archivoId).catch(e => { logError("deleteArchivoRecojo", e); alert("Error eliminando archivo") })
     if (fileUrl) deleteFileByUrl(fileUrl)
   }, [])
 
@@ -654,11 +656,11 @@ export default function App() {
   }, [user])
   const onUpdateInventario = useCallback(async (id, patch) => {
     setInventario(prev=>prev.map(i=>i.id===id?{...i,...patch}:i))
-    updateInventarioItem(id, patch).catch(e => { console.error("updateInventario failed:", e); alert("Error guardando item") })
+    updateInventarioItem(id, patch).catch(e => { logError("updateInventario", e); alert("Error guardando item") })
   }, [])
   const onDeleteInventario = useCallback(async (id) => {
     setInventario(prev=>prev.filter(i=>i.id!==id))
-    deleteInventarioItem(id).catch(e => { console.error("deleteInventario failed:", e); alert("Error eliminando item") })
+    deleteInventarioItem(id).catch(e => { logError("deleteInventario", e); alert("Error eliminando item") })
   }, [])
 
   // ── CONTACTOS ops ─────────────────────────────────────────────────────────
@@ -677,19 +679,19 @@ export default function App() {
   }, [])
   const onUpdateContacto = useCallback(async (id, patch) => {
     setContactos(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
-    updateContacto(id, patch).catch(e => { console.error("updateContacto failed:", e); alert("Error guardando cliente") })
+    updateContacto(id, patch).catch(e => { logError("updateContacto", e); alert("Error guardando cliente") })
   }, [])
   const onDeleteContacto = useCallback(async (id) => {
     setContactos(prev => prev.map(c => c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c))
-    updateContacto(id, { deleted_at: new Date().toISOString() }).catch(e => { console.error("deleteContacto failed:", e); alert("Error eliminando") })
+    updateContacto(id, { deleted_at: new Date().toISOString() }).catch(e => { logError("deleteContacto", e); alert("Error eliminando") })
   }, [])
   const onRestoreContacto = useCallback(async (id) => {
     setContactos(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
-    updateContacto(id, { deleted_at: null }).catch(e => { console.error("restoreContacto failed:", e); alert("Error restaurando") })
+    updateContacto(id, { deleted_at: null }).catch(e => { logError("restoreContacto", e); alert("Error restaurando") })
   }, [])
   const onPermanentDeleteContacto = useCallback(async (id) => {
     setContactos(prev => prev.filter(c => c.id !== id))
-    deleteContacto(id).catch(e => { console.error("permanentDeleteContacto failed:", e); alert("Error eliminando") })
+    deleteContacto(id).catch(e => { logError("permanentDeleteContacto", e); alert("Error eliminando") })
   }, [])
 
   // ── CONFIG ops ────────────────────────────────────────────────────────────
@@ -703,11 +705,11 @@ export default function App() {
   // ── PROFILES ops ─────────────────────────────────────────────────────────
   const onUpdateProfile = useCallback(async (id, patch) => {
     setUsers(prev=>prev.map(u=>u.id===id?{...u,...patch}:u))
-    updateProfile(id, patch).catch(e => { console.error("updateProfile failed:", e); alert("Error guardando perfil") })
+    updateProfile(id, patch).catch(e => { logError("updateProfile", e); alert("Error guardando perfil") })
   }, [])
   const onDeleteProfile = useCallback(async (id) => {
     setUsers(prev=>prev.filter(u=>u.id!==id))
-    updateProfile(id, { active: false }).catch(e => { console.error("deleteProfile failed:", e); alert("Error eliminando perfil") })
+    updateProfile(id, { active: false }).catch(e => { logError("deleteProfile", e); alert("Error eliminando perfil") })
   }, [])
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -723,7 +725,7 @@ export default function App() {
   const changeTab = (t) => {
     if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
     setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null); setTempAlmAccess(null)
-    try { localStorage.removeItem("client_view"); localStorage.removeItem("client_viewEmp"); localStorage.removeItem("almacen_view"); localStorage.removeItem("reg_viewUser") } catch {}
+    removeLS("client_view"); removeLS("client_viewEmp"); removeLS("almacen_view"); removeLS("reg_viewUser")
   }
 
   return (
@@ -735,7 +737,7 @@ export default function App() {
       <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
         <Head user={user} menu={()=>setMobSide(true)} onToggleViewMode={(adm || user?.can_toggle_view) ? (mode) => {
           setUser(prev => ({ ...prev, view_mode: mode }))
-          try { localStorage.setItem("view_mode", mode) } catch {}
+          setStr("view_mode", mode)
           updateProfile(user.id, { view_mode: mode }).catch(() => {})
         } : null} />
         {uploadCount > 0 && (
