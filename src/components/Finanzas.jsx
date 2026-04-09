@@ -19,11 +19,14 @@ const MODULES = [
 export default function Finanzas() {
   const [activeModule, setActiveModule] = useState("viabilidad")
 
+  // Background color is set on the parent <main> in App.jsx when tab==="finanzas",
+  // so we don't need to wrap ourselves in a colored container — we just inherit
+  // the dark zinc-950 from above. That avoids any rim/gap from the parent padding.
   return (
-    <div className="min-h-full bg-zinc-950 text-zinc-100 -mx-6 -my-6 px-6 py-6" style={{ fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+    <div className="text-zinc-100" style={{ fontFamily: "'DM Sans',system-ui,sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-      <header className="border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-xl sticky top-0 z-40 -mx-6 px-6 py-4 mb-6">
+      <header className="border-b border-zinc-800/80 pb-4 mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-sky-400 to-emerald-400 bg-clip-text text-transparent">Finanza Coketín</h1>

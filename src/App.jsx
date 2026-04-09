@@ -780,7 +780,7 @@ export default function App() {
             Subiendo {uploadCount} archivo{uploadCount > 1 ? "s" : ""}...
           </div>
         )}
-        <main style={{ flex:1, padding:24, overflow:"auto" }}>
+        <main style={{ flex:1, padding:24, overflow:"auto", background: tab === "finanzas" ? "#09090b" : undefined }}>
           <Suspense fallback={<div style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:60, color:C.muted }}><div style={{ width:28, height:28, border:`3px solid ${C.border}`, borderTop:`3px solid ${C.accent}`, borderRadius:"50%", animation:"spin 1s linear infinite" }} /></div>}>
           {tab==="registro" && (
             <Registro
