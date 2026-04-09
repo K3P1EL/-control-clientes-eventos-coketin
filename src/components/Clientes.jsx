@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from "react"
+import { useState, useEffect, useRef, useMemo, memo } from "react"
 import { C } from "../lib/colors"
 import { today, fmtDate, canChangeTipo, genCode, canScanOCR, OCR_PER_HOUR_LIMIT } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
@@ -660,29 +660,51 @@ export default memo(function Clientes({
     return <EmployeeGrid clients={clients} addNew={addNew} setViewEmp={setViewEmp} />
   }
 
-  // Filter
-  const getMyClients = (userId, isAdmView) => {
-    const myRegIds = regs.filter(r=>r.user_id===userId).map(r=>r.id)
-    const usr = users.find(u=>u.id===userId)
-    const vis = isAdmView ? "always" : (usr?.client_visibility||"always")
-    if (vis==="none" && !isAdmView) return []
-    const now = new Date()
-    const maxAge = {today:1,"3days":3,week:7,month:30}[vis] || Infinity
-    return clients.filter(c => {
-      const owns = c.created_by===userId || (c.reg_ids||[]).some(rid=>myRegIds.includes(rid))
-      if (!owns) return false
-      if (c.hidden && !isAdmView) return false
-      if (maxAge===Infinity) return true
-      try { const d=new Date(c.created_at); return (now-d)/86400000 <= maxAge } catch { return true }
-    })
-  }
-  const filteredClients = (adm
-    ? (viewEmp==="__all__" ? clients : getMyClients(viewEmp, true))
-    : getMyClients(user.id, false)
-  ).filter(c => !c.deleted_at && (adm || !c.erronea))
+  // Memoized visibility-filtered list. Recomputes only when the underlying
+  // data (clients/regs/users) or the selected employee view changes — not
+  // when the user toggles unrelated UI state like `expandedId` or filters.
+  const filteredClients = useMemo(() => {
+    const getMyClients = (userId, isAdmView) => {
+      const myRegIds = regs.filter(r=>r.user_id===userId).map(r=>r.id)
+      const usr = users.find(u=>u.id===userId)
+      const vis = isAdmView ? "always" : (usr?.client_visibility||"always")
+      if (vis==="none" && !isAdmView) return []
+      const now = new Date()
+      const maxAge = {today:1,"3days":3,week:7,month:30}[vis] || Infinity
+      return clients.filter(c => {
+        const owns = c.created_by===userId || (c.reg_ids||[]).some(rid=>myRegIds.includes(rid))
+        if (!owns) return false
+        if (c.hidden && !isAdmView) return false
+        if (maxAge===Infinity) return true
+        try { const d=new Date(c.created_at); return (now-d)/86400000 <= maxAge } catch { return true }
+      })
+    }
+    const base = adm
+      ? (viewEmp==="__all__" ? clients : getMyClients(viewEmp, true))
+      : getMyClients(user.id, false)
+    return base.filter(c => !c.deleted_at && (adm || !c.erronea))
+  }, [clients, regs, users, adm, viewEmp, user.id])
   const viewEmpName = adm && viewEmp && viewEmp!=="__all__" && viewEmp!=="__mine__"
     ? (users.find(u=>u.id===viewEmp)?.name || "Empleado")
     : null
+
+  // Second stage: filter by status/canal/date + sort. Memoized so that
+  // unrelated state changes (expanding a row, opening a modal, etc.) don't
+  // re-sort the whole list.
+  const filteredSorted = useMemo(() => {
+    return filteredClients.filter(c => {
+      if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
+      if (canalFilter && fichaCanal(c,regs)!==canalFilter) return false
+      if (dateFrom || dateTo) {
+        if (!c.created_at) return false
+        const dt = new Date(c.created_at)
+        const d = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`
+        if (dateFrom && d < dateFrom) return false
+        if (dateTo && d > dateTo) return false
+      }
+      return true
+    }).sort((a,b) => sortAsc ? new Date(a.created_at||0)-new Date(b.created_at||0) : new Date(b.created_at||0)-new Date(a.created_at||0))
+  }, [filteredClients, regs, statusFilter, canalFilter, dateFrom, dateTo, sortAsc])
 
   return (
     <div>
@@ -725,25 +747,13 @@ export default memo(function Clientes({
       />
 
       {(() => {
-        const filtered = filteredClients.filter(c => {
-          if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
-          if (canalFilter && fichaCanal(c,regs)!==canalFilter) return false
-          if (dateFrom || dateTo) {
-            if (!c.created_at) return false
-            const dt = new Date(c.created_at)
-            const d = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`
-            if (dateFrom && d < dateFrom) return false
-            if (dateTo && d > dateTo) return false
-          }
-          return true
-        }).sort((a,b) => sortAsc ? new Date(a.created_at||0)-new Date(b.created_at||0) : new Date(b.created_at||0)-new Date(a.created_at||0))
-        return filtered.length===0 ? (
+        return filteredSorted.length===0 ? (
           <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:40, textAlign:"center", color:C.muted }}>
             No hay fichas de clientes.
           </div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            {filtered.map(c => (
+            {filteredSorted.map(c => (
               <FichaListRow
                 key={c.id}
                 c={c}

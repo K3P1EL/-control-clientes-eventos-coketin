@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from "react"
+import { useState, useEffect, useRef, useMemo, memo } from "react"
 import * as XLSX from "xlsx"
 import { C } from "../lib/colors"
 import { today, nowTime, genCode } from "../lib/helpers"
@@ -158,28 +158,32 @@ export default memo(function Registro({
   }
 
   // ── Table view ────────────────────────────────────────────────────────────
-  const filterByDate = (r) => {
-    if (!adm || dateRange === "dia") return r.fecha === date
-    if (dateRange === "todo") return true
-    try {
-      const p = r.fecha.split("/")
-      const rd = new Date(+p[2], +p[1]-1, +p[0])
-      const pd = date.split("/")
-      const cd = new Date(+pd[2], +pd[1]-1, +pd[0])
-      const diff = (cd - rd) / 86400000
-      if (dateRange === "semana") return diff >= 0 && diff < 7
-      if (dateRange === "mes")    return p[1]===pd[1] && p[2]===pd[2]
-      if (dateRange === "año")    return p[2]===pd[2]
-    } catch { return true }
-    return true
-  }
+  // Memoize the filter + slice chain so typing into an input or updating
+  // one row's field doesn't force a full recompute over `regs` (which can
+  // be hundreds of entries).
+  const rows = useMemo(() => {
+    const filterByDate = (r) => {
+      if (!adm || dateRange === "dia") return r.fecha === date
+      if (dateRange === "todo") return true
+      try {
+        const p = r.fecha.split("/")
+        const rd = new Date(+p[2], +p[1]-1, +p[0])
+        const pd = date.split("/")
+        const cd = new Date(+pd[2], +pd[1]-1, +pd[0])
+        const diff = (cd - rd) / 86400000
+        if (dateRange === "semana") return diff >= 0 && diff < 7
+        if (dateRange === "mes")    return p[1]===pd[1] && p[2]===pd[2]
+        if (dateRange === "año")    return p[2]===pd[2]
+      } catch { return true }
+      return true
+    }
+    const dateRegs = regs.filter(filterByDate)
+    return adm
+      ? (viewUser==="__all__" ? dateRegs : dateRegs.filter(r=>r.user_id===viewUser))
+      : dateRegs.filter(r=>r.user_id===user.id)
+  }, [regs, adm, dateRange, date, viewUser, user.id])
 
-  const dateRegs = regs.filter(filterByDate)
-  const allRows  = adm
-    ? (viewUser==="__all__" ? dateRegs : dateRegs.filter(r=>r.user_id===viewUser))
-    : dateRegs.filter(r=>r.user_id===user.id)
-  const rows  = allRows
-  const total = rows.filter(r=>!r.deleted).length
+  const total = useMemo(() => rows.filter(r=>!r.deleted).length, [rows])
   const viewName = adm
     ? (viewUser==="__all__" ? "General — Todos" : (rows[0]?.empleado || users.find(u=>u.id===viewUser)?.name || "Empleado"))
     : user.name
