@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, memo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react"
 import * as XLSX from "xlsx"
 import { C } from "../lib/colors"
 import { today, nowTime, genCode } from "../lib/helpers"
@@ -57,10 +57,13 @@ export default memo(function Registro({
     if (adm && date !== today()) setDate(today())
   }
 
-  const upd = (id, field, val) => onUpdateReg(id, { [field]: val })
+  // Stable callbacks — required so RegistroRow's memo() actually skips
+  // re-renders. Without useCallback every Registro re-render mints new
+  // function refs and the memo comparison fails on every key.
+  const upd = useCallback((id, field, val) => onUpdateReg(id, { [field]: val }), [onUpdateReg])
 
   const delCount = useRef({ day: "", count: 0 })
-  const del = (id) => {
+  const del = useCallback((id) => {
     if (!adm) {
       const d = today()
       if (delCount.current.day !== d) delCount.current = { day: d, count: 0 }
@@ -68,9 +71,10 @@ export default memo(function Registro({
       delCount.current.count++
     }
     onUpdateReg(id, { deleted:true, deleted_by:user.name, deleted_at:new Date().toISOString() })
-  }
+  }, [adm, user.name, onUpdateReg])
+
   const restoreCount = useRef({ day: "", count: 0 })
-  const restore = (id) => {
+  const restore = useCallback((id) => {
     if (!adm) {
       const d = today()
       if (restoreCount.current.day !== d) restoreCount.current = { day: d, count: 0 }
@@ -78,11 +82,15 @@ export default memo(function Registro({
       restoreCount.current.count++
     }
     onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
-  }
-  const hardDel = (id) => {
+  }, [adm, onUpdateReg])
+
+  // hardDel must depend on `clients` because it looks up the linked ficha.
+  // This callback ref will refresh when clients changes, which means rows
+  // re-render after a client mutation — that's fine and expected.
+  const hardDel = useCallback((id) => {
     const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(id))
     setDelConfirm({ regId: id, linked })
-  }
+  }, [clients])
 
   // Files picked — if ficha exists, upload directly. If not, ask tipo first.
   const onContractFile = (e) => {
@@ -137,10 +145,10 @@ export default memo(function Registro({
     finally { setContractUploading(prev => { const s = new Set(prev); s.delete(regId); return s }) }
   }
 
-  // Drag & drop on row
-  const onRowDragOver = (e, regId) => { e.preventDefault(); e.stopPropagation(); setDragOverRow(regId) }
-  const onRowDragLeave = () => setDragOverRow(null)
-  const onRowDrop = (e, regId) => {
+  // Drag & drop on row — stable refs so row memo() can skip
+  const onRowDragOver = useCallback((e, regId) => { e.preventDefault(); e.stopPropagation(); setDragOverRow(regId) }, [])
+  const onRowDragLeave = useCallback(() => setDragOverRow(null), [])
+  const onRowDrop = useCallback((e, regId) => {
     e.preventDefault(); e.stopPropagation(); setDragOverRow(null)
     const files = Array.from(e.dataTransfer.files || []).filter(f => /^(image|video|application\/pdf)/.test(f.type))
     if (!files.length) return
@@ -150,7 +158,11 @@ export default memo(function Registro({
     } else {
       setContractFiles({ regId, files })
     }
-  }
+    // doUpload intentionally omitted from deps — it closes over fresh state
+    // via its own setters; including it would invalidate this callback on
+    // every render and defeat the memo optimization.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients])
 
   // ── Table view ────────────────────────────────────────────────────────────
   // Memoize BEFORE the early return for the employee grid. Hook order must
