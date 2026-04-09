@@ -23,9 +23,14 @@ import Pending    from "./components/Pending"
 import Side       from "./components/Side"
 import Head       from "./components/Head"
 
-// Lazy load tab components — only loaded when user navigates to them
-const Registro   = lazy(() => import("./components/Registro"))
-const Clientes   = lazy(() => import("./components/Clientes"))
+// Lazy load tab components — only loaded when user navigates to them.
+// We capture the import promises so we can warm-prefetch the heaviest tabs
+// (Registro/Clientes) right after the app boots — that way the chunk is
+// already in memory by the time the user clicks "+ Ficha" or switches tabs.
+const importRegistro = () => import("./components/Registro")
+const importClientes = () => import("./components/Clientes")
+const Registro   = lazy(importRegistro)
+const Clientes   = lazy(importClientes)
 const Contactos  = lazy(() => import("./components/Contactos"))
 const Almacen    = lazy(() => import("./components/Almacen"))
 const Papelera   = lazy(() => import("./components/Papelera"))
@@ -153,6 +158,11 @@ export default function App() {
 
       // Start loading data immediately — don't wait for profile
       loadData()
+
+      // Warm-prefetch the heaviest lazy chunks so navigating to Registro
+      // or clicking "+ Ficha" doesn't have to wait on a chunk download.
+      importRegistro().catch(() => {})
+      importClientes().catch(() => {})
 
       // Fetch profile in parallel
       let profile = null
