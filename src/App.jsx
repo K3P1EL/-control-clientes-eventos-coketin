@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react"
 import { supabase } from "./lib/supabase"
 import { C } from "./lib/colors"
 import { today } from "./lib/helpers"
-import { getStr, setStr, remove as removeLS } from "./lib/storage"
+import { getStr, setStr } from "./lib/storage"
 import { logError } from "./lib/logger"
 import { CSS, Loader, ToastContainer } from "./components/shared"
 
@@ -745,7 +745,10 @@ export default function App() {
   const changeTab = (t) => {
     if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
     setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null); setTempAlmAccess(null)
-    removeLS("client_view"); removeLS("client_viewEmp"); removeLS("almacen_view"); removeLS("reg_viewUser")
+    // We deliberately do NOT clear client_view/client_viewEmp/almacen_view/reg_viewUser
+    // here — the whole point of persisting them is to remember the admin's last
+    // selected employee/ficha when they bounce between tabs. Only client_view (open
+    // ficha) is reset when the Volver button inside the ficha runs.
   }
 
   return (
