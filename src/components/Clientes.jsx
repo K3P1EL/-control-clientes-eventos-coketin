@@ -55,11 +55,10 @@ export default memo(function Clientes({
   const [phoneInput,     setPhoneInput]     = useState("")
   const [viewEmp,        setViewEmp_]       = useState(() => {
     if (!adm) return "__mine__"
-    const saved = getStr("client_viewEmp")
-    if (saved) return saved
-    // If a client view is open, default to __all__ so it renders the ficha
-    if (getStr("client_view")) return "__all__"
-    return null
+    // Default to "__all__" (Todos) for admin so bouncing between tabs always
+    // lands in a useful view, never the employee grid by surprise. The grid
+    // is still reachable via the Volver button in the list header.
+    return getStr("client_viewEmp", "__all__")
   })
   const setViewEmp = (v) => { setViewEmp_(v); setStr("client_viewEmp", v) }
   const [ocrLoading,     setOcrLoading]     = useState(false)

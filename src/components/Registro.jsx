@@ -18,7 +18,12 @@ export default memo(function Registro({
   onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onDeleteClient, onAddContratoArchivo, onDeleteContratoArchivo, onUpdateContrato, goToClient,
 }) {
   const [date,      setDate]      = useState(today())
-  const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; return getStr("reg_viewUser") })
+  // For admin: default to "__all__" (General view) instead of null. The
+  // employee-picker grid is still reachable via the toolbar's Volver button.
+  // This makes the default robust against any edge case where reg_viewUser
+  // gets cleared (cache, HMR, browser quirks) — bouncing between tabs always
+  // lands back in a useful view, never the grid by surprise.
+  const [viewUser,  setViewUser_] = useState(() => { if (!adm) return user.id; return getStr("reg_viewUser", "__all__") })
   const setViewUser = (v) => { setViewUser_(v); setStr("reg_viewUser", v) }
   const [selLocal,  setSelLocal]  = useState(locales[0] || "")
   const [dateRange, setDateRange] = useState("dia")
