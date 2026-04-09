@@ -1,0 +1,79 @@
+// Pure helpers shared across the Finanzas module.
+// No React, no hooks. Anything date/format/calculation related lives here.
+
+import { DIAS_SEMANA } from "./constants"
+
+// ── Date helpers ─────────────────────────────────────────────────────────
+export function getDaysInMonth(y, m) {
+  return new Date(y, m, 0).getDate()
+}
+
+export function getDayName(y, m, d) {
+  return DIAS_SEMANA[new Date(y, m - 1, d).getDay()]
+}
+
+// Calendar week of the month (1-6) — used for grouping days into rows.
+export function getWeekNumberCal(y, m, d) {
+  const first = new Date(y, m - 1, 1).getDay()
+  return Math.ceil((d + (first === 0 ? 6 : first - 1)) / 7)
+}
+
+// ISO week number (1-53). Used by Contratos to bucket weeks consistently.
+export function getWeekNumberISO(d) {
+  const date = parseLocalDate(d) || new Date(d)
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+  const week1 = new Date(date.getFullYear(), 0, 4)
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
+}
+
+// "America/Lima" stays the source of truth for "today" — events are local.
+export function peruNow() {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }))
+}
+
+export function peruToday() {
+  const d = peruNow()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+// Accepts "YYYY-MM-DD" or a Date. Returns a Date at local midnight.
+// Returns null for empty / "no trackeado" sentinel.
+export function parseLocalDate(d) {
+  if (!d || d === "no trackeado") return null
+  if (d instanceof Date) return d
+  const s = String(d)
+  return new Date(s.includes("T") ? s : s + "T00:00:00")
+}
+
+// ── Number formatting ────────────────────────────────────────────────────
+export function fmt(n, dec = 2) {
+  if (n === null || n === undefined || n === "") return "—"
+  return Number(n).toLocaleString("es-PE", {
+    minimumFractionDigits: dec,
+    maximumFractionDigits: dec,
+  })
+}
+
+export function fmtS(n) {
+  return "S/ " + fmt(n)
+}
+
+// Used by Contratos/Caja which prefer integer-style "S/ 1,234".
+export function formatMoney(n) {
+  if (n === 0) return "S/ 0"
+  return `S/ ${Number(n).toLocaleString("es-PE")}`
+}
+
+// ── Contract math ────────────────────────────────────────────────────────
+// Single source of truth for the derived numbers of one contract.
+// Used by both Contratos module and the "jalar" path in Viabilidad.
+export function calcContract(c) {
+  const porCobrar = Math.max(0, (c.total || 0) - (c.adelanto || 0))
+  const pendiente = Math.max(0, porCobrar - (c.cobro || 0))
+  const ganancia = (c.total || 0) - (c.descuento || 0)
+  const enCaja = (c.enCajaAdel ? (c.adelanto || 0) : 0) + (c.enCajaCobro ? (c.cobro || 0) : 0) - (c.descuento || 0)
+  const porRecibir = ganancia - enCaja
+  const estado = c.eliminado ? "Eliminado" : pendiente === 0 && c.total > 0 ? "Pagado" : "Pendiente"
+  return { porCobrar, pendiente, ganancia, enCaja, porRecibir, estado }
+}
