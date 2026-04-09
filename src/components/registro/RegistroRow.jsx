@@ -137,9 +137,17 @@ function RegistroRow({
             </button>}
           </div>
         ) : (
-          <button onClick={()=>del(r.id)} style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:4 }}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
-          </button>
+          <div style={{ display:"flex", gap:4, alignItems:"center" }}>
+            <button onClick={()=>del(r.id)} title="Mover a papelera" style={{ background:"none", border:"none", cursor:"pointer", color:C.danger, padding:4 }}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
+            </button>
+            {adm && (
+              <button onClick={()=>hardDel(r.id)} title="Eliminar permanente (sin pasar por papelera)" style={{ background:C.danger+"15", border:`1px solid ${C.danger}55`, borderRadius:4, cursor:"pointer", color:C.danger, padding:"2px 5px", display:"flex", alignItems:"center", gap:2 }}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h10M12 6V14a1 1 0 01-1 1H5a1 1 0 01-1-1V6M6 6V4a1 1 0 011-1h2a1 1 0 011 1v2"/></svg>
+                <span style={{ fontSize:9, fontWeight:700 }}>×</span>
+              </button>
+            )}
+          </div>
         )}
       </td>
     </tr>
