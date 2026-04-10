@@ -81,8 +81,8 @@ export default memo(function Registro({
       if (restoreCount.current.count >= LIMITS.RESTORES_PER_DAY) { alert(`Limite de restauraciones alcanzado (${LIMITS.RESTORES_PER_DAY} por dia)`); return }
       restoreCount.current.count++
     }
-    onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null })
-  }, [adm, onUpdateReg])
+    onUpdateReg(id, { deleted:false, deleted_by:null, deleted_at:null, restored_by:user.name, restored_at:new Date().toISOString() })
+  }, [adm, onUpdateReg, user.name])
 
   // hardDel must depend on `clients` because it looks up the linked ficha.
   // This callback ref will refresh when clients changes, which means rows

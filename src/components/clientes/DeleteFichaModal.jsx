@@ -19,6 +19,13 @@ export default memo(function DeleteFichaModal({ c, onCancel, onConfirm }) {
   const regCount = (c.reg_ids || []).length
   const hasData = cts.length > 0 || totalArchivos > 0 || totalAdelantos > 0 || regCount > 0
 
+  // Calculate pending money across all contracts
+  const pendienteTotal = cts.reduce((s, ct) => {
+    const adelSum = (ct.adelantos || []).filter(a => !a.invalid).reduce((ss, a) => ss + (Number(a.monto) || 0), 0)
+    const resto = Math.max(0, (Number(ct.total) || 0) - adelSum)
+    return s + resto
+  }, 0)
+
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.65)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onCancel}>
       <div onClick={e=>e.stopPropagation()} style={{ background:C.card, borderRadius:14, border:`1px solid ${C.red}44`, padding:24, maxWidth:420, width:"100%" }}>
@@ -41,6 +48,10 @@ export default memo(function DeleteFichaModal({ c, onCancel, onConfirm }) {
             {regCount > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
               <span style={{ color:C.text }}>Registros vinculados</span>
               <span style={{ color:C.muted, fontWeight:700 }}>{regCount} (no se borran)</span>
+            </div>}
+            {pendienteTotal > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, background:C.red+"15", borderRadius:6, padding:"6px 10px", marginTop:4 }}>
+              <span style={{ color:C.red, fontWeight:700 }}>⚠ Pendiente de cobro</span>
+              <span style={{ color:C.red, fontWeight:700 }}>S/ {pendienteTotal.toLocaleString("es-PE")}</span>
             </div>}
           </div>
         ) : (

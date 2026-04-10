@@ -20,6 +20,7 @@ export default memo(function DeleteRegistroModal({
         <h3 style={{ margin:"0 0 8px", fontSize:17, fontWeight:700, color:C.red }}>Eliminar registro</h3>
         {linked ? <>
           <p style={{ margin:"0 0 12px", fontSize:13, color:C.muted }}>Este registro tiene una ficha vinculada:</p>
+          {(linked.reg_ids||[]).length === 1 && <div style={{ background:C.yellow+"15", border:`1px solid ${C.yellow}44`, borderRadius:8, padding:"8px 12px", marginBottom:12, fontSize:12, color:C.yellow, fontWeight:600 }}>⚠ Este es el único registro vinculado a esta ficha</div>}
           <div style={{ background:C.cardAlt, borderRadius:10, padding:14, marginBottom:16 }}>
             <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:6 }}>{linked.nombre||"Sin nombre"} <span style={{ fontSize:11, color:C.cyan, fontFamily:"monospace" }}>{linked.code}</span></div>
             {cts.length > 0 && <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:4 }}><span style={{ color:C.muted }}>Contratos</span><span style={{ color:C.yellow, fontWeight:600 }}>{cts.length}</span></div>}
