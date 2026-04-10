@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, memo } from "react"
 import { C } from "../lib/colors"
-import { today, fmtDate, canChangeTipo, genCode, canScanOCR, OCR_PER_HOUR_LIMIT } from "../lib/helpers"
+import { today, fmtDate, canChangeTipo, genCode, canScanOCR, OCR_PER_HOUR_LIMIT, fichaStatus, fichaCanal } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
 import { getOCRUsage } from "../services/config"
 import { lbl, inp, mi, btn, td, ib, DInput, SafeImg, DatePicker } from "./shared"
@@ -19,24 +19,8 @@ import PaymentsPanel from "./clientes/PaymentsPanel"
 
 const parseProds = (pi) => Array.isArray(pi) ? pi : (pi||"").split(",").map(s=>s.trim()).filter(Boolean)
 
-// Determine ficha status color: erronea(red) > naranja(deleted regs) > anterior(blue, no regs) > normal(green)
-function fichaStatus(c, regs) {
-  if (c.erronea) return "erronea"
-  const rids = c.reg_ids || []
-  if (!rids.length) return "anterior"
-  const allRegsDeleted = rids.length > 0 && rids.every(rid => { const r = regs.find(x=>x.id===rid); return !r || r.deleted })
-  if (allRegsDeleted) return "naranja"
-  return "normal"
-}
+// fichaStatus and fichaCanal now live in lib/helpers — single source of truth.
 const STATUS_COLORS = { normal: C.accent, anterior: C.blue, naranja: C.orange, erronea: C.red }
-
-function fichaCanal(c, regs) {
-  const rids = c.reg_ids || []
-  if (!rids.length) return null
-  // Show canal of the first (original) registro
-  const first = regs.find(x => x.id === rids[0])
-  return first?.canal || null
-}
 
 export default memo(function Clientes({
   clients, user, adm, regs, users, prodTags, visionKey, contactos,

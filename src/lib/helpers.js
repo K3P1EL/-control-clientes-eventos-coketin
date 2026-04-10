@@ -50,6 +50,30 @@ export const fromInputDate = (d) => {
   try { const p = d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` } catch { return "" }
 }
 
+// ── Ficha status / canal helpers ─────────────────────────────────────────
+// These were duplicated between Clientes.jsx and FichaListRow.jsx; centralized
+// here so any tweak to the rules happens in exactly one place.
+//
+// Status precedence: erronea (red) > naranja (all linked regs deleted)
+//                   > anterior (no linked regs at all) > normal (green)
+export function fichaStatus(c, regs) {
+  if (c.erronea) return "erronea"
+  const rids = c.reg_ids || []
+  if (!rids.length) return "anterior"
+  const allRegsDeleted = rids.every(rid => { const r = regs.find(x => x.id === rid); return !r || r.deleted })
+  if (allRegsDeleted) return "naranja"
+  return "normal"
+}
+
+// Returns the canal of the FIRST linked registro (the original one),
+// or null if there are none. Used to badge fichas as W/F.
+export function fichaCanal(c, regs) {
+  const rids = c.reg_ids || []
+  if (!rids.length) return null
+  const first = regs.find(x => x.id === rids[0])
+  return first?.canal || null
+}
+
 // Global rate limiter for tipo changes
 import { LIMITS } from "./constants"
 const _tipoLimit = { hour: 0, count: 0 }

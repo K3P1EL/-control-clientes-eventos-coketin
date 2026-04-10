@@ -1,24 +1,8 @@
 import { memo } from "react"
 import { C } from "../../lib/colors"
-import { fmtDate } from "../../lib/helpers"
+import { fmtDate, fichaStatus, fichaCanal } from "../../lib/helpers"
 
-// Lógica de estado/canal duplicada de Clientes.jsx para mantener
-// una sola fuente. Si cambian las reglas, cambiar en ambos sitios.
-function fichaStatus(c, regs) {
-  if (c.erronea) return "erronea"
-  const rids = c.reg_ids || []
-  if (!rids.length) return "anterior"
-  const allRegsDeleted = rids.length > 0 && rids.every(rid => { const r = regs.find(x=>x.id===rid); return !r || r.deleted })
-  if (allRegsDeleted) return "naranja"
-  return "normal"
-}
 const STATUS_COLORS = { normal: C.accent, anterior: C.blue, naranja: C.orange, erronea: C.red }
-function fichaCanal(c, regs) {
-  const rids = c.reg_ids || []
-  if (!rids.length) return null
-  const first = regs.find(x => x.id === rids[0])
-  return first?.canal || null
-}
 
 // Una fila de la lista de fichas + su panel expandible de contratos.
 // Sin estado propio: todo viene por props desde Clientes.jsx.
