@@ -131,14 +131,21 @@ export default memo(function Registro({
           { tipo, estado: "activo" }
         )
         clientId = nc.id
-        contratoId = nc.contratos?.[0]?.id
+        // onAddClient creates the contrato in the background and returns
+        // a promise we MUST await before uploading files — otherwise the
+        // contratoId is undefined and the upload silently no-ops.
+        const ct = await nc.contratoPromise
+        contratoId = ct?.id
       }
       if (clientId && contratoId) {
         const results = await Promise.allSettled(files.map(f => onAddContratoArchivo(clientId, contratoId, f)))
         const failed = results.filter((r,i) => r.status === "rejected").map((r,i) => files[i]?.name || `archivo ${i+1}`)
         if (failed.length) alert(`Error subiendo: ${failed.join(", ")}`)
+        onUpdateReg(regId, { foto: "SI" })
+      } else {
+        // No contrato → no upload happened. Don't lie by setting foto: "SI".
+        alert("No se pudo crear el contrato — los archivos no se subieron.")
       }
-      onUpdateReg(regId, { foto: "SI" })
       // Auto-set estado to match tipo if new ficha was created
       if (tipo) onUpdateReg(regId, { estado: tipo === "contrato" ? "Contrato" : "Proforma" })
     } catch (err) { alert("Error: " + err.message) }

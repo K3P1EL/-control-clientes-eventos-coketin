@@ -350,22 +350,26 @@ export default function App() {
   }, [])
 
   // ── CLIENT ops ────────────────────────────────────────────────────────────
+  // Returns the new client immediately (with empty contratos[] for fast UI),
+  // PLUS a `contratoPromise` callers can await when they need the contrato
+  // id — e.g. uploading files right after creating the client.
   const onAddClient = useCallback(async (clientPayload, contratoPayload = {}) => {
     // Step 1: create the client and add it to state IMMEDIATELY so the UI can
     // navigate to the new ficha without waiting on the second round-trip.
     const data = await createClient({ ...clientPayload, reg_ids: clientPayload.reg_ids || [] })
     setClients(prev => [...prev, { ...data, contratos: [] }])
 
-    // Step 2: create the default contrato in the background. When it lands we
-    // splice it into the existing client entry. Errors are surfaced via alert
-    // because the user is already looking at the ficha by the time this runs.
-    createContrato({ client_id: data.id, fecha: today(), tipo: "proforma", estado: "activo", total: 0, producto_interes: [], ...contratoPayload })
+    // Step 2: create the default contrato. Kept as a promise so callers
+    // that need the id (file upload) can await it; callers that don't
+    // (the "+ Ficha" navigate-and-go path) just ignore it.
+    const contratoPromise = createContrato({ client_id: data.id, fecha: today(), tipo: "proforma", estado: "activo", total: 0, producto_interes: [], ...contratoPayload })
       .then(ct => {
         setClients(prev => prev.map(c => c.id === data.id ? { ...c, contratos: [...(c.contratos || []), ct] } : c))
+        return ct
       })
-      .catch(e => { logError("createContrato", e); alert("Error creando contrato inicial") })
+      .catch(e => { logError("createContrato", e); alert("Error creando contrato inicial"); throw e })
 
-    return { ...data, contratos: [] }
+    return { ...data, contratos: [], contratoPromise }
   }, [])
   const onUpdateClient = useCallback(async (id, fieldOrPatch, val) => {
     const patch = typeof fieldOrPatch === "string" ? { [fieldOrPatch]: val } : fieldOrPatch
