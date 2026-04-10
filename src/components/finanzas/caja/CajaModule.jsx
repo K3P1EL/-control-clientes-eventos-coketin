@@ -10,7 +10,7 @@ import MetricsView from "./MetricsView"
 const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: "", modalidad: "Yape", delNegocio: true, deContrato: false, categoria: "" }
 
 export default function CajaModule() {
-  const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, mesesDisponibles, semanasDisponibles } = useCajaEntries()
+  const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset, mesesDisponibles, semanasDisponibles } = useCajaEntries()
 
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
@@ -166,6 +166,19 @@ export default function CajaModule() {
           )}
         </>
       )}
+
+      <div style={{ textAlign: "center" }}>
+        <button
+          onClick={() => {
+            if (window.confirm("¿Resetear Caja a los datos originales?\n\nSe borrarán TODOS los movimientos (incluidos los que agregaste) y se cargarán los 14 seed iniciales.")) {
+              handleReset()
+            }
+          }}
+          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#3f3f46", textDecoration: "underline" }}
+        >
+          Resetear datos originales
+        </button>
+      </div>
     </div>
   )
 }
