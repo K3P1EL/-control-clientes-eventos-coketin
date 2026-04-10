@@ -12,7 +12,7 @@ import FullPlataView from "./views/FullPlataView"
 // Owns view-mode + filter state. Hands off persistence to useContratos
 // and renders the appropriate sub-view.
 export default function ContratosModule() {
-  const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handleReset, calcSummary } = useContratos()
+  const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handlePermanentDelete, handleReset, calcSummary } = useContratos()
 
   const [editContract, setEditContract] = useState(undefined)
   const [deleteId, setDeleteId] = useState(null)
@@ -116,9 +116,10 @@ export default function ContratosModule() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "#71717a" }}>Eliminados:</span>
             {contracts.filter(c => c.eliminado).map(c => (
-              <span key={c.id} style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", fontSize: 11, color: "#f87171", fontFamily: "monospace" }}>
+              <span key={c.id} style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", fontSize: 11, color: "#f87171", fontFamily: "monospace", display: "inline-flex", alignItems: "center", gap: 6 }}>
                 {c.id}
-                <button onClick={() => handleRestore(c.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#38bdf8", fontWeight: 600, textDecoration: "underline", marginLeft: 4 }}>Restaurar</button>
+                <button onClick={() => handleRestore(c.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#38bdf8", fontWeight: 600, textDecoration: "underline" }}>Restaurar</button>
+                <button onClick={() => { if (window.confirm(`¿Borrar ${c.id} definitivamente? No se puede deshacer.`)) handlePermanentDelete(c.id) }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#f87171", fontWeight: 600, textDecoration: "underline" }}>Borrar</button>
               </span>
             ))}
           </div>

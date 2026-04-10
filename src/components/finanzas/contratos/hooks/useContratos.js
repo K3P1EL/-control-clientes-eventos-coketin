@@ -77,6 +77,13 @@ export function useContratos() {
     setContracts(prev => prev.map(c => c.id === id ? { ...c, eliminado: false, notas: "" } : c))
   }, [])
 
+  // Hard delete — drops the row from the array entirely. The next
+  // debounced save uploads the new array (without it) to Supabase, so
+  // the contract is gone everywhere — local, memory, cloud.
+  const handlePermanentDelete = useCallback((id) => {
+    setContracts(prev => prev.filter(c => c.id !== id))
+  }, [])
+
   // "Resetear datos originales" — wipes the cloud row, the localStorage
   // cache, and re-seeds with INITIAL_CONTRACTS. The debounced save will
   // immediately upload the new seed to Supabase, so the next refresh
@@ -161,7 +168,7 @@ export function useContratos() {
 
   return {
     loaded, contracts, activeContracts, nextContractId,
-    handleSave, handleDelete, handleRestore, handleReset,
+    handleSave, handleDelete, handleRestore, handlePermanentDelete, handleReset,
     calcSummary,
   }
 }
