@@ -13,7 +13,9 @@ import ReconciliationChip from "./ReconciliationChip"
 
 const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: "", modalidad: "Yape", delNegocio: true, deContrato: false, categoria: "" }
 
-export default function CajaModule() {
+// Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
+// so switching between Contratos ↔ Caja keeps the same time window.
+export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth }) {
   const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset } = useCajaEntries()
 
   const currentWeekNum = getWeekNumberISO(peruNow())
@@ -22,11 +24,6 @@ export default function CajaModule() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
-  // filterMes is now just the month number as a string ("1".."12") OR ""
-  // for "all months". filterSem is the ISO week number as a string.
-  // Defaults to current week so the user opens to the most relevant slice.
-  const [filterMes, setFilterMes] = useState("")
-  const [filterSem, setFilterSem] = useState(String(currentWeekNum))
   const [sortBy, setSortBy] = useState("num")
   const [sortDir, setSortDir] = useState("desc")
   const [showMetrics, setShowMetrics] = useState(false)
@@ -57,9 +54,7 @@ export default function CajaModule() {
     })
   }, [activeEntries, filterMes, filterSem, soloNegocio, soloContrato, sortBy, sortDir])
 
-  const setQuickAll = () => { setFilterSem(""); setFilterMes("") }
-  const setQuickWeek = (w) => { setFilterMes(""); setFilterSem(String(w)) }
-  const setQuickMonth = (m) => { setFilterSem(""); setFilterMes(String(m)) }
+  // setQuickAll/setQuickWeek/setQuickMonth come from props (shared with Contratos).
 
   // Single pass over filtered for both totals — avoids two extra
   // .filter().reduce() chains on every render.

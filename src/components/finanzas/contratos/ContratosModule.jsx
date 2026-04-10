@@ -11,8 +11,9 @@ import MonthlyView from "./views/MonthlyView"
 import FullPlataView from "./views/FullPlataView"
 
 // Owns view-mode + filter state. Hands off persistence to useContratos
-// and renders the appropriate sub-view.
-export default function ContratosModule() {
+// Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
+// so switching between Contratos ↔ Caja keeps the same time window.
+export default function ContratosModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth }) {
   const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handlePermanentDelete, handleReset, calcSummary } = useContratos()
 
   const [editContract, setEditContract] = useState(undefined)
@@ -22,8 +23,6 @@ export default function ContratosModule() {
   const currentMonthNum = peruNow().getMonth() + 1
   const currentYear = peruNow().getFullYear()
 
-  const [filterSem, setFilterSem] = useState(String(currentWeekNum))
-  const [filterMes, setFilterMes] = useState("")
   const [filterEstado, setFilterEstado] = useState("")
   const [view, setView] = useState("tabla")
   const [search, setSearch] = useState("")
@@ -44,16 +43,16 @@ export default function ContratosModule() {
   const filteredSummary = useMemo(() => calcSummary(filtered), [filtered, calcSummary])
   const quickLabel = filterSem ? `Semana ${filterSem}${+filterSem === currentWeekNum ? " (actual)" : ""}` : filterMes ? `${MESES_CORTO[+filterMes]} ${currentYear}` : "Todo"
 
-  const setQuickAll = () => { setFilterSem(""); setFilterMes(""); setFilterEstado(""); setSearch("") }
-  const setQuickWeek = (w) => { setFilterMes(""); setFilterSem(String(w)) }
-  const setQuickMonth = (m) => { setFilterSem(""); setFilterMes(String(m)) }
+  // setQuickAll/setQuickWeek/setQuickMonth come from props (shared with Caja).
+  // Wrap setQuickAll to also clear local-only filters (estado, search).
+  const clearAll = () => { setQuickAll(); setFilterEstado(""); setSearch("") }
 
   if (!loaded) return <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">Cargando...</div>
 
   const viewBtns = [
     { id: "t-sem", label: filterSem ? `Sem ${filterSem}${+filterSem === currentWeekNum ? " ←" : ""}` : `Sem ${currentWeekNum}`, action: () => { setQuickWeek(currentWeekNum); setView("tabla") }, active: view === "tabla" && !!filterSem },
     { id: "t-mes", label: filterMes && !filterSem ? `${MESES_CORTO[+filterMes]}` : MESES_CORTO[currentMonthNum], action: () => { setQuickMonth(currentMonthNum); setView("tabla") }, active: view === "tabla" && !!filterMes && !filterSem },
-    { id: "t-todo", label: "Todo", action: () => { setQuickAll(); setView("tabla") }, active: view === "tabla" && !filterSem && !filterMes },
+    { id: "t-todo", label: "Todo", action: () => { clearAll(); setView("tabla") }, active: view === "tabla" && !filterSem && !filterMes },
     { id: "sep", label: "|", action: null, active: false },
     { id: "v-semanal", label: "📅 Comparar semanas", action: () => setView("semanal"), active: view === "semanal" },
     { id: "v-mensual", label: "🗓️ Comparar meses", action: () => setView("mensual"), active: view === "mensual" },
@@ -97,7 +96,7 @@ export default function ContratosModule() {
           filterSem={filterSem} filterMes={filterMes} currentWeekNum={currentWeekNum} quickLabel={quickLabel}
           filterEstado={filterEstado} setFilterEstado={setFilterEstado}
           search={search} setSearch={setSearch}
-          setQuickAll={setQuickAll}
+          setQuickAll={clearAll}
           onEdit={setEditContract} onDelete={setDeleteId}
           onPermanentDelete={handlePermanentDelete}
         />

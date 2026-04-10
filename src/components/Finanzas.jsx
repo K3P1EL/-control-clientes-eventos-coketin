@@ -2,14 +2,15 @@ import { useState } from "react"
 import ViabilidadModule from "./finanzas/viabilidad/ViabilidadModule"
 import ContratosModule from "./finanzas/contratos/ContratosModule"
 import CajaModule from "./finanzas/caja/CajaModule"
+import { peruNow, getWeekNumberISO } from "../lib/finanzas/helpers"
 
 // Top-level Finanzas entry. Holds a small tab bar to switch between
-// the 3 sub-modules. Each module owns its own state and persistence;
-// nothing is shared between them.
+// the 3 sub-modules.
 //
-// Wrapped in a dark-themed container so the Tailwind classes inside
-// the modules render against the right background regardless of the
-// rest of the app's inline styles.
+// The period filter (filterSem / filterMes) is SHARED across modules
+// so that switching between Contratos and Caja keeps the same time
+// window. This way the user can compare side-by-side without re-selecting
+// the week/month every time.
 const MODULES = [
   { id: "viabilidad", label: "Viabilidad Operativa", icon: "📈" },
   { id: "contratos", label: "Contratos", icon: "💼" },
@@ -18,6 +19,17 @@ const MODULES = [
 
 export default function Finanzas() {
   const [activeModule, setActiveModule] = useState("viabilidad")
+
+  // Shared period filter: one of the two is active at a time, or both
+  // empty for "Todo". When the user changes the period in any module,
+  // every other module sees the same filter immediately.
+  const [filterSem, setFilterSem] = useState(String(getWeekNumberISO(peruNow())))
+  const [filterMes, setFilterMes] = useState("")
+
+  // Convenience helpers that the modules call via props.
+  const setQuickAll = () => { setFilterSem(""); setFilterMes("") }
+  const setQuickWeek = (w) => { setFilterMes(""); setFilterSem(String(w)) }
+  const setQuickMonth = (m) => { setFilterSem(""); setFilterMes(String(m)) }
 
   // Background color is set on the parent <main> in App.jsx when tab==="finanzas",
   // so we don't need to wrap ourselves in a colored container — we just inherit
@@ -53,8 +65,18 @@ export default function Finanzas() {
         </header>
 
         <div style={{ display: activeModule === "viabilidad" ? "block" : "none" }}><ViabilidadModule /></div>
-        <div style={{ display: activeModule === "contratos" ? "block" : "none" }}><ContratosModule /></div>
-        <div style={{ display: activeModule === "caja" ? "block" : "none" }}><CajaModule /></div>
+        <div style={{ display: activeModule === "contratos" ? "block" : "none" }}>
+          <ContratosModule
+            filterSem={filterSem} filterMes={filterMes}
+            setQuickAll={setQuickAll} setQuickWeek={setQuickWeek} setQuickMonth={setQuickMonth}
+          />
+        </div>
+        <div style={{ display: activeModule === "caja" ? "block" : "none" }}>
+          <CajaModule
+            filterSem={filterSem} filterMes={filterMes}
+            setQuickAll={setQuickAll} setQuickWeek={setQuickWeek} setQuickMonth={setQuickMonth}
+          />
+        </div>
       </div>
     </div>
   )
