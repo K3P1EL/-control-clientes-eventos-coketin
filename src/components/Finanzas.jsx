@@ -37,8 +37,8 @@ export default function Finanzas() {
               <button key={m.id} onClick={() => setActiveModule(m.id)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
                   activeModule === m.id
-                    ? "bg-sky-500/15 text-sky-400 border border-sky-500/30 shadow-lg shadow-sky-500/5"
-                    : "text-zinc-500 hover:text-zinc-300 border border-transparent"
+                    ? "bg-sky-500/25 text-sky-300 border border-sky-400/60 shadow-md shadow-sky-500/20"
+                    : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 border border-transparent"
                 }`}>
                 <span>{m.icon}</span>{m.label}
               </button>
