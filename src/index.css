@@ -50,6 +50,21 @@
   color: #828590 !important;
 }
 
+/* Visible row separators inside Finanzas tables. The Tailwind classes
+   used by the tabs (border-zinc-800/60) wash out almost completely on
+   the dark card background, so the rows look like they float without
+   any "ledger" structure. Force a slightly brighter rule on every
+   row inside any table living under .finanzas-root. */
+.finanzas-root table tbody tr {
+  border-top: 1px solid rgba(63, 63, 70, 0.6);
+}
+.finanzas-root table tbody tr:first-child {
+  border-top: 1px solid rgba(82, 82, 91, 0.7);
+}
+.finanzas-root table tfoot tr {
+  border-top: 2px solid rgba(82, 82, 91, 0.9);
+}
+
 body {
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: #0f1923;
