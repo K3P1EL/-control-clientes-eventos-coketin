@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { peruToday, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { peruToday } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadCaja, saveCaja, deleteCaja } from "../../../../services/finanzas"
 import { remove as removeLocal } from "../../../../lib/storage"
@@ -100,19 +100,8 @@ export function useCajaEntries() {
   const activeEntries = useMemo(() => entries.filter(e => !e.eliminado), [entries])
   const deletedEntries = useMemo(() => entries.filter(e => e.eliminado), [entries])
 
-  const mesesDisponibles = useMemo(() => {
-    const set = new Set(activeEntries.map(e => e.fecha ? e.fecha.slice(0, 7) : null).filter(Boolean))
-    return [...set].sort().reverse()
-  }, [activeEntries])
-
-  const semanasDisponibles = useMemo(() => {
-    const set = new Set(activeEntries.map(e => { if (!e.fecha) return null; return getWeekNumberISO(new Date(e.fecha + "T12:00:00")) }).filter(Boolean))
-    return [...set].sort((a, b) => a - b)
-  }, [activeEntries])
-
   return {
     loaded, entries, activeEntries, deletedEntries,
     addEntry, removeEntry, restoreEntry, permanentDelete, handleReset,
-    mesesDisponibles, semanasDisponibles,
   }
 }

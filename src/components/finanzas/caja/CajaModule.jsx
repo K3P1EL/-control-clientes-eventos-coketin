@@ -84,6 +84,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
   const reconciliationLabel = filterSem ? `Sem ${filterSem}` : filterMes ? MESES[+filterMes] : "Todo el tiempo"
 
   const onSubmitForm = () => {
+    if (!form.monto || form.monto <= 0) { alert("El monto debe ser mayor a 0"); return }
     addEntry(form, editId)
     setForm(EMPTY_FORM)
     setShowForm(false)

@@ -16,21 +16,28 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const calc = calcContract(form)
 
-  // Close on ESC.
+  // Check if the form has been modified before closing — prevent
+  // accidental data loss on ESC / click-outside / X button.
+  const isDirty = JSON.stringify(form) !== JSON.stringify(contract || { id: nextId, cliente: "", total: 0, adelanto: 0, modalAdel: "Efectivo", recibioAdel: "Yo", fechaAdel: peruToday(), enCajaAdel: true, cobro: 0, modalCobro: "Efectivo", recibioCobro: "Yo", fechaCobro: "", enCajaCobro: false, descuento: 0, notas: "", depend: false, semana: getWeekNumberISO(peruNow()), mes: peruNow().getMonth() + 1, anio: peruNow().getFullYear(), eliminado: false })
+  const safeClose = () => {
+    if (isDirty && !window.confirm("¿Descartar cambios?")) return
+    onClose()
+  }
+
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose() }
+    const onKey = (e) => { if (e.key === "Escape") safeClose() }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
+  })
   const fs = cDark.input
   const groupStyle = { display: "flex", flexDirection: "column", gap: 2 }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={safeClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#18181b", borderRadius: 18, width: "100%", maxWidth: 640, maxHeight: "90vh", overflow: "auto", boxShadow: "0 25px 50px rgba(0,0,0,0.5)", border: "1px solid #3f3f46" }}>
         <div style={{ padding: "20px 24px", borderBottom: "1px solid #3f3f46", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, background: "#18181b", borderRadius: "18px 18px 0 0", zIndex: 1 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#e4e4e7" }}>{isNew ? "Nuevo Contrato" : `Editar ${form.id}`}</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#71717a", padding: "4px 8px" }}>✕</button>
+          <button onClick={safeClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#71717a", padding: "4px 8px" }}>✕</button>
         </div>
         <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
@@ -107,7 +114,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
           </div>
         </div>
         <div style={{ padding: "16px 24px", borderTop: "1px solid #3f3f46", display: "flex", gap: 10, justifyContent: "flex-end", position: "sticky", bottom: 0, background: "#18181b", borderRadius: "0 0 18px 18px" }}>
-          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #3f3f46", background: "#27272a", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#a1a1aa" }}>Cancelar</button>
+          <button onClick={safeClose} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #3f3f46", background: "#27272a", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#a1a1aa" }}>Cancelar</button>
           <button onClick={() => { onSave(form); onClose() }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 2px 8px rgba(14,165,233,0.3)" }}>
             {isNew ? "Crear Contrato" : "Guardar Cambios"}
           </button>

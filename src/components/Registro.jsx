@@ -152,7 +152,12 @@ export default memo(function Registro({
     finally { setContractUploading(prev => { const s = new Set(prev); s.delete(regId); return s }) }
   }
 
-  // Drag & drop on row — stable refs so row memo() can skip
+  // Drag & drop on row — stable refs so row memo() can skip.
+  // doUpload is NOT a useCallback (it reads too much state) so we stash
+  // it in a ref to keep onRowDrop's identity stable across renders.
+  const doUploadRef = useRef(doUpload)
+  doUploadRef.current = doUpload
+
   const onRowDragOver = useCallback((e, regId) => { e.preventDefault(); e.stopPropagation(); setDragOverRow(regId) }, [])
   const onRowDragLeave = useCallback(() => setDragOverRow(null), [])
   const onRowDrop = useCallback((e, regId) => {
@@ -161,14 +166,10 @@ export default memo(function Registro({
     if (!files.length) return
     const linked = clients.find(c => !c.deleted_at && (c.reg_ids||[]).includes(regId))
     if (linked) {
-      doUpload(regId, files, null, linked)
+      doUploadRef.current(regId, files, null, linked)
     } else {
       setContractFiles({ regId, files })
     }
-    // doUpload intentionally omitted from deps — it closes over fresh state
-    // via its own setters; including it would invalidate this callback on
-    // every render and defeat the memo optimization.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients])
 
   // ── Table view ────────────────────────────────────────────────────────────

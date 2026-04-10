@@ -11,26 +11,33 @@ import { logError } from "../../../../lib/logger"
 //   2. Mounting useContratos here would create a SECOND useSupabaseSync
 //      for the same key, racing the real one over in ContratosModule.
 //
-// Instead this just reads — first from localStorage (instant, what the
-// user just saw), then upgrades from cloud in the background. Both
-// fall through gracefully if there's nothing.
+// Reads localStorage instantly on mount and refreshes from Supabase
+// in the background. Also re-reads localStorage whenever the tab
+// regains focus — that way edits made in the Contratos tab become
+// visible here without a full page reload.
 export function useContratosSnapshot() {
   const [contracts, setContracts] = useState(() => {
-    // Synchronous warm read from localStorage so reconciliation is
-    // visible immediately on first paint, without waiting for the cloud.
     const local = getJSON(STORAGE_KEYS.CONTRATOS)
     return Array.isArray(local) ? local : []
   })
 
   useEffect(() => {
     let cancelled = false
+    // Initial cloud fetch.
     loadContratos()
-      .then(cloud => {
-        if (cancelled) return
-        if (Array.isArray(cloud)) setContracts(cloud)
-      })
+      .then(cloud => { if (!cancelled && Array.isArray(cloud)) setContracts(cloud) })
       .catch(e => logError("caja.contratosSnapshot", e))
-    return () => { cancelled = true }
+
+    // Re-read from localStorage whenever the user switches back to this
+    // tab. ContratosModule writes to localStorage on every change, so
+    // this picks up any edits made while the user was in the other tab.
+    const onFocus = () => {
+      const fresh = getJSON(STORAGE_KEYS.CONTRATOS)
+      if (Array.isArray(fresh)) setContracts(fresh)
+    }
+    window.addEventListener("focus", onFocus)
+
+    return () => { cancelled = true; window.removeEventListener("focus", onFocus) }
   }, [])
 
   return contracts

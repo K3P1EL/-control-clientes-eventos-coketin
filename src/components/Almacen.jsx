@@ -37,7 +37,8 @@ export default memo(function Almacen({
       onAddSalida(navClientId, cl?.nombre||"", cl?.code||"").then(ns=>setView(ns.id))
     }
     clearNav()
-  }, [navClientId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onAddSalida is a stable useCallback from App.jsx; listing it would cause no change but silences the lint rule.
+  }, [navClientId, clearNav])
 
   // ── Detail view ───────────────────────────────────────────────────────────
   if (view) {
