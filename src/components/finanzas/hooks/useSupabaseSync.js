@@ -2,15 +2,30 @@ import { useEffect, useRef } from "react"
 import { getJSON, setJSON } from "../../../lib/storage"
 import { logError } from "../../../lib/logger"
 
+// In-memory cache shared across mounts of the SAME hook in the same SPA
+// session. Lets a user bounce between Finanzas and another tab without
+// re-fetching from Supabase every time. Cleared on full page reload.
+//
+// Layout: { [localKey]: { data: <blob>, fetchedAt: <ms> } }
+const memoryCache = new Map()
+
+// How long an in-memory cache entry counts as "fresh enough" to skip
+// the network round-trip when remounting the hook within the same SPA
+// session. We still WRITE through to Supabase on every change, so this
+// just controls reads.
+const MEMORY_TTL_MS = 60_000
+
 // Two-tier persistence for the Finanzas modules:
 //
-//   1. On mount, try Supabase via `loader()`. If that returns null
-//      (first time after migration) and there's existing data in
-//      localStorage under `localKey`, push that data UP to Supabase
-//      automatically — the user never loses their pre-cloud work.
-//   2. After every change, save to BOTH localStorage (instant, offline
-//      fallback) AND Supabase (debounced 600ms, ground truth).
-//   3. On unmount / page hide / before unload, flush both immediately.
+//   1. SYNCHRONOUS hydration: on mount, we IMMEDIATELY apply whatever's
+//      in memory cache (best) or localStorage (fallback) BEFORE the
+//      network round-trip starts. The user sees real data instantly
+//      instead of "Cargando..."
+//   2. ASYNC reconciliation: in parallel, we hit Supabase. If the cloud
+//      version differs from what we already painted, we re-apply.
+//   3. WRITES go to localStorage instantly (offline cache) AND to
+//      Supabase debounced (600ms).
+//   4. On unmount / page hide / before unload, flush both immediately.
 //
 // `applyLoaded(blob)` is how the parent hook applies whatever we managed
 // to load. The parent owns the actual useState calls.
@@ -32,14 +47,28 @@ export function useSupabaseSync({
   const latest = useRef(data)
   latest.current = data
 
-  // ── Initial load (runs once) ────────────────────────────────────
-  // Critical: applyLoaded MUST be called exactly once on every code path,
-  // even when there's no data anywhere — otherwise `loaded` never flips
-  // to true and the parent shows "Cargando..." forever.
+  // ── Initial hydration + cloud reconciliation (runs once) ─────────
+  // Critical: applyLoaded MUST be called exactly once on every code
+  // path so the parent's `loaded` flag flips and we leave "Cargando".
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
 
+    // STEP 1 — synchronous instant render.
+    // Best source: in-memory cache from a recent mount in this session.
+    // Fallback: localStorage. Worst case: null (parent uses defaults).
+    let painted = null
+    const cached = memoryCache.get(localKey)
+    if (cached && Date.now() - cached.fetchedAt < MEMORY_TTL_MS) {
+      painted = cached.data
+    } else {
+      painted = getJSON(localKey)
+    }
+    applyLoaded(painted)
+
+    // STEP 2 — async reconciliation with cloud, in parallel.
+    // If the cloud version differs from what we just painted, re-apply
+    // and update both caches. If it matches, no work.
     let cancelled = false
     ;(async () => {
       let cloud = null
@@ -54,21 +83,26 @@ export function useSupabaseSync({
       if (cancelled) return
 
       if (cloud) {
-        // Cloud has data → source of truth.
-        applyLoaded(cloud)
-        setJSON(localKey, cloud)
+        // Update memory cache regardless.
+        memoryCache.set(localKey, { data: cloud, fetchedAt: Date.now() })
+        // Only re-apply if it's actually different from what we painted,
+        // to avoid stomping on edits the user made in the few hundred
+        // milliseconds the request took.
+        if (JSON.stringify(cloud) !== JSON.stringify(painted)) {
+          applyLoaded(cloud)
+          setJSON(localKey, cloud)
+        }
         return
       }
 
-      // Either cloud is empty (first time on this account) or the call
-      // failed. Either way, fall back to whatever we have locally.
-      const local = getJSON(localKey)
-      applyLoaded(local)  // null is OK — parent keeps its defaults
-
-      // If cloud is reachable AND empty AND we have local data, migrate
-      // local UP so it lives on every device.
-      if (!cloudFailed && local) {
-        try { await saver(local) }
+      // Cloud is empty (first time on this account) or call failed.
+      // If we have local data and the cloud is reachable, push UP so it
+      // lives on every device.
+      if (!cloudFailed && painted) {
+        try {
+          await saver(painted)
+          memoryCache.set(localKey, { data: painted, fetchedAt: Date.now() })
+        }
         catch (e) { logError(`finanzas.${localKey}.migrate`, e) }
       }
     })()
@@ -83,6 +117,9 @@ export function useSupabaseSync({
     // Always mirror to localStorage immediately — that way a hard crash
     // never loses the latest typed value.
     setJSON(localKey, data)
+    // Keep the in-memory cache fresh too so a tab switch doesn't show
+    // stale data even momentarily.
+    memoryCache.set(localKey, { data, fetchedAt: Date.now() })
 
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
