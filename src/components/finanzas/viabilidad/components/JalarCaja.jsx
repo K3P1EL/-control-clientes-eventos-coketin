@@ -31,15 +31,12 @@ function useCajaSnapshot() {
 // "Jalar datos de Caja" — collapsible panel that reads the real cash
 // entries, filters by period, and shows clickable metric cards to
 // auto-fill Caja semanal or Caja mes acumulado in Viabilidad.
-export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes }) {
+export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, setTarget, semSel, setSemSel, mesSel, setMesSel }) {
   const entries = useCajaSnapshot()
   const [open, setOpen] = useState(false)
-  const [target, setTarget] = useState("semanal")
   const now = peruNow()
   const currentWeek = getWeekNumberISO(now)
   const currentMonth = now.getMonth() + 1
-  const [semSel, setSemSel] = useState(currentWeek)
-  const [mesSel, setMesSel] = useState(currentMonth)
 
   const activeEntries = useMemo(() => entries.filter(e => !e.eliminado), [entries])
 

@@ -1,12 +1,14 @@
+import { useState } from "react"
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import Select from "../../ui/Select"
-import { fmt } from "../../../../lib/finanzas/helpers"
+import { fmt, peruNow, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
 import JalarContratos from "../components/JalarContratos"
 import JalarCaja from "../components/JalarCaja"
 
-// Caja tab: manual cash inputs + "jalar contratos" to auto-fill +
-// weekly/monthly viability analysis.
+// Caja tab: manual cash inputs + "jalar contratos/caja" to auto-fill +
+// weekly/monthly viability analysis. The jalar period (semana/mes) is
+// shared between Contratos and Caja so they move in sync.
 export default function CajaTab({
   cajaSemanaSol, setCajaSemanaSol,
   cajaAcumMes, setCajaAcumMes,
@@ -18,6 +20,11 @@ export default function CajaTab({
   cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,
   metaDiariaNecesaria, ritmoActual, diffRitmo,
 }) {
+  // Shared period for both "jalar" panels so they move in sync.
+  const [jalarTarget, setJalarTarget] = useState("semanal")
+  const [jalarSem, setJalarSem] = useState(getWeekNumberISO(peruNow()))
+  const [jalarMes, setJalarMes] = useState(peruNow().getMonth() + 1)
+
   return (
     <div className="space-y-6">
       <Card title="Panel de caja — Entradas manuales" icon="💵" accent="sky">
@@ -46,8 +53,18 @@ export default function CajaTab({
           </div>
         </div>
 
-        <JalarContratos setCajaSemanaSol={setCajaSemanaSol} setCajaAcumMes={setCajaAcumMes} />
-        <JalarCaja setCajaSemanaSol={setCajaSemanaSol} setCajaAcumMes={setCajaAcumMes} />
+        <JalarContratos
+          setCajaSemanaSol={setCajaSemanaSol} setCajaAcumMes={setCajaAcumMes}
+          target={jalarTarget} setTarget={setJalarTarget}
+          semSel={jalarSem} setSemSel={setJalarSem}
+          mesSel={jalarMes} setMesSel={setJalarMes}
+        />
+        <JalarCaja
+          setCajaSemanaSol={setCajaSemanaSol} setCajaAcumMes={setCajaAcumMes}
+          target={jalarTarget} setTarget={setJalarTarget}
+          semSel={jalarSem} setSemSel={setJalarSem}
+          mesSel={jalarMes} setMesSel={setJalarMes}
+        />
       </Card>
 
       <Card title="Análisis semanal — ¿Alcanza?" icon="📆" accent="amber">

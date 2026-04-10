@@ -6,16 +6,13 @@ import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
 // "Jalar datos de contratos" — a collapsible panel that reads contracts
 // from Supabase, lets the user pick a period, and auto-fills the caja
 // inputs with one click. Hidden by default behind a button.
-export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes }) {
+export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, target, setTarget, semSel, setSemSel, mesSel, setMesSel }) {
   const contracts = useContratosSnapshot()
   const [open, setOpen] = useState(false)
-  const [target, setTarget] = useState("mensual")
   const now = peruNow()
   const currentWeek = getWeekNumberISO(now)
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
-  const [semSel, setSemSel] = useState(currentWeek)
-  const [mesSel, setMesSel] = useState(currentMonth)
 
   const activeContracts = useMemo(() => contracts.filter(c => !c.eliminado), [contracts])
 
