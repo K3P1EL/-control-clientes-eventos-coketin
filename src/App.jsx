@@ -431,6 +431,12 @@ export default function App() {
     })
   }, [almacen, clients, regs])
   const onRestoreClient = useCallback(async (id) => {
+    // Warn if this client had almacen salidas so the user knows to
+    // double-check equipment status after restoration.
+    const hadAlmacen = almacen.some(s => s.client_id === id)
+    if (hadAlmacen) {
+      if (!window.confirm("Esta ficha tiene salidas de almacén. Verificá el estado de los equipos después de restaurar.\n\n¿Continuar?")) return
+    }
     setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
     // Also restore linked almacen salidas
     setAlmacen(prev => prev.map(s => s.client_id === id && s.deleted_at ? { ...s, deleted_at: null } : s))
@@ -488,6 +494,12 @@ export default function App() {
     }
   }, [])
   const onUpdateContrato = useCallback(async (clientId, contratoId, patch) => {
+    // When the type changes (Proforma↔Contrato), stamp who did it and when
+    // so there's an audit trail if someone asks "who changed this?".
+    if (patch.tipo) {
+      patch.tipo_changed_by = user?.name || "?"
+      patch.tipo_changed_at = new Date().toISOString()
+    }
     setClients(prev => prev.map(c => {
       if (c.id !== clientId) return c
       return { ...c, contratos: (c.contratos||[]).map(ct => ct.id === contratoId ? { ...ct, ...patch } : ct) }

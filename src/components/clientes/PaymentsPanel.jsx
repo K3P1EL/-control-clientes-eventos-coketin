@@ -34,8 +34,9 @@ export default memo(function PaymentsPanel({
         </div>
         <div style={{ background:C.cardAlt, borderRadius:10, padding:12, textAlign:"center" }}>
           <div style={{ fontSize:11, color:C.muted, marginBottom:4 }}>Resta</div>
-          <div style={{ fontSize:20, fontWeight:700, color:resto<=0&&Number(ct.total)>0?C.green:C.yellow }}>S/ {resto.toFixed(2)}</div>
-          {resto<=0&&Number(ct.total)>0 && <div style={{ fontSize:10, color:C.green, fontWeight:600 }}>✓ PAGADO</div>}
+          <div style={{ fontSize:20, fontWeight:700, color:resto<0?C.red:resto<=0&&Number(ct.total)>0?C.green:C.yellow }}>S/ {resto.toFixed(2)}</div>
+          {resto<=0&&Number(ct.total)>0 && resto>=0 && <div style={{ fontSize:10, color:C.green, fontWeight:600 }}>✓ PAGADO</div>}
+          {resto<0 && <div style={{ fontSize:10, color:C.red, fontWeight:600 }}>⚠ Excede el total</div>}
         </div>
       </div>
       {Number(ct.total)>0 && (

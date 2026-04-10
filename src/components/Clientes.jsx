@@ -335,15 +335,18 @@ export default memo(function Clientes({
 
         {/* Contract tabs */}
         {contratos.length>1 && (
-          <div style={{ display:"flex", gap:4, marginBottom:16 }}>
-            {contratos.map((ct2,idx) => (
-              <button key={ct2.id} onClick={()=>setActiveContrato(idx)} style={{
-                padding:"6px 16px", borderRadius:"8px 8px 0 0", border:`1px solid ${C.border}`,
-                borderBottom:activeContrato===idx?`2px solid ${C.accent}`:`1px solid ${C.border}`,
-                background:activeContrato===idx?C.card:C.cardAlt,
-                color:activeContrato===idx?C.accent:C.muted, cursor:"pointer", fontSize:12, fontWeight:600,
-              }}>{ct2.tipo==="contrato"?"Contrato":"Proforma"} {idx+1} — {ct2.fecha}</button>
-            ))}
+          <div style={{ marginBottom:16 }}>
+            <div style={{ display:"flex", gap:4 }}>
+              {contratos.map((ct2,idx) => (
+                <button key={ct2.id} onClick={()=>setActiveContrato(idx)} style={{
+                  padding:"6px 16px", borderRadius:"8px 8px 0 0", border:`1px solid ${C.border}`,
+                  borderBottom:activeContrato===idx?`2px solid ${C.accent}`:`1px solid ${C.border}`,
+                  background:activeContrato===idx?C.card:C.cardAlt,
+                  color:activeContrato===idx?C.accent:C.muted, cursor:"pointer", fontSize:12, fontWeight:600,
+                }}>{ct2.tipo==="contrato"?"Contrato":"Proforma"} {idx+1} — {ct2.fecha}</button>
+              ))}
+            </div>
+            <div style={{ fontSize:10, color:C.muted, marginTop:4 }}>Cada visita es un contrato independiente con su propio total y adelantos</div>
           </div>
         )}
 
