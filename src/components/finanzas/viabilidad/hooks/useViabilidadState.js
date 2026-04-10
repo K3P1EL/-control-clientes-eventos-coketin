@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react"
-import { getJSON } from "../../../../lib/storage"
+import { useState, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { useDebouncedPersist } from "../../../../lib/useDebouncedPersist"
+import { useSupabaseSync } from "../../hooks/useSupabaseSync"
+import { loadViabilidad, saveViabilidad } from "../../../../services/finanzas"
 
-// Default seed data — only used the first time, before anything is in localStorage.
+// Default seed data — only used the first time, before anything is in storage.
 const INIT_WORKERS = [
   { name: "Juan", pagoSemanal: 360, diasTrabSem: 6, diaDescanso: "Martes", extrasNoTrabajo: 0, extrasTrabajoExtra: 0, extrasTrabajoTienda: 0, diasMarcados: {}, negocioDepende: false },
   { name: "Lolimar", pagoSemanal: 400, diasTrabSem: 6, diaDescanso: "Domingo", extrasNoTrabajo: 0, extrasTrabajoExtra: 0, extrasTrabajoTienda: 0, diasMarcados: {}, negocioDepende: true },
@@ -19,8 +19,8 @@ const INIT_APOYOS = [
   { concepto: "alquiler", montoMensual: 1000, divisor: 30, nota: "" },
 ]
 
-// One hook owns the entire persisted state of the Viabilidad module.
-// Loads on mount, debounces saves to avoid spamming localStorage on every key.
+// Owns the entire persisted state of the Viabilidad module. Persistence
+// is two-tier (Supabase + localStorage fallback) handled by useSupabaseSync.
 export function useViabilidadState() {
   const [year, setYear] = useState(2026)
   const [month, setMonth] = useState(4)
@@ -36,9 +36,9 @@ export function useViabilidadState() {
   const [cobExtraAll, setCobExtraAll] = useState({})
   const [loaded, setLoaded] = useState(false)
 
-  // Hydrate once on mount.
-  useEffect(() => {
-    const saved = getJSON(STORAGE_KEYS.VIABILIDAD)
+  // Apply a saved blob (from cloud OR localStorage migration). Validates
+  // every field so a corrupted/legacy blob can't crash the module.
+  const applyLoaded = useCallback((saved) => {
     if (saved && typeof saved === "object") {
       if (typeof saved.year === "number") setYear(saved.year)
       if (typeof saved.month === "number") setMonth(saved.month)
@@ -56,12 +56,17 @@ export function useViabilidadState() {
     setLoaded(true)
   }, [])
 
-  // Debounced + flush-on-unmount persistence. The hook handles bursts,
-  // tab close, refresh, and navigation away — see useDebouncedPersist.
-  useDebouncedPersist(STORAGE_KEYS.VIABILIDAD, {
-    year, month, workers, services, apoyos, trackerData,
-    diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll,
-  }, loaded)
+  useSupabaseSync({
+    localKey: STORAGE_KEYS.VIABILIDAD,
+    loader: loadViabilidad,
+    saver: saveViabilidad,
+    applyLoaded,
+    data: {
+      year, month, workers, services, apoyos, trackerData,
+      diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll,
+    },
+    loaded,
+  })
 
   return {
     loaded,

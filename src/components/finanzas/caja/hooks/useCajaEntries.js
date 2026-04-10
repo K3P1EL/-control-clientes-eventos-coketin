@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
-import { getJSON } from "../../../../lib/storage"
+import { useState, useMemo, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { peruToday, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
-import { useDebouncedPersist } from "../../../../lib/useDebouncedPersist"
+import { useSupabaseSync } from "../../hooks/useSupabaseSync"
+import { loadCaja, saveCaja } from "../../../../services/finanzas"
 
 // Owns the cash-entries list, persistence, and CRUD handlers.
 // Auto-numbers any entry that doesn't yet have a `num` field on first
@@ -11,8 +11,9 @@ export function useCajaEntries() {
   const [entries, setEntries] = useState([])
   const [loaded, setLoaded] = useState(false)
 
-  useEffect(() => {
-    const saved = getJSON(STORAGE_KEYS.CAJA)
+  // Apply a saved blob (cloud or local). Auto-numbers entries that don't
+  // have `num` so legacy data still gets stable display numbers.
+  const applyLoaded = useCallback((saved) => {
     if (Array.isArray(saved)) {
       const withNum = saved.filter(e => e.num)
       const maxNum = withNum.length > 0 ? Math.max(...withNum.map(e => e.num)) : 0
@@ -26,7 +27,14 @@ export function useCajaEntries() {
     setLoaded(true)
   }, [])
 
-  useDebouncedPersist(STORAGE_KEYS.CAJA, entries, loaded)
+  useSupabaseSync({
+    localKey: STORAGE_KEYS.CAJA,
+    loader: loadCaja,
+    saver: saveCaja,
+    applyLoaded,
+    data: entries,
+    loaded,
+  })
 
   const addEntry = useCallback((form, editId) => {
     if (!form.monto || form.monto <= 0) return

@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
-import { getJSON } from "../../../../lib/storage"
+import { useState, useMemo, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { calcContract, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
-import { useDebouncedPersist } from "../../../../lib/useDebouncedPersist"
+import { useSupabaseSync } from "../../hooks/useSupabaseSync"
+import { loadContratos, saveContratos } from "../../../../services/finanzas"
 
 // Seed used the very first time, before anything is in localStorage.
 const INITIAL_CONTRACTS = [
@@ -18,13 +18,11 @@ export function useContratos() {
   const [contracts, setContracts] = useState([])
   const [loaded, setLoaded] = useState(false)
 
-  useEffect(() => {
-    const saved = getJSON(STORAGE_KEYS.CONTRATOS)
+  // Apply a saved blob (from cloud or local migration). Normalizes legacy
+  // contracts that may be missing `anio` / `noTrack*` fields.
+  const applyLoaded = useCallback((saved) => {
     if (Array.isArray(saved) && saved.length > 0) {
       setContracts(saved.map(c => {
-        // Migration: legacy contracts without `anio`. Try to recover the
-        // year from fechaAdel/fechaCobro before falling back to 2026 —
-        // otherwise old data ends up in the wrong year bucket.
         let anio = c.anio
         if (!anio) {
           const inferFrom = parseLocalDate(c.fechaAdel) || parseLocalDate(c.fechaCobro)
@@ -38,7 +36,14 @@ export function useContratos() {
     setLoaded(true)
   }, [])
 
-  useDebouncedPersist(STORAGE_KEYS.CONTRATOS, contracts, loaded)
+  useSupabaseSync({
+    localKey: STORAGE_KEYS.CONTRATOS,
+    loader: loadContratos,
+    saver: saveContratos,
+    applyLoaded,
+    data: contracts,
+    loaded,
+  })
 
   const activeContracts = useMemo(() => contracts.filter(c => !c.eliminado), [contracts])
 
