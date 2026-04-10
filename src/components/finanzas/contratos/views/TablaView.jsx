@@ -2,7 +2,22 @@ import { useState, useMemo } from "react"
 import { cDark } from "../../ui/darkStyles"
 import DarkBadge from "../../ui/DarkBadge"
 import DarkStatCard from "../../ui/DarkStatCard"
-import { formatMoney, calcContract } from "../../../../lib/finanzas/helpers"
+import { formatMoney, calcContract, parseLocalDate } from "../../../../lib/finanzas/helpers"
+
+const MESES_CORTOS = ["", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+// "2026-04-02" → "02-abr-26". Returns "—" if no parseable date.
+// Prefers fechaAdel (when the contract was opened) but falls back to
+// fechaCobro for entries without an adelanto, or for "no trackeado".
+function fmtContractDate(c) {
+  const raw = (!c.noTrackAdel && c.fechaAdel && c.fechaAdel.trim()) ? c.fechaAdel : c.fechaCobro
+  const d = parseLocalDate(raw)
+  if (!d) return "—"
+  const dd = String(d.getDate()).padStart(2, "0")
+  const mm = MESES_CORTOS[d.getMonth() + 1]
+  const yy = String(d.getFullYear()).slice(-2)
+  return `${dd}-${mm}-${yy}`
+}
 
 // Tabular view of contracts with stat cards, search, status filter,
 // and per-row edit/delete buttons.
@@ -53,14 +68,14 @@ export default function TablaView({
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr>
-                {["Código", "Cliente", "Total", "Adelanto", "Cobro", "Desc.", "Ganancia", "En Caja", "Estado", "Dep.", "Notas", ""].map(h =>
+                {["Código", "Cliente", "Fecha", "Total", "Adelanto", "Cobro", "Desc.", "Ganancia", "En Caja", "Estado", "Dep.", "Notas", ""].map(h =>
                   <th key={h} style={cDark.th}>{h}</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={12} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros</td></tr>
+                <tr><td colSpan={13} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros</td></tr>
               ) : filtered.map(c => {
                 const calc = calcContract(c)
                 return (
@@ -69,6 +84,7 @@ export default function TablaView({
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <td style={cDark.td}><span style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace", fontSize: 12 }}>{c.id}</span></td>
                     <td style={cDark.td}>{c.cliente || "—"}</td>
+                    <td style={{ ...cDark.td, fontFamily: "monospace", fontSize: 12, color: "#a1a1aa", whiteSpace: "nowrap" }}>{fmtContractDate(c)}</td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7" }}>{formatMoney(c.total)}</td>
                     <td style={cDark.td}>{c.noTrackAdel ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.adelanto)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalAdel} · {c.recibioAdel}</div></>}</td>
                     <td style={cDark.td}>{c.noTrackCobro ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.cobro)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalCobro} · {c.recibioCobro}</div></>}</td>
