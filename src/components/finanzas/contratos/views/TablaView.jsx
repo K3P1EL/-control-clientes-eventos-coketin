@@ -6,13 +6,11 @@ import { formatMoney, calcContract, parseLocalDate } from "../../../../lib/finan
 
 const MESES_CORTOS = ["", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
-// "2026-04-02" → "02-abr-26". Returns "—" if no parseable date.
-// Prefers fechaAdel (when the contract was opened) but falls back to
-// fechaCobro for entries without an adelanto, or for "no trackeado".
-function fmtContractDate(c) {
-  const raw = (!c.noTrackAdel && c.fechaAdel && c.fechaAdel.trim()) ? c.fechaAdel : c.fechaCobro
+// "2026-04-02" → "02-abr-26". Returns null if not parseable so callers
+// can distinguish "missing" from a valid date string.
+function fmtDateShort(raw) {
   const d = parseLocalDate(raw)
-  if (!d) return "—"
+  if (!d) return null
   const dd = String(d.getDate()).padStart(2, "0")
   const mm = MESES_CORTOS[d.getMonth() + 1]
   const yy = String(d.getFullYear()).slice(-2)
@@ -84,7 +82,25 @@ export default function TablaView({
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <td style={cDark.td}><span style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace", fontSize: 12 }}>{c.id}</span></td>
                     <td style={cDark.td}>{c.cliente || "—"}</td>
-                    <td style={{ ...cDark.td, fontFamily: "monospace", fontSize: 12, color: "#a1a1aa", whiteSpace: "nowrap" }}>{fmtContractDate(c)}</td>
+                    <td style={{ ...cDark.td, fontFamily: "monospace", fontSize: 11, whiteSpace: "nowrap", lineHeight: 1.4 }}>
+                      {(() => {
+                        const adel = !c.noTrackAdel ? fmtDateShort(c.fechaAdel) : null
+                        const cobro = !c.noTrackCobro ? fmtDateShort(c.fechaCobro) : null
+                        if (!adel && !cobro) return <span style={{ color: "#52525b" }}>—</span>
+                        return (
+                          <>
+                            <div>
+                              <span style={{ color: "#52525b", fontSize: 9, marginRight: 4 }}>adel</span>
+                              <span style={{ color: adel ? "#34d399" : "#52525b" }}>{adel || "—"}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: "#52525b", fontSize: 9, marginRight: 4 }}>cobro</span>
+                              <span style={{ color: cobro ? "#38bdf8" : "#52525b" }}>{cobro || "—"}</span>
+                            </div>
+                          </>
+                        )
+                      })()}
+                    </td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7" }}>{formatMoney(c.total)}</td>
                     <td style={cDark.td}>{c.noTrackAdel ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.adelanto)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalAdel} · {c.recibioAdel}</div></>}</td>
                     <td style={cDark.td}>{c.noTrackCobro ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.cobro)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalCobro} · {c.recibioCobro}</div></>}</td>
