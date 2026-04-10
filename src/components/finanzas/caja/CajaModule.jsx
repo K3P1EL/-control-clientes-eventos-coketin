@@ -42,9 +42,16 @@ export default function CajaModule() {
     })
   }, [activeEntries, filterMes, filterSem, soloNegocio, soloContrato, sortBy, sortDir])
 
-  const totalIngresos = filtered.filter(e => e.tipo === "ingreso").reduce((s, e) => s + (e.monto || 0), 0)
-  const totalEgresos = filtered.filter(e => e.tipo === "egreso").reduce((s, e) => s + (e.monto || 0), 0)
-  const balance = totalIngresos - totalEgresos
+  // Single pass over filtered for both totals — avoids two extra
+  // .filter().reduce() chains on every render.
+  const { totalIngresos, totalEgresos, balance } = useMemo(() => {
+    let ing = 0, egr = 0
+    for (const e of filtered) {
+      if (e.tipo === "ingreso") ing += e.monto || 0
+      else if (e.tipo === "egreso") egr += e.monto || 0
+    }
+    return { totalIngresos: ing, totalEgresos: egr, balance: ing - egr }
+  }, [filtered])
 
   const desglose = useCajaDesglose(filtered)
 

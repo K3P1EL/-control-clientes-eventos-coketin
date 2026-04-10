@@ -21,7 +21,17 @@ export function useContratos() {
   useEffect(() => {
     const saved = getJSON(STORAGE_KEYS.CONTRATOS)
     if (Array.isArray(saved) && saved.length > 0) {
-      setContracts(saved.map(c => ({ ...c, noTrackAdel: c.noTrackAdel || false, noTrackCobro: c.noTrackCobro || false, anio: c.anio || 2026 })))
+      setContracts(saved.map(c => {
+        // Migration: legacy contracts without `anio`. Try to recover the
+        // year from fechaAdel/fechaCobro before falling back to 2026 —
+        // otherwise old data ends up in the wrong year bucket.
+        let anio = c.anio
+        if (!anio) {
+          const inferFrom = parseLocalDate(c.fechaAdel) || parseLocalDate(c.fechaCobro)
+          anio = inferFrom ? inferFrom.getFullYear() : 2026
+        }
+        return { ...c, noTrackAdel: c.noTrackAdel || false, noTrackCobro: c.noTrackCobro || false, anio }
+      }))
     } else {
       setContracts(INITIAL_CONTRACTS)
     }

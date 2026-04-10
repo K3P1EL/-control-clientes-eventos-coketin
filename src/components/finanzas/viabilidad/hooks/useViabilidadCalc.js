@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { getDaysInMonth, getDayName, getWeekNumberCal } from "../../../../lib/finanzas/helpers"
+import { getDaysInMonth, getDayName, getWeekNumberCal, peruNow } from "../../../../lib/finanzas/helpers"
 
 // All the derived numbers for one month live here. Pure useMemo chain —
 // nothing reads from outside its `inputs` object, so adding/removing a
@@ -50,16 +50,19 @@ export function useViabilidadCalc(inputs) {
 
   // For days the user hasn't manually marked: assume "Operó" for past days
   // (or "Descanso" if it's the boss's rest day) and leave future days blank.
+  // Uses peruNow() so the cutoff doesn't shift around midnight depending on
+  // the user's machine timezone.
   const effectiveTracker = useMemo(() => {
     const encargado = workers.find(w => w.name && w.negocioDepende && w.diaDescanso)
-    const hoy = new Date()
+    const hoy = peruNow()
+    const tomorrow = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1)
     const result = {}
     calendarDays.forEach(d => {
       if (tracker[d.dia]) {
         result[d.dia] = tracker[d.dia]
       } else {
         const fecha = new Date(year, month - 1, d.dia)
-        const esPasado = fecha < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1)
+        const esPasado = fecha < tomorrow
         if (!esPasado) { /* leave blank */ }
         else if (encargado && d.nombre === encargado.diaDescanso) { result[d.dia] = "Descanso" }
         else { result[d.dia] = "Operó" }
@@ -176,7 +179,8 @@ export function useViabilidadCalc(inputs) {
     return servicesCalc.filter(s => s.nombre).map(s => {
       const diaPago = typeof s.diaPago === "number" ? s.diaPago : null
       if (diaPago === null) return { nombre: s.nombre, costoMensual: s.pagoMensual, diaPago: "Sin fecha", diasDeveng: "—", devengado: "—", faltaRecup: "—", diasRest: "—", estado: "Sin fecha" }
-      const costoDiario = s.pagoMensual / (s.divisor || diasOpBase)
+      const div = s.divisor || diasOpBase
+      const costoDiario = div > 0 ? s.pagoMensual / div : 0
       const diasDeveng = diasOperados > 0 ? Math.min(diasOperados, diaPago) : Math.min(simDay, diaPago)
       const devengado = costoDiario * diasDeveng
       const faltaRecup = Math.max(0, s.pagoMensual - devengado)
@@ -199,7 +203,8 @@ export function useViabilidadCalc(inputs) {
     return servicesCalc.filter(s => s.nombre).map(s => {
       const diaPago = typeof s.diaPago === "number" ? s.diaPago : null
       if (diaPago === null) return { nombre: s.nombre, costoMensual: s.pagoMensual, diaPago: "Sin fecha", diasCiclo: "—", devengadoCiclo: "—", faltaCiclo: "—", diasAlPago: "—", estadoCiclo: "Sin fecha" }
-      const costoDiario = s.pagoMensual / (s.divisor || diasOpBase)
+      const div = s.divisor || diasOpBase
+      const costoDiario = div > 0 ? s.pagoMensual / div : 0
       const diasCiclo = simDay < diaPago ? (diasCalendario - diaPago + simDay) : (simDay - diaPago)
       const devengadoCiclo = costoDiario * diasCiclo
       const faltaCiclo = Math.max(0, s.pagoMensual - devengadoCiclo)

@@ -33,12 +33,16 @@ export default function ViabilidadModule() {
   const tracker = state.trackerData[mesKey] || {}
   const cobExtra = state.cobExtraAll[mesKey] || { dias: 0, pagadoAparte: false, monto: 0, nombre: [], nota: "" }
 
+  // Pull only the setter we need into a stable ref so the callback's deps
+  // are just `mesKey` + `setCobExtraAll` (a useState setter, always stable).
+  // Otherwise depending on `state` invalidates this on every render.
+  const { setCobExtraAll } = state
   const setCobExtra = useCallback((field, val) => {
-    state.setCobExtraAll(prev => {
+    setCobExtraAll(prev => {
       const cur = prev[mesKey] || { dias: 0, pagadoAparte: false, monto: 0, nombre: [], nota: "" }
       return { ...prev, [mesKey]: { ...cur, [field]: val } }
     })
-  }, [mesKey, state])
+  }, [mesKey, setCobExtraAll])
 
   const calc = useViabilidadCalc({
     year: state.year, month: state.month,
