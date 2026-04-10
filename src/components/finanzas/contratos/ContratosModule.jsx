@@ -4,6 +4,7 @@ import { peruNow, getWeekNumberISO, calcContract } from "../../../lib/finanzas/h
 import { useContratos } from "./hooks/useContratos"
 import ContractModal from "./ContractModal"
 import ConfirmModal from "./ConfirmModal"
+import TrashModal from "./TrashModal"
 import TablaView from "./views/TablaView"
 import WeeklyView from "./views/WeeklyView"
 import MonthlyView from "./views/MonthlyView"
@@ -16,6 +17,7 @@ export default function ContratosModule() {
 
   const [editContract, setEditContract] = useState(undefined)
   const [deleteId, setDeleteId] = useState(null)
+  const [trashOpen, setTrashOpen] = useState(false)
   const currentWeekNum = getWeekNumberISO(peruNow())
   const currentMonthNum = peruNow().getMonth() + 1
   const currentYear = peruNow().getFullYear()
@@ -112,19 +114,26 @@ export default function ContratosModule() {
           style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 2px 8px rgba(14,165,233,0.3)" }}>
           + Nuevo Contrato
         </button>
-        {contracts.some(c => c.eliminado) && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "#71717a" }}>Eliminados:</span>
-            {contracts.filter(c => c.eliminado).map(c => (
-              <span key={c.id} style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", fontSize: 11, color: "#f87171", fontFamily: "monospace", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                {c.id}
-                <button onClick={() => handleRestore(c.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#38bdf8", fontWeight: 600, textDecoration: "underline" }}>Restaurar</button>
-                <button onClick={() => { if (window.confirm(`¿Borrar ${c.id} definitivamente? No se puede deshacer.`)) handlePermanentDelete(c.id) }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#f87171", fontWeight: 600, textDecoration: "underline" }}>Borrar</button>
-              </span>
-            ))}
-          </div>
-        )}
+        {(() => {
+          const eliminados = contracts.filter(c => c.eliminado)
+          if (eliminados.length === 0) return null
+          return (
+            <button onClick={() => setTrashOpen(true)}
+              style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+              🗑️ Papelera ({eliminados.length})
+            </button>
+          )
+        })()}
       </div>
+
+      {trashOpen && (
+        <TrashModal
+          eliminados={contracts.filter(c => c.eliminado)}
+          onRestore={handleRestore}
+          onPermanentDelete={handlePermanentDelete}
+          onClose={() => setTrashOpen(false)}
+        />
+      )}
       <div style={{ textAlign: "center" }}>
         <button onClick={handleReset} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#3f3f46", textDecoration: "underline" }}>Resetear datos originales</button>
       </div>
