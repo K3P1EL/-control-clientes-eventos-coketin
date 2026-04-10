@@ -10,6 +10,7 @@ import EntryForm from "./EntryForm"
 import EntriesTable from "./EntriesTable"
 import MetricsView from "./MetricsView"
 import ReconciliationChip from "./ReconciliationChip"
+import CajaTrashModal from "./CajaTrashModal"
 
 const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: "", modalidad: "Yape", delNegocio: true, deContrato: false, categoria: "" }
 
@@ -24,6 +25,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [trashOpen, setTrashOpen] = useState(false)
   const [sortBy, setSortBy] = useState("num")
   const [sortDir, setSortDir] = useState("desc")
   const [showMetrics, setShowMetrics] = useState(false)
@@ -214,22 +216,21 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
           />
 
           {deletedEntries.length > 0 && (
-            <div style={{ background: "rgba(24,24,27,0.8)", borderRadius: 16, border: "1px solid rgba(63,63,70,0.6)", overflow: "hidden" }}>
-              <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(63,63,70,0.4)", background: "rgba(239,68,68,0.03)" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#f87171" }}>Eliminados ({deletedEntries.length})</span>
-              </div>
-              <div style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {deletedEntries.map(e => (
-                  <div key={e.id} style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)", display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#a1a1aa" }}>
-                    <span>{e.fecha}</span>
-                    <span style={{ color: e.tipo === "ingreso" ? "#34d399" : "#f87171" }}>{formatMoney(e.monto)}</span>
-                    <span style={{ color: "#52525b" }}>{e.concepto}</span>
-                    <button onClick={() => restoreEntry(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#38bdf8", fontWeight: 600, textDecoration: "underline" }}>Restaurar</button>
-                    <button onClick={() => permanentDelete(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: "#f87171", fontWeight: 600, textDecoration: "underline" }}>Borrar</button>
-                  </div>
-                ))}
-              </div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => setTrashOpen(true)}
+                style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                🗑️ Papelera ({deletedEntries.length})
+              </button>
             </div>
+          )}
+
+          {trashOpen && (
+            <CajaTrashModal
+              eliminados={deletedEntries}
+              onRestore={restoreEntry}
+              onPermanentDelete={permanentDelete}
+              onClose={() => setTrashOpen(false)}
+            />
           )}
         </>
       )}
