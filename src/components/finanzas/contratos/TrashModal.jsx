@@ -25,7 +25,7 @@ export default function TrashModal({ eliminados, onRestore, onPermanentDelete, o
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#18181b", borderRadius: 16, width: "100%", maxWidth: 720,
+          background: "#18181b", borderRadius: 16, width: "100%", maxWidth: 1100,
           maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column",
           border: "1px solid #3f3f46", boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
         }}
@@ -50,18 +50,21 @@ export default function TrashModal({ eliminados, onRestore, onPermanentDelete, o
         </div>
 
         {/* Body */}
-        <div style={{ overflowY: "auto", flex: 1 }}>
+        <div style={{ overflow: "auto", flex: 1 }}>
           {eliminados.length === 0 ? (
             <div style={{ padding: 40, textAlign: "center", color: "#52525b" }}>
               La papelera está vacía
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 }}>
               <thead>
                 <tr>
                   <th style={cDark.th}>Código</th>
                   <th style={cDark.th}>Cliente</th>
                   <th style={{ ...cDark.th, textAlign: "right" }}>Total</th>
+                  <th style={cDark.th}>Adelanto</th>
+                  <th style={cDark.th}>Cobro</th>
+                  <th style={{ ...cDark.th, textAlign: "right" }}>Desc.</th>
                   <th style={{ ...cDark.th, textAlign: "right" }}>Ganancia</th>
                   <th style={cDark.th}>Notas</th>
                   <th style={cDark.th}></th>
@@ -77,8 +80,35 @@ export default function TrashModal({ eliminados, onRestore, onPermanentDelete, o
                       </td>
                       <td style={cDark.td}>{c.cliente || <span style={{ color: "#52525b" }}>—</span>}</td>
                       <td style={{ ...cDark.td, textAlign: "right", fontWeight: 700 }}>{formatMoney(c.total)}</td>
-                      <td style={{ ...cDark.td, textAlign: "right", color: "#34d399" }}>{formatMoney(calc.ganancia)}</td>
-                      <td style={{ ...cDark.td, fontSize: 11, color: "#a1a1aa", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <td style={cDark.td}>
+                        {c.noTrackAdel ? (
+                          <DarkBadge color="neutral">No track.</DarkBadge>
+                        ) : c.adelanto > 0 ? (
+                          <>
+                            <div>{formatMoney(c.adelanto)}</div>
+                            <div style={{ fontSize: 10, color: "#a1a1aa" }}>{c.modalAdel || "—"} · {c.recibioAdel || "—"}</div>
+                          </>
+                        ) : (
+                          <span style={{ color: "#52525b" }}>—</span>
+                        )}
+                      </td>
+                      <td style={cDark.td}>
+                        {c.noTrackCobro ? (
+                          <DarkBadge color="neutral">No track.</DarkBadge>
+                        ) : c.cobro > 0 ? (
+                          <>
+                            <div>{formatMoney(c.cobro)}</div>
+                            <div style={{ fontSize: 10, color: "#a1a1aa" }}>{c.modalCobro || "—"} · {c.recibioCobro || "—"}</div>
+                          </>
+                        ) : (
+                          <span style={{ color: "#52525b" }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ ...cDark.td, textAlign: "right" }}>
+                        {c.descuento > 0 ? <span style={{ color: "#f87171" }}>-{formatMoney(c.descuento)}</span> : <span style={{ color: "#52525b" }}>—</span>}
+                      </td>
+                      <td style={{ ...cDark.td, textAlign: "right", color: "#34d399", fontWeight: 700 }}>{formatMoney(calc.ganancia)}</td>
+                      <td style={{ ...cDark.td, fontSize: 11, color: "#a1a1aa", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {c.notas || <span style={{ color: "#52525b" }}>—</span>}
                       </td>
                       <td style={{ ...cDark.td, whiteSpace: "nowrap", textAlign: "right" }}>
