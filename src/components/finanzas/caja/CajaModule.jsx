@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import DarkStatCard from "../ui/DarkStatCard"
-import { formatMoney, peruToday, getWeekNumberISO } from "../../../lib/finanzas/helpers"
+import { formatMoney, peruToday, peruNow, getWeekNumberISO } from "../../../lib/finanzas/helpers"
+import { MESES_CORTO } from "../../../lib/finanzas/constants"
 import { useCajaEntries } from "./hooks/useCajaEntries"
 import { useCajaDesglose } from "./hooks/useCajaDesglose"
 import EntryForm from "./EntryForm"
@@ -10,13 +11,19 @@ import MetricsView from "./MetricsView"
 const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: "", modalidad: "Yape", delNegocio: true, deContrato: false, categoria: "" }
 
 export default function CajaModule() {
-  const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset, mesesDisponibles, semanasDisponibles } = useCajaEntries()
+  const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset } = useCajaEntries()
+
+  const currentWeekNum = getWeekNumberISO(peruNow())
+  const currentMonthNum = peruNow().getMonth() + 1
 
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  // filterMes is now just the month number as a string ("1".."12") OR ""
+  // for "all months". filterSem is the ISO week number as a string.
+  // Defaults to current week so the user opens to the most relevant slice.
   const [filterMes, setFilterMes] = useState("")
-  const [filterSem, setFilterSem] = useState("")
+  const [filterSem, setFilterSem] = useState(String(currentWeekNum))
   const [sortBy, setSortBy] = useState("num")
   const [sortDir, setSortDir] = useState("desc")
   const [showMetrics, setShowMetrics] = useState(false)
@@ -28,10 +35,15 @@ export default function CajaModule() {
     else { setSortBy(field); setSortDir("desc") }
   }
 
+  // Resolve an entry's ISO week/month for filtering. Cheap to compute
+  // on the fly — entries are small.
+  const entryWeek = (e) => { if (!e.fecha) return null; const d = new Date(e.fecha + "T12:00:00"); return getWeekNumberISO(d) }
+  const entryMonth = (e) => { if (!e.fecha) return null; const parts = e.fecha.split("-"); return parts[1] ? +parts[1] : null }
+
   const filtered = useMemo(() => {
     let list = [...activeEntries]
-    if (filterMes) list = list.filter(e => e.fecha && e.fecha.slice(0, 7) === filterMes)
-    if (filterSem) list = list.filter(e => { if (!e.fecha) return false; const d = new Date(e.fecha + "T12:00:00"); return String(getWeekNumberISO(d)) === filterSem })
+    if (filterMes) list = list.filter(e => entryMonth(e) === +filterMes)
+    if (filterSem) list = list.filter(e => String(entryWeek(e)) === filterSem)
     if (soloNegocio) list = list.filter(e => e.delNegocio !== false)
     if (soloContrato) list = list.filter(e => e.deContrato && e.delNegocio !== false)
     return list.sort((a, b) => {
@@ -41,6 +53,10 @@ export default function CajaModule() {
       return sortDir === "asc" ? cmp : -cmp
     })
   }, [activeEntries, filterMes, filterSem, soloNegocio, soloContrato, sortBy, sortDir])
+
+  const setQuickAll = () => { setFilterSem(""); setFilterMes("") }
+  const setQuickWeek = (w) => { setFilterMes(""); setFilterSem(String(w)) }
+  const setQuickMonth = (m) => { setFilterSem(""); setFilterMes(String(m)) }
 
   // Single pass over filtered for both totals — avoids two extra
   // .filter().reduce() chains on every render.
@@ -116,20 +132,59 @@ export default function CajaModule() {
         <MetricsView desglose={desglose} totalIngresos={totalIngresos} totalEgresos={totalEgresos} balance={balance} />
       ) : (
         <>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Period quick filter — same pattern as Contratos.
+              Sem N / Mes / Todo toggle with arrow navigation. */}
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={openNewForm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>+ Nuevo movimiento</button>
-            <select value={filterMes} onChange={e => { setFilterMes(e.target.value); setFilterSem("") }}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #3f3f46", fontSize: 12, background: "#27272a", color: "#e4e4e7", cursor: "pointer" }}>
-              <option value="">Todos los meses</option>
-              {mesesDisponibles.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <select value={filterSem} onChange={e => { setFilterSem(e.target.value); setFilterMes("") }}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #3f3f46", fontSize: 12, background: "#27272a", color: "#e4e4e7", cursor: "pointer" }}>
-              <option value="">Todas las semanas</option>
-              {semanasDisponibles.map(s => <option key={s} value={String(s)}>Sem {s}</option>)}
-            </select>
+            <span style={{ color: "#3f3f46", fontSize: 16, margin: "0 4px" }}>|</span>
+            {(() => {
+              const btns = [
+                {
+                  id: "sem",
+                  label: filterSem ? `Sem ${filterSem}${+filterSem === currentWeekNum ? " ←" : ""}` : `Sem ${currentWeekNum}`,
+                  active: !!filterSem,
+                  action: () => setQuickWeek(filterSem ? +filterSem : currentWeekNum),
+                },
+                {
+                  id: "mes",
+                  label: filterMes ? `${MESES_CORTO[+filterMes]}` : MESES_CORTO[currentMonthNum],
+                  active: !!filterMes,
+                  action: () => setQuickMonth(filterMes ? +filterMes : currentMonthNum),
+                },
+                {
+                  id: "todo",
+                  label: "Todo",
+                  active: !filterSem && !filterMes,
+                  action: setQuickAll,
+                },
+              ]
+              return btns.map(b => (
+                <button key={b.id} onClick={b.action}
+                  style={{
+                    padding: "8px 14px", borderRadius: 10,
+                    border: b.active ? "1px solid rgba(14,165,233,0.4)" : "1px solid rgba(63,63,70,0.5)",
+                    fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    background: b.active ? "rgba(14,165,233,0.15)" : "rgba(39,39,42,0.5)",
+                    color: b.active ? "#38bdf8" : "#a1a1aa", transition: "all 0.15s", whiteSpace: "nowrap",
+                  }}>
+                  {b.label}
+                </button>
+              ))
+            })()}
+            {filterSem && (
+              <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 4 }}>
+                <button onClick={() => +filterSem > 1 && setQuickWeek(+filterSem - 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+                <button onClick={() => setQuickWeek(+filterSem + 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+              </div>
+            )}
+            {filterMes && (
+              <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 4 }}>
+                <button onClick={() => +filterMes > 1 && setQuickMonth(+filterMes - 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+                <button onClick={() => +filterMes < 12 && setQuickMonth(+filterMes + 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+              </div>
+            )}
             {(filterMes || filterSem) && (
-              <button onClick={() => { setFilterMes(""); setFilterSem("") }} style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✕ Limpiar</button>
+              <span style={{ fontSize: 11, color: "#52525b" }}>· {filtered.length} movimiento{filtered.length !== 1 ? "s" : ""}</span>
             )}
           </div>
 
