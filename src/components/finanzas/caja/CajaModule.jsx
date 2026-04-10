@@ -212,7 +212,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
             editId={editId}
             totalIngresos={totalIngresos} totalEgresos={totalEgresos} balance={balance}
             traspasoTotal={desglose.traspYaEf + desglose.traspEfYa}
-            onEdit={onEditEntry} onRemove={removeEntry}
+            onEdit={onEditEntry} onRemove={removeEntry} onPermanentDelete={permanentDelete}
           />
 
           {deletedEntries.length > 0 && (

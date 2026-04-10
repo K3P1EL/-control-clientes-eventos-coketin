@@ -11,10 +11,13 @@ const fmtFecha = (f) => {
 }
 
 // Sortable, hover-highlightable list of cash entries with row actions.
+// Two delete buttons per row mirroring the Contratos/Registro pattern:
+//   🗑️  → soft delete (papelera, can be restored)
+//   🗑️× → hard delete (skips papelera, gone immediately, with confirm)
 export default function EntriesTable({
   filtered, sortBy, sortDir, toggleSort, editId,
   totalIngresos, totalEgresos, balance, traspasoTotal,
-  onEdit, onRemove,
+  onEdit, onRemove, onPermanentDelete,
 }) {
   return (
     <div style={cDark.card}>
@@ -49,7 +52,23 @@ export default function EntriesTable({
                   <td style={{ padding: "10px 14px" }}>
                     {isEditing && <span style={{ fontSize: 9, color: "#38bdf8", fontWeight: 700, marginRight: 4 }}>editando</span>}
                     <button onClick={() => onEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: isEditing ? "#38bdf8" : "#52525b" }} title="Editar">✏️</button>
-                    <button onClick={() => onRemove(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#52525b" }} title="Eliminar">🗑️</button>
+                    <button onClick={() => onRemove(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#52525b" }} title="Mover a papelera">🗑️</button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`¿Borrar movimiento #${e.num || "?"} definitivamente?\n\nNo pasa por la papelera. No se puede deshacer.`)) {
+                          onPermanentDelete(e.id)
+                        }
+                      }}
+                      title="Borrar permanente (sin pasar por papelera)"
+                      style={{
+                        background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.45)",
+                        borderRadius: 4, cursor: "pointer", padding: "2px 5px",
+                        color: "#f87171", fontSize: 11, fontWeight: 700, marginLeft: 2,
+                        display: "inline-flex", alignItems: "center", gap: 2,
+                      }}
+                    >
+                      🗑️<span style={{ fontSize: 9 }}>×</span>
+                    </button>
                   </td>
                 </tr>
               )
