@@ -24,6 +24,32 @@
   font: inherit;
 }
 
+/* Visible keyboard focus everywhere inside Finanzas. Without this users
+   navigating with TAB have no idea where they are. The :focus-visible
+   pseudo only triggers on keyboard focus, not mouse click, so it stays
+   out of the way for normal users. */
+.finanzas-root button:focus-visible,
+.finanzas-root input:focus-visible,
+.finanzas-root select:focus-visible,
+.finanzas-root textarea:focus-visible,
+.finanzas-root [role="button"]:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Bump the lowest-contrast greys used for inline-style cards.
+   Tailwind text-zinc-500 stays as-is (4.5:1 vs zinc-950 is borderline OK
+   for non-text-body), but the literal #71717a / #52525b colors used in
+   ContractModal/Caja inline styles are below WCAG AA — these selectors
+   target only the small label text inside .finanzas-root and bump it. */
+.finanzas-root [style*="color: #71717a"] {
+  color: #9ca3af !important;
+}
+.finanzas-root [style*="color: #52525b"] {
+  color: #828590 !important;
+}
+
 body {
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: #0f1923;

@@ -15,7 +15,12 @@ export default function CoberturaExtra({ workers, diasOpBase, cobExtra, setCobEx
 
   return (
     <div className={`mt-5 rounded-xl border overflow-hidden transition-all ${open ? "bg-zinc-900 border-amber-500/60 shadow-lg shadow-amber-500/10" : "bg-zinc-800/60 border-amber-500/30"}`}>
-      <button onClick={() => setOpen(!open)} className={`w-full px-4 py-3 flex items-center justify-between transition-all ${open ? "bg-amber-500/10 border-b border-amber-500/30" : "hover:bg-zinc-700/40"}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label="Cobertura extra"
+        className={`w-full px-4 py-3 flex items-center justify-between transition-all ${open ? "bg-amber-500/10 border-b border-amber-500/30" : "hover:bg-zinc-700/40"}`}
+      >
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-amber-400">👤 Cobertura extra</h3>
           {cobExtraDias > 0 && !open && (

@@ -75,7 +75,10 @@ export default function PersonalTab({
                 <tr className="border-t border-zinc-800/60 hover:bg-zinc-800/30 transition-colors">
                   <td className="py-2 pr-2">
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => setExpandedWorker(expandedWorker === i ? null : i)}
+                      <button
+                        onClick={() => setExpandedWorker(expandedWorker === i ? null : i)}
+                        aria-expanded={expandedWorker === i}
+                        aria-label={`Calendario de ${w.name || "trabajador"}`}
                         className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs transition-all shrink-0 ${expandedWorker === i ? "bg-amber-500/20 text-amber-400 border border-amber-500/40" : "bg-zinc-800 text-zinc-500 border border-zinc-700 hover:text-zinc-300"}`}>
                         {expandedWorker === i ? "▾" : "▸"}
                       </button>
