@@ -401,9 +401,25 @@ export default function App() {
   }, [clients, regs])
   const onDeleteClient = useCallback(async (id) => {
     const ts = new Date().toISOString()
+    // Find linked registros BEFORE updating state so we can clear their
+    // Proforma/Contrato estado — otherwise they keep showing a green
+    // "Contrato" badge pointing to a ficha that no longer exists.
+    const client = clients.find(c => c.id === id)
+    const linkedRegIds = client?.reg_ids || []
+
     setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: ts } : c))
     // Also soft-delete linked almacen salidas
     setAlmacen(prev => prev.map(s => s.client_id === id ? { ...s, deleted_at: ts } : s))
+    // Clear Proforma/Contrato from linked registros so they don't show
+    // a badge pointing to a deleted ficha.
+    linkedRegIds.forEach(rid => {
+      const reg = regs.find(r => r.id === rid)
+      if (reg && (reg.estado === "Proforma" || reg.estado === "Contrato")) {
+        setRegs(prev => prev.map(r => r.id === rid ? { ...r, estado: "" } : r))
+        updateRegistro(rid, { estado: "" }).catch(() => {})
+      }
+    })
+
     updateClient(id, { deleted_at: ts }).catch(e => {
       setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
       setAlmacen(prev => prev.map(s => s.client_id === id ? { ...s, deleted_at: null } : s))
@@ -413,7 +429,7 @@ export default function App() {
     almacen.filter(s => s.client_id === id && !s.deleted_at).forEach(s => {
       updateSalida(s.id, { deleted_at: ts }).catch(() => {})
     })
-  }, [almacen])
+  }, [almacen, clients, regs])
   const onRestoreClient = useCallback(async (id) => {
     setClients(prev => prev.map(c => c.id === id ? { ...c, deleted_at: null } : c))
     // Also restore linked almacen salidas
@@ -445,12 +461,18 @@ export default function App() {
     })
     // Also remove almacen from state
     setAlmacen(prev => prev.filter(s => s.client_id !== id))
-    // Delete storage files + DB record in parallel
-    fileUrls.forEach(url => deleteFileByUrl(url))
-    deleteClient(id).catch(e => {
+    // Delete DB record FIRST — only then clean up storage. If the DB
+    // delete fails, the files survive and the user can retry. If we
+    // deleted files first and the DB failed, the files would be lost
+    // with no way to recover them.
+    try {
+      await deleteClient(id)
+      // DB succeeded — now clean up storage in background (best-effort).
+      fileUrls.forEach(url => deleteFileByUrl(url))
+    } catch (e) {
       if (backup.length) setClients(prev => [...prev, ...backup])
       logError("permanentDeleteClient", e); alert("Error eliminando")
-    })
+    }
   }, [almacen])
   const onAddContrato = useCallback(async (clientId, payload) => {
     const tempId = `temp_${Date.now()}`

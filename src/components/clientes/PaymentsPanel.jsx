@@ -56,7 +56,17 @@ export default memo(function PaymentsPanel({
             <input type="date" value={a.fecha?a.fecha.split("/").length===3?`${a.fecha.split("/")[2]}-${a.fecha.split("/")[1]}-${a.fecha.split("/")[0]}`:(a.fecha||""):(a.fecha||"")} onChange={e=>{const p=e.target.value.split("-");onUpdateAdelanto(c.id,ct.id,a.id,{fecha:`${p[2]}/${p[1]}/${p[0]}`})}} style={{ ...mi, width:110, fontSize:11, ...((locked||inv)?{opacity:.5}:{}) }} disabled={locked||inv} />
             <div style={{ display:"flex", alignItems:"center", gap:2 }}>
               <span style={{ fontSize:11, color:C.muted, ...(inv?{textDecoration:"line-through"}:{}) }}>S/</span>
-              <DInput type="number" value={a.monto||""} onCommit={v=>onUpdateAdelanto(c.id,ct.id,a.id,{monto:v})} style={{ ...mi, width:65, fontWeight:600, ...((locked||inv)?{opacity:.5,textDecoration:inv?"line-through":"none"}:{}) }} placeholder="0" disabled={locked||inv} />
+              <DInput type="number" value={a.monto||""} onCommit={v=>{
+                // Validate: sum of all valid adelantos (with this one updated) must not exceed total.
+                if (Number(ct.total) > 0) {
+                  const otherSum = (ct.adelantos||[]).filter(x=>!x.invalid && x.id !== a.id).reduce((s,x)=>s+(Number(x.monto)||0),0)
+                  if (otherSum + (Number(v)||0) > Number(ct.total)) {
+                    alert(`El total de adelantos (S/${otherSum + (Number(v)||0)}) superaría el total del contrato (S/${ct.total}).`)
+                    return
+                  }
+                }
+                onUpdateAdelanto(c.id,ct.id,a.id,{monto:v})
+              }} style={{ ...mi, width:65, fontWeight:600, ...((locked||inv)?{opacity:.5,textDecoration:inv?"line-through":"none"}:{}) }} placeholder="0" disabled={locked||inv} />
             </div>
             <DInput value={a.nota||""} onCommit={v=>onUpdateAdelanto(c.id,ct.id,a.id,{nota:v})} style={{ ...mi, flex:1 }} placeholder="Nota..." />
             <div style={{ display:"flex", alignItems:"center", gap:3, flexShrink:0 }}>
