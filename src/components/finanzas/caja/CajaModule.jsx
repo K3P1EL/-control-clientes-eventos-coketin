@@ -1,12 +1,15 @@
 import { useState, useMemo } from "react"
 import DarkStatCard from "../ui/DarkStatCard"
 import { formatMoney, peruToday, peruNow, getWeekNumberISO } from "../../../lib/finanzas/helpers"
-import { MESES_CORTO } from "../../../lib/finanzas/constants"
+import { MESES, MESES_CORTO } from "../../../lib/finanzas/constants"
 import { useCajaEntries } from "./hooks/useCajaEntries"
 import { useCajaDesglose } from "./hooks/useCajaDesglose"
+import { useContratosSnapshot } from "./hooks/useContratosSnapshot"
+import { useReconciliation } from "./hooks/useReconciliation"
 import EntryForm from "./EntryForm"
 import EntriesTable from "./EntriesTable"
 import MetricsView from "./MetricsView"
+import ReconciliationChip from "./ReconciliationChip"
 
 const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: "", modalidad: "Yape", delNegocio: true, deContrato: false, categoria: "" }
 
@@ -71,6 +74,18 @@ export default function CajaModule() {
 
   const desglose = useCajaDesglose(filtered)
 
+  // Cross-module reconciliation: compare what Contratos says is "en caja"
+  // against what Caja has actually flagged as deNegocio + deContrato.
+  // Same period filter so the chip is consistent with the table.
+  const contratosSnapshot = useContratosSnapshot()
+  const reconciliationPeriod = useMemo(() => {
+    if (filterSem) return { type: "semana", value: +filterSem }
+    if (filterMes) return { type: "mes", value: +filterMes }
+    return { type: null, value: null }
+  }, [filterSem, filterMes])
+  const reconciliation = useReconciliation(contratosSnapshot, activeEntries, reconciliationPeriod)
+  const reconciliationLabel = filterSem ? `Sem ${filterSem}` : filterMes ? MESES[+filterMes] : "Todo el tiempo"
+
   const onSubmitForm = () => {
     addEntry(form, editId)
     setForm(EMPTY_FORM)
@@ -105,6 +120,8 @@ export default function CajaModule() {
         <DarkStatCard label="Balance" value={formatMoney(balance)} icon={balance >= 0 ? "✅" : "⚠️"} accent={balance >= 0 ? "#34d399" : "#f87171"} />
         <DarkStatCard label="Movimientos" value={filtered.length} icon="📋" accent="#818cf8" />
       </div>
+
+      <ReconciliationChip reconciliation={reconciliation} period={reconciliationLabel} />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button onClick={() => setSoloNegocio(!soloNegocio)}
