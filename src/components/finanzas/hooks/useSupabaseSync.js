@@ -33,6 +33,9 @@ export function useSupabaseSync({
   latest.current = data
 
   // ── Initial load (runs once) ────────────────────────────────────
+  // Critical: applyLoaded MUST be called exactly once on every code path,
+  // even when there's no data anywhere — otherwise `loaded` never flips
+  // to true and the parent shows "Cargando..." forever.
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
@@ -40,32 +43,33 @@ export function useSupabaseSync({
     let cancelled = false
     ;(async () => {
       let cloud = null
+      let cloudFailed = false
       try {
         cloud = await loader()
       } catch (e) {
         logError(`finanzas.${localKey}.load`, e)
-        // Network/auth error — fall back to localStorage entirely.
-        const local = getJSON(localKey)
-        if (local && !cancelled) applyLoaded(local)
-        return
+        cloudFailed = true
       }
 
       if (cancelled) return
 
       if (cloud) {
-        // Cloud has data → that's the source of truth.
+        // Cloud has data → source of truth.
         applyLoaded(cloud)
-        // Mirror into localStorage so we have an offline cache.
         setJSON(localKey, cloud)
-      } else {
-        // Cloud is empty. Migrate from localStorage if there's anything.
-        const local = getJSON(localKey)
-        if (local) {
-          applyLoaded(local)
-          // Push local data UP to cloud so it lives on every device.
-          try { await saver(local) }
-          catch (e) { logError(`finanzas.${localKey}.migrate`, e) }
-        }
+        return
+      }
+
+      // Either cloud is empty (first time on this account) or the call
+      // failed. Either way, fall back to whatever we have locally.
+      const local = getJSON(localKey)
+      applyLoaded(local)  // null is OK — parent keeps its defaults
+
+      // If cloud is reachable AND empty AND we have local data, migrate
+      // local UP so it lives on every device.
+      if (!cloudFailed && local) {
+        try { await saver(local) }
+        catch (e) { logError(`finanzas.${localKey}.migrate`, e) }
       }
     })()
 
