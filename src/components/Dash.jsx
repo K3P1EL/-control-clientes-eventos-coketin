@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
-import { supabase } from "../lib/supabase"
 import { getOCRUsage } from "../services/config"
-import { listStorageFiles, deleteStorageFile } from "../services/storage"
+import { listStorageFiles, deleteStorageFile, getStorageUsage, getStorageUrl } from "../services/storage"
 import { C } from "../lib/colors"
 import { Stat, SafeImg } from "./shared"
 import { today } from "../lib/helpers"
@@ -17,20 +16,9 @@ function StorageUsage() {
 
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        let totalSize = 0
-        for (const folder of ["registros", "contratos", "almacen"]) {
-          const { data, error: listErr } = await supabase.storage.from("archivos").list(folder, { limit: 1000 })
-          if (listErr) throw listErr
-          if (data) totalSize += data.reduce((sum, f) => sum + (f.metadata?.size || 0), 0)
-        }
-        if (mounted) setUsage(totalSize)
-      } catch (e) {
-        logError("StorageUsage", e)
-        if (mounted) setError(e.message)
-      }
-    })()
+    getStorageUsage(["registros", "contratos", "almacen"])
+      .then(total => { if (mounted) setUsage(total) })
+      .catch(e => { logError("StorageUsage", e); if (mounted) setError(e.message) })
     return () => { mounted = false }
   }, [])
 
@@ -115,7 +103,7 @@ function StorageBrowser() {
   const fmtSize = (b) => !b ? "—" : b < 1024 ? `${b}B` : b < 1024*1024 ? `${(b/1024).toFixed(0)}KB` : `${(b/(1024*1024)).toFixed(1)}MB`
   const totalSize = files.reduce((s,f) => s + (f.metadata?.size||0), 0)
   const selectedSize = files.filter(f => selected.has(f.path)).reduce((s,f) => s + (f.metadata?.size||0), 0)
-  const getUrl = (f) => { const { data } = supabase.storage.from("archivos").getPublicUrl(f.path); return data?.publicUrl }
+  const getUrl = (f) => getStorageUrl(f.path)
   const isImage = (f) => f.metadata?.mimetype?.startsWith("image") || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.name)
 
   return (

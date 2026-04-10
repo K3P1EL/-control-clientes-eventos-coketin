@@ -88,3 +88,21 @@ export async function deleteStorageFile(path) {
   if (error) throw error
   return data
 }
+
+// Sum the bytes of every file in the given folders. Used by the
+// dashboard to show "X MB / 1 GB" without exposing supabase to the UI.
+export async function getStorageUsage(folders) {
+  let total = 0
+  for (const folder of folders) {
+    const { data, error } = await supabase.storage.from('archivos').list(folder, { limit: 1000 })
+    if (error) throw error
+    if (data) total += data.reduce((sum, f) => sum + (f.metadata?.size || 0), 0)
+  }
+  return total
+}
+
+// Resolve a storage `path` (e.g. "registros/abc.jpg") to its public URL.
+export function getStorageUrl(path) {
+  const { data } = supabase.storage.from('archivos').getPublicUrl(path)
+  return data?.publicUrl || null
+}
