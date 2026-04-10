@@ -11,7 +11,7 @@ export default memo(function FichaListRow({
   selected, expanded,
   onToggleSelect,
   onToggleExpand,
-  onOpenFicha,        // (clientId, contratoIdx) => void
+  onOpenFicha,        // (clientId, contratoIdx) => void — idx is stable because c.contratos comes from Supabase in insertion order and is never filtered/sorted client-side
   onUpdateClient,     // (id, field, val) => void
 }) {
   const cts = c.contratos || []

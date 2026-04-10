@@ -748,7 +748,7 @@ export default memo(function Clientes({
                   if (selectedFichas.size > 0) toggleSelect(c.id, { stopPropagation: () => {} })
                   else setExpandedId(expandedId === c.id ? null : c.id)
                 }}
-                onOpenFicha={(id, idx) => { setView(id); setActiveContrato(idx) }}
+                onOpenFicha={(id, contratoIdx) => { setView(id); setActiveContrato(contratoIdx) }}
                 onUpdateClient={onUpdateClient}
               />
             ))}

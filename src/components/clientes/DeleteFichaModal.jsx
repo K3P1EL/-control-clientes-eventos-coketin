@@ -1,9 +1,17 @@
-import { memo } from "react"
+import { memo, useEffect } from "react"
 import { C } from "../../lib/colors"
 
 // Modal de confirmación para mover una ficha a la papelera.
 // Muestra un resumen de los datos vinculados (contratos, adelantos, archivos, regs).
 export default memo(function DeleteFichaModal({ c, onCancel, onConfirm }) {
+  // Close on ESC — consistent with every other modal in the app.
+  useEffect(() => {
+    if (!c) return
+    const onKey = (e) => { if (e.key === "Escape") onCancel() }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [c, onCancel])
+
   if (!c) return null
   const cts = c.contratos || []
   const totalArchivos = cts.reduce((s, ct) => s + (ct.contrato_archivos || []).length, 0)
