@@ -3,6 +3,7 @@ import NumInput from "../../ui/NumInput"
 import Select from "../../ui/Select"
 import { fmt } from "../../../../lib/finanzas/helpers"
 import JalarContratos from "../components/JalarContratos"
+import JalarCaja from "../components/JalarCaja"
 
 // Caja tab: manual cash inputs + "jalar contratos" to auto-fill +
 // weekly/monthly viability analysis.
@@ -46,6 +47,7 @@ export default function CajaTab({
         </div>
 
         <JalarContratos setCajaSemanaSol={setCajaSemanaSol} setCajaAcumMes={setCajaAcumMes} />
+        <JalarCaja setCajaSemanaSol={setCajaSemanaSol} setCajaAcumMes={setCajaAcumMes} />
       </Card>
 
       <Card title="Análisis semanal — ¿Alcanza?" icon="📆" accent="amber">
