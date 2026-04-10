@@ -142,15 +142,16 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { label: "Ganancia", value: data.ganancia, color: "text-emerald-400", border: "border-emerald-500/30", bg: "hover:bg-emerald-500/10" },
-                  { label: "En caja", value: data.enCaja, color: "text-sky-400", border: "border-sky-500/30", bg: "hover:bg-sky-500/10" },
-                  { label: "De contratos nuevos", value: data.deNuevos, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10" },
-                  { label: "De anteriores", value: data.deAnteriores, color: "text-amber-400", border: "border-amber-500/30", bg: "hover:bg-amber-500/10" },
+                  { label: "Ganancia", value: data.ganancia, color: "text-emerald-400", border: "border-emerald-500/30", bg: "hover:bg-emerald-500/10", sub: "Total − descuentos" },
+                  { label: "En caja", value: data.enCaja, color: "text-sky-400", border: "border-sky-500/30", bg: "hover:bg-sky-500/10", sub: "Ganancia − pendiente" },
+                  { label: "De contratos nuevos", value: data.deNuevos, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10", sub: "Registrados este periodo" },
+                  { label: "De anteriores", value: data.deAnteriores, color: "text-amber-400", border: "border-amber-500/30", bg: "hover:bg-amber-500/10", sub: "Cobros de periodos previos" },
                 ].map(m => (
                   <button key={m.label} onClick={() => setVal(m.value)}
                     className={`bg-zinc-800/40 rounded-lg p-3 border ${m.border} text-left transition-all cursor-pointer ${m.bg} active:scale-95`}>
                     <div className="text-[10px] text-zinc-500 uppercase">{m.label}</div>
                     <div className={`text-base font-mono font-bold ${m.color} mt-0.5`}>{fmtS(m.value)}</div>
+                    <div className="text-[9px] text-zinc-600 mt-1">{m.sub}</div>
                   </button>
                 ))}
               </div>

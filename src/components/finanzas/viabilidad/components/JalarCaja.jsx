@@ -179,15 +179,16 @@ export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, se
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { label: "Ingresos negocio", value: data.ingresosNeg, color: "text-emerald-400", border: "border-emerald-500/30", bg: "hover:bg-emerald-500/10" },
-                  { label: "Balance negocio", value: data.balanceNeg, color: "text-sky-400", border: "border-sky-500/30", bg: "hover:bg-sky-500/10" },
-                  { label: "Ingresos contrato", value: data.ingresosCont, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10" },
-                  { label: "Balance total", value: data.balanceTotal, color: "text-amber-400", border: "border-amber-500/30", bg: "hover:bg-amber-500/10" },
+                  { label: "Ingresos negocio", value: data.ingresosNeg, color: "text-emerald-400", border: "border-emerald-500/30", bg: "hover:bg-emerald-500/10", sub: "🏪 Solo del negocio" },
+                  { label: "Balance negocio", value: data.balanceNeg, color: "text-sky-400", border: "border-sky-500/30", bg: "hover:bg-sky-500/10", sub: "🏪 Ingresos − egresos negocio" },
+                  { label: "Ingresos contrato", value: data.ingresosCont, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10", sub: "📋 Solo del contrato (neto)" },
+                  { label: "Balance total", value: data.balanceTotal, color: "text-amber-400", border: "border-amber-500/30", bg: "hover:bg-amber-500/10", sub: "Todo: negocio + externo" },
                 ].map(m => (
                   <button key={m.label} onClick={() => setVal(m.value)}
                     className={`bg-zinc-800/40 rounded-lg p-3 border ${m.border} text-left transition-all cursor-pointer ${m.bg} active:scale-95`}>
                     <div className="text-[10px] text-zinc-500 uppercase">{m.label}</div>
                     <div className={`text-base font-mono font-bold ${m.color} mt-0.5`}>{fmtS(m.value)}</div>
+                    <div className="text-[9px] text-zinc-600 mt-1">{m.sub}</div>
                   </button>
                 ))}
               </div>
