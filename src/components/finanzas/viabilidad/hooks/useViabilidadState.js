@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { getJSON } from "../../../../lib/storage"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { useDebouncedPersist } from "../../hooks/useDebouncedPersist"
+import { useDebouncedPersist } from "../../../../lib/useDebouncedPersist"
 
 // Default seed data — only used the first time, before anything is in localStorage.
 const INIT_WORKERS = [

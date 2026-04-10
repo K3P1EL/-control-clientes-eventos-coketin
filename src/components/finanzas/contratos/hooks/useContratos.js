@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { getJSON } from "../../../../lib/storage"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { calcContract, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
-import { useDebouncedPersist } from "../../hooks/useDebouncedPersist"
+import { useDebouncedPersist } from "../../../../lib/useDebouncedPersist"
 
 // Seed used the very first time, before anything is in localStorage.
 const INITIAL_CONTRACTS = [

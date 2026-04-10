@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { setJSON } from "../../../lib/storage"
+import { setJSON } from "./storage"
 
 // Persists `data` to localStorage under `key` with a debounce. Critically:
 //   1) Cancels any pending save when `data` changes (the debounce itself).
@@ -8,6 +8,9 @@ import { setJSON } from "../../../lib/storage"
 //
 // `loaded` gates the first run so we don't overwrite real data with the
 // initial useState defaults during the very first render.
+//
+// Lives in lib/ (not in a component folder) because it's reusable by ANY
+// part of the app, not just the Finanzas module.
 export function useDebouncedPersist(key, data, loaded, delay = 400) {
   const timer = useRef(null)
   const latest = useRef(data)

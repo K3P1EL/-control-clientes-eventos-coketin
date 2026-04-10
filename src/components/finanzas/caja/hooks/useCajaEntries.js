@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { getJSON } from "../../../../lib/storage"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { peruToday, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
-import { useDebouncedPersist } from "../../hooks/useDebouncedPersist"
+import { useDebouncedPersist } from "../../../../lib/useDebouncedPersist"
 
 // Owns the cash-entries list, persistence, and CRUD handlers.
 // Auto-numbers any entry that doesn't yet have a `num` field on first
