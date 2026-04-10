@@ -6,10 +6,14 @@ import { formatMoney, calcContract } from "../../../../lib/finanzas/helpers"
 
 // Tabular view of contracts with stat cards, search, status filter,
 // and per-row edit/delete buttons.
+//
+// Two delete buttons per row, mirroring the Registro pattern:
+//   🗑️  → soft delete (sends to Papelera, can be restored)
+//   🗑️× → hard delete (skips Papelera, gone immediately, with confirm)
 export default function TablaView({
   filtered, filteredSummary, filterSem, filterMes, currentWeekNum, quickLabel,
   filterEstado, setFilterEstado, search, setSearch, setQuickAll,
-  onEdit, onDelete,
+  onEdit, onDelete, onPermanentDelete,
 }) {
   const stats = useMemo(() => ({
     total: filtered.reduce((a, c) => a + (c.total || 0), 0),
@@ -76,7 +80,23 @@ export default function TablaView({
                     <td style={{ ...cDark.td, fontSize: 11, color: "#71717a", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.notas}</td>
                     <td style={{ ...cDark.td, whiteSpace: "nowrap" }}>
                       <button onClick={() => onEdit(c)} style={cDark.iconBtn} title="Editar">✏️</button>
-                      <button onClick={() => onDelete(c.id)} style={cDark.iconBtn} title="Eliminar">🗑️</button>
+                      <button onClick={() => onDelete(c.id)} style={cDark.iconBtn} title="Mover a papelera">🗑️</button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`¿Borrar ${c.id} definitivamente?\n\nNo pasa por la papelera. No se puede deshacer.`)) {
+                            onPermanentDelete(c.id)
+                          }
+                        }}
+                        title="Borrar permanente (sin pasar por papelera)"
+                        style={{
+                          background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.45)",
+                          borderRadius: 4, cursor: "pointer", padding: "2px 5px",
+                          color: "#f87171", fontSize: 11, fontWeight: 700, marginLeft: 2,
+                          display: "inline-flex", alignItems: "center", gap: 2,
+                        }}
+                      >
+                        🗑️<span style={{ fontSize: 9 }}>×</span>
+                      </button>
                     </td>
                   </tr>
                 )

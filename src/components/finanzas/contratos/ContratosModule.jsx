@@ -99,6 +99,7 @@ export default function ContratosModule() {
           search={search} setSearch={setSearch}
           setQuickAll={setQuickAll}
           onEdit={setEditContract} onDelete={setDeleteId}
+          onPermanentDelete={handlePermanentDelete}
         />
       )}
       {view === "semanal" && (
