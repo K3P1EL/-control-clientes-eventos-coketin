@@ -50,11 +50,16 @@
   color: #828590 !important;
 }
 
-/* Visible row separators inside Finanzas tables. The Tailwind classes
-   used by the tabs (border-zinc-800/60) wash out almost completely on
-   the dark card background, so the rows look like they float without
-   any "ledger" structure. Force a slightly brighter rule on every
-   row inside any table living under .finanzas-root. */
+/* Visible row separators inside Finanzas tables.
+   IMPORTANT: Tailwind preflight is globally disabled so the browser's
+   default `border-collapse: separate` is in effect — without that
+   border-collapse override, ANY border-top set on a <tr> simply does
+   not render. Force `collapse` for every Finanzas table so the row
+   rules below (and the Tailwind classes the tabs already use) actually
+   show up. */
+.finanzas-root table {
+  border-collapse: collapse;
+}
 .finanzas-root table tbody tr {
   border-top: 1px solid rgba(63, 63, 70, 0.6);
 }
