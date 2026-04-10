@@ -2,12 +2,10 @@ import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import Select from "../../ui/Select"
 import { fmt } from "../../../../lib/finanzas/helpers"
+import JalarContratos from "../components/JalarContratos"
 
-// Caja tab: manual cash inputs + weekly/monthly viability analysis.
-// The original module also had a "jalar contratos" panel that read from
-// window.storage; we removed it because Finanzas does not cross data
-// with the rest of the app. If you want to wire it to the new Contratos
-// module later, that's a follow-up.
+// Caja tab: manual cash inputs + "jalar contratos" to auto-fill +
+// weekly/monthly viability analysis.
 export default function CajaTab({
   cajaSemanaSol, setCajaSemanaSol,
   cajaAcumMes, setCajaAcumMes,
@@ -46,6 +44,8 @@ export default function CajaTab({
             <NumInput value={diasOpSemana} onChange={setDiasOpSemana} min={1} />
           </div>
         </div>
+
+        <JalarContratos setCajaSemanaSol={setCajaSemanaSol} setCajaAcumMes={setCajaAcumMes} />
       </Card>
 
       <Card title="Análisis semanal — ¿Alcanza?" icon="📆" accent="amber">
