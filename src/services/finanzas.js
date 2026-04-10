@@ -45,11 +45,27 @@ async function saveOne(table, blob) {
   if (error) throw error
 }
 
+// Generic delete. Wipes the entire row for the current user. Used by
+// the "Resetear datos originales" button so the next reload re-seeds
+// from INITIAL_CONTRACTS / etc instead of restoring the cloud backup.
+async function deleteOne(table) {
+  const userId = await currentUserId()
+  if (!userId) throw new Error("No authenticated user")
+  const { error } = await supabase
+    .from(table)
+    .delete()
+    .eq("user_id", userId)
+  if (error) throw error
+}
+
 export const loadViabilidad = () => loadOne(TABLES.viabilidad)
 export const saveViabilidad = (blob) => saveOne(TABLES.viabilidad, blob)
+export const deleteViabilidad = () => deleteOne(TABLES.viabilidad)
 
 export const loadContratos = () => loadOne(TABLES.contratos)
 export const saveContratos = (blob) => saveOne(TABLES.contratos, blob)
+export const deleteContratos = () => deleteOne(TABLES.contratos)
 
 export const loadCaja = () => loadOne(TABLES.caja)
 export const saveCaja = (blob) => saveOne(TABLES.caja, blob)
+export const deleteCaja = () => deleteOne(TABLES.caja)

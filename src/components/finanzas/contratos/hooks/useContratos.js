@@ -2,7 +2,10 @@ import { useState, useMemo, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { calcContract, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
-import { loadContratos, saveContratos } from "../../../../services/finanzas"
+import { loadContratos, saveContratos, deleteContratos } from "../../../../services/finanzas"
+import { remove as removeLocal } from "../../../../lib/storage"
+import { STORAGE_KEYS as KEYS } from "../../../../lib/finanzas/constants"
+import { logError } from "../../../../lib/logger"
 
 // Seed used the very first time, before anything is in localStorage or
 // Supabase. Mirrors the original Coketín demo data 1:1 — including the
@@ -74,7 +77,14 @@ export function useContratos() {
     setContracts(prev => prev.map(c => c.id === id ? { ...c, eliminado: false, notas: "" } : c))
   }, [])
 
-  const handleReset = useCallback(() => {
+  // "Resetear datos originales" — wipes the cloud row, the localStorage
+  // cache, and re-seeds with INITIAL_CONTRACTS. The debounced save will
+  // immediately upload the new seed to Supabase, so the next refresh
+  // also sees the seed (not the deleted row).
+  const handleReset = useCallback(async () => {
+    try { await deleteContratos() }
+    catch (e) { logError("contratos.reset", e) }
+    removeLocal(KEYS.CONTRATOS)
     setContracts(INITIAL_CONTRACTS)
   }, [])
 
