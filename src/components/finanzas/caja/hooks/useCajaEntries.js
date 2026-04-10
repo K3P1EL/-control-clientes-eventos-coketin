@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { getJSON, setJSON } from "../../../../lib/storage"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { getJSON } from "../../../../lib/storage"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { peruToday, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { useDebouncedPersist } from "../../hooks/useDebouncedPersist"
 
 // Owns the cash-entries list, persistence, and CRUD handlers.
 // Auto-numbers any entry that doesn't yet have a `num` field on first
@@ -25,14 +26,7 @@ export function useCajaEntries() {
     setLoaded(true)
   }, [])
 
-  // Debounced save.
-  const saveTimer = useRef(null)
-  useEffect(() => {
-    if (!loaded) return
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => setJSON(STORAGE_KEYS.CAJA, entries), 400)
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
-  }, [entries, loaded])
+  useDebouncedPersist(STORAGE_KEYS.CAJA, entries, loaded)
 
   const addEntry = useCallback((form, editId) => {
     if (!form.monto || form.monto <= 0) return

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cDark } from "../ui/darkStyles"
 import DarkMoneyInput from "../ui/DarkMoneyInput"
 import { PERSONAS, MODALS } from "../../../lib/finanzas/constants"
@@ -15,6 +15,13 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
   })
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const calc = calcContract(form)
+
+  // Close on ESC.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [onClose])
   const fs = cDark.input
   const groupStyle = { display: "flex", flexDirection: "column", gap: 2 }
 

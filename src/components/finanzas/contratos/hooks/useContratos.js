@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { getJSON, setJSON } from "../../../../lib/storage"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { getJSON } from "../../../../lib/storage"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { calcContract, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { useDebouncedPersist } from "../../hooks/useDebouncedPersist"
 
 // Seed used the very first time, before anything is in localStorage.
 const INITIAL_CONTRACTS = [
@@ -27,14 +28,7 @@ export function useContratos() {
     setLoaded(true)
   }, [])
 
-  // Debounced save.
-  const saveTimer = useRef(null)
-  useEffect(() => {
-    if (!loaded) return
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => setJSON(STORAGE_KEYS.CONTRATOS, contracts), 400)
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
-  }, [contracts, loaded])
+  useDebouncedPersist(STORAGE_KEYS.CONTRATOS, contracts, loaded)
 
   const activeContracts = useMemo(() => contracts.filter(c => !c.eliminado), [contracts])
 

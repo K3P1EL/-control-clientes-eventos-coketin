@@ -19,12 +19,16 @@ export function getWeekNumberCal(y, m, d) {
 }
 
 // ISO week number (1-53). Used by Contratos to bucket weeks consistently.
+// Returns null if the input can't be parsed into a valid date — callers
+// should handle that explicitly instead of getting a NaN week silently.
 export function getWeekNumberISO(d) {
-  const date = parseLocalDate(d) || new Date(d)
-  date.setHours(0, 0, 0, 0)
-  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
-  const week1 = new Date(date.getFullYear(), 0, 4)
-  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
+  const date = parseLocalDate(d) || (d instanceof Date ? d : null)
+  if (!date || isNaN(date.getTime())) return null
+  const safe = new Date(date.getTime())
+  safe.setHours(0, 0, 0, 0)
+  safe.setDate(safe.getDate() + 3 - ((safe.getDay() + 6) % 7))
+  const week1 = new Date(safe.getFullYear(), 0, 4)
+  return 1 + Math.round(((safe.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
 }
 
 // "America/Lima" stays the source of truth for "today" — events are local.
@@ -38,12 +42,16 @@ export function peruToday() {
 }
 
 // Accepts "YYYY-MM-DD" or a Date. Returns a Date at local midnight.
-// Returns null for empty / "no trackeado" sentinel.
+// Returns null for empty / "no trackeado" sentinel, OR for any string
+// that doesn't parse to a valid date — that way callers can rely on the
+// return either being a valid Date or being null, never an Invalid Date.
 export function parseLocalDate(d) {
   if (!d || d === "no trackeado") return null
-  if (d instanceof Date) return d
-  const s = String(d)
-  return new Date(s.includes("T") ? s : s + "T00:00:00")
+  if (d instanceof Date) return isNaN(d.getTime()) ? null : d
+  const s = String(d).trim()
+  if (!s) return null
+  const parsed = new Date(s.includes("T") ? s : s + "T00:00:00")
+  return isNaN(parsed.getTime()) ? null : parsed
 }
 
 // ── Number formatting ────────────────────────────────────────────────────

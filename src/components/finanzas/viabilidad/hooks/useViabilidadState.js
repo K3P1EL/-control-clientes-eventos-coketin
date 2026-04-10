@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react"
-import { getJSON, setJSON } from "../../../../lib/storage"
+import { useState, useEffect } from "react"
+import { getJSON } from "../../../../lib/storage"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
+import { useDebouncedPersist } from "../../hooks/useDebouncedPersist"
 
 // Default seed data — only used the first time, before anything is in localStorage.
 const INIT_WORKERS = [
@@ -55,20 +56,12 @@ export function useViabilidadState() {
     setLoaded(true)
   }, [])
 
-  // Debounced save. The saveTimer ref keeps the latest scheduled save so a
-  // burst of edits collapses into one localStorage write ~400ms later.
-  const saveTimer = useRef(null)
-  useEffect(() => {
-    if (!loaded) return
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      setJSON(STORAGE_KEYS.VIABILIDAD, {
-        year, month, workers, services, apoyos, trackerData,
-        diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll,
-      })
-    }, 400)
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
-  }, [loaded, year, month, workers, services, apoyos, trackerData, diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll])
+  // Debounced + flush-on-unmount persistence. The hook handles bursts,
+  // tab close, refresh, and navigation away — see useDebouncedPersist.
+  useDebouncedPersist(STORAGE_KEYS.VIABILIDAD, {
+    year, month, workers, services, apoyos, trackerData,
+    diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll,
+  }, loaded)
 
   return {
     loaded,

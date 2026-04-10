@@ -1,5 +1,13 @@
+import { useEffect } from "react"
+
 // Generic delete-confirmation modal used by Contratos.
 export default function ConfirmModal({ message, onConfirm, onCancel }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onCancel() }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [onCancel])
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1001, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: "#18181b", borderRadius: 16, padding: 28, maxWidth: 380, textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.4)", border: "1px solid #3f3f46" }}>
