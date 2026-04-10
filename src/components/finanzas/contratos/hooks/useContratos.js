@@ -4,12 +4,19 @@ import { calcContract, parseLocalDate, getWeekNumberISO } from "../../../../lib/
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadContratos, saveContratos } from "../../../../services/finanzas"
 
-// Seed used the very first time, before anything is in localStorage.
+// Seed used the very first time, before anything is in localStorage or
+// Supabase. Mirrors the original Coketín demo data 1:1 — including the
+// soft-deleted N 0055 and the "Nilton y Agustin" extra row — so a fresh
+// account opens to a realistic-looking module instead of 4 stub rows.
 const INITIAL_CONTRACTS = [
   { id: "N 0051", cliente: "", total: 225, adelanto: 50, modalAdel: "Efectivo", recibioAdel: "Loli", fechaAdel: "", enCajaAdel: true, cobro: 175, modalCobro: "Efectivo", recibioCobro: "Loli", fechaCobro: "2026-03-31", enCajaCobro: true, descuento: 4, notas: "Movilidad 4 soles", depend: false, semana: 14, mes: 3, anio: 2026, eliminado: false },
   { id: "N 0052", cliente: "", total: 820, adelanto: 400, modalAdel: "Efectivo", recibioAdel: "Loli", fechaAdel: "", enCajaAdel: true, cobro: 420, modalCobro: "Efectivo", recibioCobro: "Loli", fechaCobro: "2026-04-02", enCajaCobro: true, descuento: 200, notas: "Realizado", depend: true, semana: 14, mes: 4, anio: 2026, eliminado: false },
   { id: "N 0053", cliente: "", total: 250, adelanto: 100, modalAdel: "Yape", recibioAdel: "Yo", fechaAdel: "2026-03-31", enCajaAdel: true, cobro: 150, modalCobro: "Yape", recibioCobro: "Yo", fechaCobro: "2026-04-01", enCajaCobro: true, descuento: 0, notas: "Realizado", depend: false, semana: 14, mes: 3, anio: 2026, eliminado: false },
   { id: "N 0054", cliente: "", total: 205, adelanto: 55, modalAdel: "Yape", recibioAdel: "Yo", fechaAdel: "2026-04-02", enCajaAdel: true, cobro: 150, modalCobro: "Yape", recibioCobro: "Mama", fechaCobro: "2026-04-02", enCajaCobro: true, descuento: 0, notas: "Realizado", depend: false, semana: 14, mes: 4, anio: 2026, eliminado: false },
+  { id: "N 0055", cliente: "", total: 0, adelanto: 0, modalAdel: "", recibioAdel: "", fechaAdel: "", enCajaAdel: false, cobro: 0, modalCobro: "", recibioCobro: "", fechaCobro: "", enCajaCobro: false, descuento: 0, notas: "ELIMINADO", depend: false, semana: null, mes: null, anio: null, eliminado: true },
+  { id: "N 0056", cliente: "", total: 380, adelanto: 100, modalAdel: "Efectivo", recibioAdel: "Loli", fechaAdel: "2026-04-04", enCajaAdel: true, cobro: 280, modalCobro: "Efectivo", recibioCobro: "Loli", fechaCobro: "2026-04-05", enCajaCobro: true, descuento: 10, notas: "Evento 05-abr", depend: false, semana: 14, mes: 4, anio: 2026, eliminado: false },
+  { id: "N 0057", cliente: "", total: 200, adelanto: 100, modalAdel: "Yape", recibioAdel: "Yo", fechaAdel: "2026-04-04", enCajaAdel: true, cobro: 100, modalCobro: "Efectivo", recibioCobro: "Loli", fechaCobro: "2026-04-05", enCajaCobro: true, descuento: 0, notas: "Evento 05-abr", depend: false, semana: 14, mes: 4, anio: 2026, eliminado: false },
+  { id: "extra-001", cliente: "Nilton y Agustin", total: 1170, adelanto: 0, modalAdel: "", recibioAdel: "", fechaAdel: "", enCajaAdel: false, noTrackAdel: true, cobro: 1170, modalCobro: "Yape", recibioCobro: "Yo", fechaCobro: "2026-04-02", enCajaCobro: true, noTrackCobro: false, descuento: 620, notas: "Nilton y Agustin", depend: true, semana: 14, mes: 4, anio: 2026, eliminado: false },
 ]
 
 // Owns the contracts list, persistence, CRUD handlers, and the
