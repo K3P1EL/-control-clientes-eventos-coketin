@@ -59,9 +59,15 @@ export function useCierres(calc) {
 
     const gastoSemanal = calc.gastoNetoSemanal || 0
 
+    // Build list of past months to close (from Jan to currentMonth-1)
+    const months = []
+    for (let m = 1; m < currentMonth; m++) months.push(m)
+
+    const gastoMes = calc.gastoRealMes || 0
+
     const doClose = async () => {
+      // ── Weekly cierres ──
       for (const w of weeks) {
-        // Filter contracts by c.semana + c.anio (same as ContratosModule)
         let ganancia = 0, enCaja = 0
         contracts.forEach(c => {
           if (c.eliminado) return
@@ -72,7 +78,6 @@ export function useCierres(calc) {
           enCaja += cc.enCaja
         })
 
-        // Filter caja entries by real date + year
         let cajaIng = 0, cajaEgr = 0
         cajaEntries.forEach(e => {
           if (e.eliminado) return
@@ -84,15 +89,43 @@ export function useCierres(calc) {
         })
 
         const libre = enCaja - gastoSemanal
-
         try {
           await upsertCierre({
-            tipo: "semana",
-            periodo: w,
-            anio: currentYear,
+            tipo: "semana", periodo: w, anio: currentYear,
             data: { ganancia, enCaja, gastoSemanal, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
-            viable: libre >= 0,
-            nota: "",
+            viable: libre >= 0, nota: "",
+          })
+        } catch (e) { logError("cierres.autoClose", e) }
+      }
+
+      // ── Monthly cierres ──
+      for (const m of months) {
+        let ganancia = 0, enCaja = 0
+        contracts.forEach(c => {
+          if (c.eliminado) return
+          if ((c.anio || currentYear) !== currentYear) return
+          if (c.mes !== m) return
+          const cc = calcContract(c)
+          ganancia += cc.ganancia
+          enCaja += cc.enCaja
+        })
+
+        let cajaIng = 0, cajaEgr = 0
+        cajaEntries.forEach(e => {
+          if (e.eliminado) return
+          if (e.delNegocio === false) return
+          const ed = getEntryDate(e)
+          if (!ed || ed.year !== currentYear || ed.month !== m) return
+          if (e.tipo === "ingreso") cajaIng += e.monto || 0
+          else if (e.tipo === "egreso") cajaEgr += e.monto || 0
+        })
+
+        const libre = enCaja - gastoMes
+        try {
+          await upsertCierre({
+            tipo: "mes", periodo: m, anio: currentYear,
+            data: { ganancia, enCaja, gastoSemanal: gastoMes, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            viable: libre >= 0, nota: "",
           })
         } catch (e) { logError("cierres.autoClose", e) }
       }
