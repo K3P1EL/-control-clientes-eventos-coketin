@@ -28,12 +28,18 @@ export default function TablaView({
   filterEstado, setFilterEstado, search, setSearch, setQuickAll,
   onEdit, onDelete, onPermanentDelete,
 }) {
-  const stats = useMemo(() => ({
-    total: filtered.reduce((a, c) => a + (c.total || 0), 0),
-    ganancia: filtered.reduce((a, c) => a + calcContract(c).ganancia, 0),
-    enCaja: filtered.reduce((a, c) => a + calcContract(c).enCaja, 0),
-    pendiente: filtered.reduce((a, c) => a + calcContract(c).pendiente, 0),
-  }), [filtered])
+  const stats = useMemo(() => {
+    let total = 0, ganancia = 0, enCaja = 0, pendiente = 0
+    filtered.forEach(c => {
+      const calc = calcContract(c)
+      total += c.total || 0
+      ganancia += calc.ganancia
+      enCaja += calc.enCaja
+      pendiente += calc.pendiente
+    })
+    const porRecibir = Math.max(0, ganancia - pendiente - enCaja)
+    return { total, ganancia, enCaja, pendiente, porRecibir }
+  }, [filtered])
 
   return (
     <>
@@ -140,6 +146,7 @@ export default function TablaView({
               <span>Total: {formatMoney(stats.total)}</span>
               <span>Ganancia: {formatMoney(stats.ganancia)}</span>
               <span>En Caja: {formatMoney(stats.enCaja)}</span>
+              {stats.porRecibir > 0 && <span style={{ color: "#fbbf24" }}>Por recibir: {formatMoney(stats.porRecibir)}</span>}
               <span>Pendiente: {formatMoney(stats.pendiente)}</span>
             </div>
           )}
