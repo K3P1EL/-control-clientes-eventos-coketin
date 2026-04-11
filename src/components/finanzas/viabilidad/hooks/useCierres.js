@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
 import { peruNow, getWeekNumberISO, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
 import { logError } from "../../../../lib/logger"
@@ -47,23 +47,29 @@ export function useCierres(calc) {
       .catch(e => { logError("cierres.load", e); setLoaded(true) })
   }, [])
 
+  // Keep a ref to calc so the effect reads fresh values without
+  // re-triggering on every calc change (which would cause loops).
+  const calcRef = useRef(calc)
+  calcRef.current = calc
+
   // Auto-close past weeks using the live snapshots of Contratos + Caja.
   // Always regenerates (upsert overwrites) so stale data self-heals.
   useEffect(() => {
-    if (!loaded || !calc || !contracts.length) return
+    const c = calcRef.current
+    if (!loaded || !c || !contracts.length) return
 
     const startWeek = Math.max(1, currentWeek - 4)
     const weeks = []
     for (let w = startWeek; w < currentWeek; w++) weeks.push(w)
     if (weeks.length === 0) return
 
-    const gastoSemanal = calc.gastoNetoSemanal || 0
+    const gastoSemanal = c.gastoNetoSemanal || 0
 
     // Build list of past months to close (from Jan to currentMonth-1)
     const months = []
     for (let m = 1; m < currentMonth; m++) months.push(m)
 
-    const gastoMes = calc.gastoRealMes || 0
+    const gastoMes = c.gastoRealMes || 0
 
     const doClose = async () => {
       // ── Weekly cierres ──

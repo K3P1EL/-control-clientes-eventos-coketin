@@ -266,8 +266,9 @@ export default memo(function Clientes({
             const archivos = (c.contratos||[]).flatMap(ct => ct.contrato_archivos||[])
             const isEmpty = !c.nombre && !c.dni && !(c.phones||[]).length && !c.direccion && !c.referencia && !archivos.length
             if (isEmpty) {
-              onDeleteClient(c.id)
-              alert("Ficha no creada: no tiene nombre, DNI, celular ni archivos.")
+              if (window.confirm("Esta ficha está vacía (sin nombre, DNI, celular ni archivos).\n\n¿Eliminarla?")) {
+                onDeleteClient(c.id)
+              }
             }
             setView(null);setActiveContrato(0);setBrowseMode(false)
             const rt = getStr("return_tab"); if (rt && rt !== "fichas") { setStr("return_tab", null); (returnToTab || changeTab)(rt) }

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { C } from "../lib/colors"
 
 function daysLeft(deletedAt, maxDays) {
@@ -27,34 +27,34 @@ export default function Papelera({
 }) {
   const [selected, setSelected] = useState(new Set())
 
-  const deletedClients = clients.filter(c => c.deleted_at)
-  const deletedContactos = contactos.filter(c => c.deleted_at)
-
-  // Build unified list
-  const items = [
-    ...deletedClients.map(c => {
-      const cts = c.contratos || []
-      const totalAdel = cts.reduce((s,ct) => s + (ct.adelantos||[]).length, 0)
-      const totalArch = cts.reduce((s,ct) => s + (ct.contrato_archivos||[]).length, 0)
-      const regCount = (c.reg_ids||[]).length
-      return {
-        id: c.id, type: "ficha", deletedAt: c.deleted_at,
-        title: c.nombre || "Sin nombre", code: c.code,
-        sub: [
-          cts.length > 0 && `${cts.length} contrato${cts.length>1?"s":""}`,
-          totalAdel > 0 && `${totalAdel} adelanto${totalAdel>1?"s":""}`,
-          totalArch > 0 && `${totalArch} archivo${totalArch>1?"s":""}`,
-        ].filter(Boolean).join(", "),
-        linked: regCount > 0 ? `Vinculado a ${regCount} registro${regCount>1?"s":""}` : null,
-      }
-    }),
-    ...deletedContactos.map(c => ({
-      id: c.id, type: "cliente", deletedAt: c.deleted_at,
-      title: c.nombre || "Sin nombre", code: null,
-      sub: [c.dni && `DNI: ${c.dni}`, (c.phones||[])[0]].filter(Boolean).join(" · "),
-      linked: null,
-    })),
-  ].sort((a,b) => new Date(b.deletedAt) - new Date(a.deletedAt))
+  const items = useMemo(() => {
+    const deletedClients = clients.filter(c => c.deleted_at)
+    const deletedContactos = contactos.filter(c => c.deleted_at)
+    return [
+      ...deletedClients.map(c => {
+        const cts = c.contratos || []
+        const totalAdel = cts.reduce((s,ct) => s + (ct.adelantos||[]).length, 0)
+        const totalArch = cts.reduce((s,ct) => s + (ct.contrato_archivos||[]).length, 0)
+        const regCount = (c.reg_ids||[]).length
+        return {
+          id: c.id, type: "ficha", deletedAt: c.deleted_at,
+          title: c.nombre || "Sin nombre", code: c.code,
+          sub: [
+            cts.length > 0 && `${cts.length} contrato${cts.length>1?"s":""}`,
+            totalAdel > 0 && `${totalAdel} adelanto${totalAdel>1?"s":""}`,
+            totalArch > 0 && `${totalArch} archivo${totalArch>1?"s":""}`,
+          ].filter(Boolean).join(", "),
+          linked: regCount > 0 ? `Vinculado a ${regCount} registro${regCount>1?"s":""}` : null,
+        }
+      }),
+      ...deletedContactos.map(c => ({
+        id: c.id, type: "cliente", deletedAt: c.deleted_at,
+        title: c.nombre || "Sin nombre", code: null,
+        sub: [c.dni && `DNI: ${c.dni}`, (c.phones||[])[0]].filter(Boolean).join(" · "),
+        linked: null,
+      })),
+    ].sort((a,b) => new Date(b.deletedAt) - new Date(a.deletedAt))
+  }, [clients, contactos])
 
   const toggle = (id) => setSelected(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s })
   const selectAll = () => setSelected(new Set(items.map(i => i.id)))

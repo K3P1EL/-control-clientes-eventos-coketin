@@ -58,7 +58,12 @@ export default function ViabilidadModule() {
   const { cierres, currentWeek, currentMonth: cierreMonth, currentYear: cierreYear } = useCierres(calc)
 
   if (!state.loaded) {
-    return <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">Cargando...</div>
+    return (
+      <div className="flex items-center justify-center py-16 text-zinc-500 text-sm gap-3">
+        <div style={{ width: 20, height: 20, border: "2px solid #3f3f46", borderTopColor: "#38bdf8", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+        Cargando viabilidad...
+      </div>
+    )
   }
 
   return (

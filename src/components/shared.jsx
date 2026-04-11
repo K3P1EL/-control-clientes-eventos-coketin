@@ -5,7 +5,7 @@ import { C } from '../lib/colors'
 export const lbl = { display:"block", fontSize:12, fontWeight:600, color:C.muted, marginBottom:4, marginTop:12 }
 export const inp = { width:"100%", padding:"10px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:14, outline:"none", boxSizing:"border-box", marginBottom:4 }
 export const mi  = { padding:"4px 8px", borderRadius:6, border:`1px solid ${C.border}`, background:C.inputBg, color:C.text, fontSize:13, outline:"none", boxSizing:"border-box" }
-export const sel = { background:"transparent", border:"none", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", outline:"none", padding:"4px 8px", width:"100%", textAlign:"center" }
+export const sel = { background:"transparent", border:"none", color:C.text, fontSize:12, fontWeight:700, cursor:"pointer", outline:"none", padding:"4px 8px", width:"100%", textAlign:"center" }
 export const btn = { padding:"10px 20px", borderRadius:8, border:"none", background:C.accent, color:"#fff", fontSize:14, fontWeight:600, cursor:"pointer" }
 export const btnD= { padding:"10px 20px", borderRadius:8, border:"none", background:C.danger, color:"#fff", fontSize:14, fontWeight:600, cursor:"pointer" }
 export const td  = { padding:10, verticalAlign:"middle" }

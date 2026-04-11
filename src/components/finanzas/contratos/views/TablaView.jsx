@@ -79,7 +79,7 @@ export default function TablaView({
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={13} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros</td></tr>
+                <tr><td colSpan={13} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros<br/><span style={{ fontSize: 11 }}>Probá limpiar los filtros con el botón ✕</span></td></tr>
               ) : filtered.map(c => {
                 const calc = calcContract(c)
                 return (

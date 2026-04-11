@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { getOCRUsage } from "../services/config"
 import { listStorageFiles, deleteStorageFile, getStorageUsage, getStorageUrl } from "../services/storage"
 import { C } from "../lib/colors"
@@ -199,11 +199,14 @@ function OcrUsage() {
 }
 
 export default function Dash({ regs, adm }) {
-  const r = regs.filter(x => x.fecha === today())
-  const est = {}
-  r.forEach(x => { if (x.estado) est[x.estado] = (est[x.estado]||0) + 1 })
-  const ages = r.filter(x => x.edad).map(x => +x.edad)
-  const avg = ages.length ? Math.round(ages.reduce((a,b)=>a+b,0)/ages.length) : 0
+  const { r, est, avg } = useMemo(() => {
+    const r = regs.filter(x => x.fecha === today())
+    const est = {}
+    r.forEach(x => { if (x.estado) est[x.estado] = (est[x.estado]||0) + 1 })
+    const ages = r.filter(x => x.edad).map(x => +x.edad)
+    const avg = ages.length ? Math.round(ages.reduce((a,b)=>a+b,0)/ages.length) : 0
+    return { r, est, avg }
+  }, [regs])
 
   return (
     <div>
