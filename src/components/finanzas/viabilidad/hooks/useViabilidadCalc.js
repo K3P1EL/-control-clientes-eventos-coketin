@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { getDaysInMonth, getDayName, getWeekNumberCal, peruNow } from "../../../../lib/finanzas/helpers"
+import { getDaysInMonth, getDayName, getWeekNumberCal, getWeekNumberISO, peruNow } from "../../../../lib/finanzas/helpers"
 
 // All the derived numbers for one month live here. Pure useMemo chain —
 // nothing reads from outside its `inputs` object, so adding/removing a
@@ -230,10 +230,41 @@ export function useViabilidadCalc(inputs) {
   }, [servicesCalc, diaAnalisis, diasCalendario])
 
   // ── Caja calculations ─────────────────────────────────────────────────
-  const trabajadoresSemana = totalPersonal.pagoSemanal
+  // Calculate REAL weekly personal cost from calendar marks for current week.
+  // Falls back to flat pagoSemanal if no calendar data or different month.
+  const currentWeekISO = getWeekNumberISO(peruNow())
+  const now = peruNow()
+  const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1)
+
+  const trabajadoresSemanaReal = useMemo(() => {
+    if (!isCurrentMonth) return totalPersonal.pagoSemanal
+    // Find days in this month that fall in the current ISO week
+    const weekDays = calendarDays.filter(d => {
+      const date = new Date(year, month - 1, d.dia)
+      return getWeekNumberISO(date) === currentWeekISO
+    })
+    if (weekDays.length === 0) return totalPersonal.pagoSemanal
+
+    let cost = 0
+    workersCalc.forEach(w => {
+      if (!w.name) return
+      const marcas = w.diasMarcados || {}
+      weekDays.forEach(d => {
+        const marca = marcas[d.dia] || ""
+        const isRest = w.diaDescanso && d.nombre === w.diaDescanso
+        if (marca === "noVino") return
+        if (isRest && !marca) return
+        cost += w.costoDiario
+      })
+    })
+    return cost
+  }, [isCurrentMonth, calendarDays, workersCalc, totalPersonal.pagoSemanal, year, month, currentWeekISO])
+
+  const trabajadoresSemana = totalPersonal.pagoSemanal // presupuestado (flat)
   const proporcionServSemana = costoDiarioServicios * diasOpSemana
   const apoyoSemanal = contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario * diasOpSemana) : 0
-  const gastoNetoSemanal = trabajadoresSemana + proporcionServSemana - apoyoSemanal
+  const gastoNetoSemanal = trabajadoresSemanaReal + proporcionServSemana - apoyoSemanal
+  const gastoPresupuestadoSemanal = trabajadoresSemana + proporcionServSemana - apoyoSemanal
   const cajaLibreSemana = cajaSemanaSol - gastoNetoSemanal
 
   const trabRealMes = totalPersonal.costoMesReal
@@ -260,7 +291,7 @@ export function useViabilidadCalc(inputs) {
     vista3A, totalDevengado3A, totalFalta3A,
     vista3B, totalDevengado3B, totalFalta3B,
     proximosVencimientos,
-    trabajadoresSemana, proporcionServSemana, apoyoSemanal, gastoNetoSemanal, cajaLibreSemana,
+    trabajadoresSemana, trabajadoresSemanaReal, proporcionServSemana, apoyoSemanal, gastoNetoSemanal, gastoPresupuestadoSemanal, cajaLibreSemana,
     trabRealMes, serviciosMes, apoyoMes, gastoRealMes,
     cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,
     metaDiariaNecesaria, ritmoActual, diffRitmo,

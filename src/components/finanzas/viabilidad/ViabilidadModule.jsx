@@ -97,7 +97,7 @@ export default function ViabilidadModule() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KPICard label="Costo mes real" value={fmtS(calc.costoMesReal)} sub={`Proyectado: ${fmtS(calc.costoMesProyectado)}`} />
         <KPICard label="Apoyos mensuales" value={fmtS(calc.apoyosMensuales)} type="positive" />
-        <KPICard label="Gasto semanal neto" value={fmtS(calc.gastoNetoSemanal)} sub="Personal + servicios - apoyo" />
+        <KPICard label="Gasto semanal neto" value={fmtS(calc.gastoNetoSemanal)} sub={calc.gastoNetoSemanal !== calc.gastoPresupuestadoSemanal ? `Presupuestado: ${fmtS(calc.gastoPresupuestadoSemanal)}` : "Personal + servicios - apoyo"} />
         <KPICard label="Días descanso/cerrados" value={calc.diasDescansosCerrados} sub={`se proyecta a ${calc.descansosProyectados.total}`} />
       </div>
 
