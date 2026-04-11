@@ -11,6 +11,8 @@ import ApoyosTab from "./tabs/ApoyosTab"
 import TrackerTab from "./tabs/TrackerTab"
 import AnalisisTab from "./tabs/AnalisisTab"
 import CajaTab from "./tabs/CajaTab"
+import HistorialTab from "./tabs/HistorialTab"
+import { useCierres } from "./hooks/useCierres"
 
 const TABS = [
   { id: "config", label: "Configuración", icon: "⚙️" },
@@ -20,6 +22,7 @@ const TABS = [
   { id: "tracker", label: "Tracker", icon: "📅" },
   { id: "analisis", label: "Análisis", icon: "📊" },
   { id: "caja", label: "Caja", icon: "💰" },
+  { id: "historial", label: "Historial", icon: "📚" },
 ]
 
 // Top-level orchestrator: owns the persistent state via useViabilidadState,
@@ -51,6 +54,8 @@ export default function ViabilidadModule() {
     diaAnalisis: state.diaAnalisis, cajaSemanaSol: state.cajaSemanaSol, cajaAcumMes: state.cajaAcumMes,
     contarApoyo: state.contarApoyo, diasOpSemana: state.diasOpSemana,
   })
+
+  const { cierres, currentWeek, currentMonth: cierreMonth, currentYear: cierreYear } = useCierres(calc)
 
   if (!state.loaded) {
     return <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">Cargando...</div>
@@ -164,6 +169,16 @@ export default function ViabilidadModule() {
           cajaVsGasto3B={calc.cajaVsGasto3B} cajaVsDevengado3B={calc.cajaVsDevengado3B}
           metaDiariaNecesaria={calc.metaDiariaNecesaria}
           ritmoActual={calc.ritmoActual} diffRitmo={calc.diffRitmo}
+        />
+      )}
+
+      {activeTab === "historial" && (
+        <HistorialTab
+          cierres={cierres}
+          currentWeek={currentWeek}
+          currentMonth={cierreMonth}
+          currentYear={cierreYear}
+          calc={calc}
         />
       )}
     </div>

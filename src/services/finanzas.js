@@ -69,3 +69,38 @@ export const deleteContratos = () => deleteOne(TABLES.contratos)
 export const loadCaja = () => loadOne(TABLES.caja)
 export const saveCaja = (blob) => saveOne(TABLES.caja, blob)
 export const deleteCaja = () => deleteOne(TABLES.caja)
+
+// ── Cierres (historial semanal/mensual) ──────────────────────────────
+
+export async function loadCierres() {
+  const userId = await currentUserId()
+  if (!userId) return []
+  const { data, error } = await supabase
+    .from("finanzas_cierres")
+    .select("*")
+    .eq("user_id", userId)
+    .order("anio", { ascending: false })
+    .order("periodo", { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+export async function upsertCierre(cierre) {
+  const userId = await currentUserId()
+  if (!userId) throw new Error("No authenticated user")
+  const { error } = await supabase
+    .from("finanzas_cierres")
+    .upsert(
+      { ...cierre, user_id: userId },
+      { onConflict: "user_id,tipo,periodo,anio" }
+    )
+  if (error) throw error
+}
+
+export async function deleteCierre(id) {
+  const { error } = await supabase
+    .from("finanzas_cierres")
+    .delete()
+    .eq("id", id)
+  if (error) throw error
+}
