@@ -26,16 +26,8 @@ export default function EntriesTable({
           <thead>
             <tr>
               <th style={{ ...thS, width: 40, cursor: "pointer", color: sortBy === "num" ? "#38bdf8" : "#a1a1aa" }} onClick={() => toggleSort("num")}># {sortBy === "num" ? (sortDir === "asc" ? "▲" : "▼") : ""}</th>
-              <th style={{ ...thS, width: 80, cursor: "pointer", color: sortBy === "fecha" ? "#38bdf8" : "#a1a1aa" }} onClick={() => toggleSort("fecha")}>Fecha {sortBy === "fecha" ? (sortDir === "asc" ? "▲" : "▼") : ""}</th>
-              <th style={{ ...thS, width: 80 }}>Tipo</th>
-              <th style={{ ...thS, width: 90 }}>Monto</th>
-              <th style={{ ...thS, width: 80 }}>Modalidad</th>
-              <th style={{ ...thS, width: 80 }}>Origen</th>
-              <th style={{ ...thS, width: 70 }}>Fuente</th>
-              <th style={{ ...thS, width: 70 }}>Cat.</th>
-              <th style={thS}>Concepto</th>
-              <th style={{ ...thS, width: 100 }}>Quién entregó</th>
-              <th style={{ ...thS, width: 80 }}></th>
+              <th style={{ ...thS, cursor: "pointer", color: sortBy === "fecha" ? "#38bdf8" : "#a1a1aa" }} onClick={() => toggleSort("fecha")}>Fecha {sortBy === "fecha" ? (sortDir === "asc" ? "▲" : "▼") : ""}</th>
+              {["Tipo", "Monto", "Modalidad", "Origen", "Fuente", "Cat.", "Concepto", "Quién entregó", ""].map(h => <th key={h} style={thS}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
