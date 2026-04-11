@@ -7,7 +7,13 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
   const [filterTipo, setFilterTipo] = useState("semana")
 
   const filtered = cierres
-    .filter(c => c.tipo === filterTipo && c.anio === currentYear)
+    .filter(c => {
+      if (c.tipo !== filterTipo || c.anio !== currentYear) return false
+      // Hide periods with zero activity (no contracts, no caja)
+      const d = c.data || {}
+      if (!d.ganancia && !d.enCaja && !d.cajaIngresos && !d.cajaEgresos) return false
+      return true
+    })
     .sort((a, b) => b.periodo - a.periodo)
 
   const pillStyle = (active) => ({
