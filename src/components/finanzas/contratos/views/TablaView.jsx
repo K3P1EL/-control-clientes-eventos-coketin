@@ -50,8 +50,8 @@ export default function TablaView({
       )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
         <DarkStatCard label="Contratos" value={filtered.length} icon="📋" accent="#818cf8" />
-        <DarkStatCard label="Ganancia" value={formatMoney(filteredSummary.ganancia)} icon="💰" accent="#34d399" />
-        <DarkStatCard label="En Caja" value={formatMoney(filteredSummary.enCaja)} icon="🏦" accent="#38bdf8" />
+        <DarkStatCard label={filteredSummary.pendiente > 0 ? "Ganancia ideal" : "Ganancia"} value={formatMoney(filteredSummary.ganancia)} icon="💰" accent="#34d399" />
+        <DarkStatCard label={filteredSummary.pendiente > 0 ? "En Caja" : "En Caja ✓"} value={formatMoney(filteredSummary.enCaja)} icon="🏦" accent={filteredSummary.pendiente > 0 ? "#38bdf8" : "#34d399"} />
         <DarkStatCard label="Pendiente" value={formatMoney(filteredSummary.pendiente)} icon="⏳" accent={filteredSummary.pendiente > 0 ? "#f87171" : "#34d399"} />
         <DarkStatCard label="Yape" value={formatMoney(filteredSummary.ingresoYape)} icon="📱" accent="#a78bfa" />
         <DarkStatCard label="Efectivo" value={formatMoney(filteredSummary.ingresoEfectivo)} icon="💵" accent="#4ade80" />
