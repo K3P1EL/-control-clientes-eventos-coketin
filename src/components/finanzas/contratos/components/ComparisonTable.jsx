@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { cDark } from "../../ui/darkStyles"
 import { formatMoney } from "../../../../lib/finanzas/helpers"
 
@@ -16,6 +17,14 @@ const METRICS = [
 // Side-by-side comparison table for week/month views. Highlights the
 // max in green and min in red, plus a delta column at the right.
 export default function ComparisonTable({ summaries, nameOf }) {
+  // Pre-compute min/max/diff per metric once instead of per-row-per-cell
+  const metricData = useMemo(() => {
+    return METRICS.map(({ key }) => {
+      const values = summaries.map(s => s.summary[key])
+      return { key, values, max: Math.max(...values), min: Math.min(...values), diff: values[values.length - 1] - values[0] }
+    })
+  }, [summaries])
+
   if (summaries.length < 2) return null
   return (
     <div style={cDark.card}>
@@ -32,11 +41,8 @@ export default function ComparisonTable({ summaries, nameOf }) {
             </tr>
           </thead>
           <tbody>
-            {METRICS.map(({ key, label, icon, format }) => {
-              const values = summaries.map(s => s.summary[key])
-              const max = Math.max(...values)
-              const min = Math.min(...values)
-              const diff = values[values.length - 1] - values[0]
+            {metricData.map(({ key, values, max, min, diff }, mi) => {
+              const { label, icon, format } = METRICS[mi]
               return (
                 <tr key={key} style={{ borderBottom: "1px solid rgba(63,63,70,0.3)" }}>
                   <td style={{ ...cDark.td, fontWeight: 600, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#18181b", zIndex: 1 }}>{icon} {label}</td>

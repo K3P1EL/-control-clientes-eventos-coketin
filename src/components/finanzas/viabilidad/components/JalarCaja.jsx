@@ -5,6 +5,9 @@ import { loadCaja } from "../../../../services/finanzas"
 import { getJSON } from "../../../../lib/storage"
 import { logError } from "../../../../lib/logger"
 
+const navBtn = { width: 28, height: 28, borderRadius: 8, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }
+const selStyle = { background: "#27272a", border: "1px solid #3f3f46", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#e4e4e7", cursor: "pointer" }
+
 // Lightweight read-only snapshot of Caja entries (same pattern as
 // useContratosSnapshot). Reads localStorage instantly, refreshes from
 // Supabase in background.
@@ -117,10 +120,6 @@ export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, se
     background: active ? "rgba(16,185,129,0.15)" : "#27272a",
     color: active ? "#34d399" : "#71717a", whiteSpace: "nowrap",
   })
-
-  const navBtn = { width: 28, height: 28, borderRadius: 8, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }
-
-  const selStyle = { background: "#27272a", border: "1px solid #3f3f46", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#e4e4e7", cursor: "pointer" }
 
   return (
     <div className="mt-3">

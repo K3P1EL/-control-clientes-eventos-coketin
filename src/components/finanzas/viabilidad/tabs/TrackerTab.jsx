@@ -53,7 +53,7 @@ export default function TrackerTab({
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-zinc-600/60 inline-block"></span>Cerrado</span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>Editado</span>
       </div>
-      <div className="mb-3 text-[10px] text-zinc-600">Días pasados se llenan auto. Solo editá lo que fue diferente.</div>
+      <div className="mb-3 text-[10px] text-zinc-600">{(() => { const n = new Date(); return year === n.getFullYear() && month === (n.getMonth() + 1) ? "Días pasados se llenan auto. Solo editá lo que fue diferente." : "Mes anterior — editá manualmente los días que necesites." })()}</div>
       <div className="space-y-1">
         {semanas.map(sem => (
           <div key={sem}>

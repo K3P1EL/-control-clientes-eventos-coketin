@@ -3,6 +3,9 @@ import { MESES } from "../../../../lib/finanzas/constants"
 import { peruNow, getWeekNumberISO, calcContract, parseLocalDate, fmtS } from "../../../../lib/finanzas/helpers"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
 
+const navBtn = { width: 28, height: 28, borderRadius: 8, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }
+const selStyle = { background: "#27272a", border: "1px solid #3f3f46", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#e4e4e7", cursor: "pointer" }
+
 // "Jalar datos de contratos" — a collapsible panel that reads contracts
 // from Supabase, lets the user pick a period, and auto-fills the caja
 // inputs with one click. Hidden by default behind a button.
@@ -82,10 +85,6 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
     background: active ? "rgba(14,165,233,0.15)" : "#27272a",
     color: active ? "#38bdf8" : "#71717a", whiteSpace: "nowrap",
   })
-
-  const navBtn = { width: 28, height: 28, borderRadius: 8, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }
-
-  const selStyle = { background: "#27272a", border: "1px solid #3f3f46", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#e4e4e7", cursor: "pointer" }
 
   return (
     <div className="mt-4 pt-3 border-t border-zinc-800/60">
