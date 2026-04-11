@@ -33,7 +33,10 @@ export function useContratosSnapshot() {
     // this picks up any edits made while the user was in the other tab.
     const onFocus = () => {
       const fresh = getJSON(STORAGE_KEYS.CONTRATOS)
-      if (Array.isArray(fresh)) setContracts(fresh)
+      if (Array.isArray(fresh)) setContracts(prev => {
+        if (prev.length === fresh.length && JSON.stringify(prev) === JSON.stringify(fresh)) return prev
+        return fresh
+      })
     }
     window.addEventListener("focus", onFocus)
 

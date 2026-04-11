@@ -32,7 +32,10 @@ export const isValidPhone = (raw) => validatePhone(raw).ok
 // Si no es válido, devuelve el original limpio para no perder data legacy.
 export function normalizePhone(raw) {
   const r = validatePhone(raw)
-  return r.ok ? r.value : String(raw || "").replace(/[^\d+]/g, "")
+  if (r.ok) return r.value
+  // Clean digits but keep as-is for legacy data — don't store invalid formats
+  const cleaned = String(raw || "").replace(/[^\d]/g, "")
+  return cleaned || ""
 }
 
 // ── Número de contrato ───────────────────────────────────────────────────

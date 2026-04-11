@@ -44,7 +44,7 @@ export default memo(function Registro({
       if (navRegDate) setDate(navRegDate)
       clearNavReg()
     }
-  }, [navRegId, clearNavReg])
+  }, [navRegId, navRegDate, clearNavReg])
 
   useEffect(() => {
     if (locales.length && !locales.includes(selLocal)) setSelLocal(locales[0])

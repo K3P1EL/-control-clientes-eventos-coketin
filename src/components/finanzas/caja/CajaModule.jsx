@@ -222,7 +222,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
           )}
 
           <EntriesTable
-            filtered={showAll ? filtered : filtered.slice(-7)}
+            filtered={showAll ? filtered : [...filtered].sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")).slice(0, 7)}
             sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort}
             editId={editId}
             totalIngresos={totalIngresos} totalEgresos={totalEgresos} balance={balance}

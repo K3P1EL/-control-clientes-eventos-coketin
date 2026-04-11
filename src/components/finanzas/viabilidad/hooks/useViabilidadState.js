@@ -43,9 +43,9 @@ export function useViabilidadState() {
     if (saved && typeof saved === "object") {
       if (typeof saved.year === "number") setYear(saved.year)
       if (typeof saved.month === "number") setMonth(saved.month)
-      if (Array.isArray(saved.workers)) setWorkers(saved.workers)
-      if (Array.isArray(saved.services)) setServices(saved.services)
-      if (Array.isArray(saved.apoyos)) setApoyos(saved.apoyos)
+      if (Array.isArray(saved.workers)) setWorkers(saved.workers.filter(w => w && typeof w === "object"))
+      if (Array.isArray(saved.services)) setServices(saved.services.filter(s => s && typeof s === "object"))
+      if (Array.isArray(saved.apoyos)) setApoyos(saved.apoyos.filter(a => a && typeof a === "object"))
       if (saved.trackerData && typeof saved.trackerData === "object") setTrackerData(saved.trackerData)
       if (typeof saved.diaAnalisis === "number") setDiaAnalisis(saved.diaAnalisis)
       if (typeof saved.cajaSemanaSol === "number") setCajaSemanaSol(saved.cajaSemanaSol)

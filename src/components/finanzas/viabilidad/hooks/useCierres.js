@@ -34,7 +34,7 @@ function getEntryDate(e) {
 // Calculate real personal cost for a specific ISO week by reading worker
 // calendars. Returns the actual cost based on days each worker was present
 // (not the flat pagoSemanal), plus the proportional services and apoyo.
-function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month, targetWeek) {
+function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month, targetWeek, diasOpBase) {
   const daysInMonth = getDaysInMonth(year, month)
   const weekDays = []
   for (let dia = 1; dia <= daysInMonth; dia++) {
@@ -63,8 +63,7 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month
   let servProportion = 0
   services.forEach(s => {
     if (!s.nombre) return
-    const diasOp = Math.max(1, daysInMonth - 4) // approximate diasOpBase
-    const div = s.divisor || diasOp
+    const div = s.divisor || diasOpBase || Math.max(1, daysInMonth - 4)
     const costoDiario = div > 0 ? (s.pagoMensual || 0) / div : 0
     servProportion += costoDiario * realDays
   })
@@ -172,7 +171,7 @@ export function useCierres(calc, state) {
           apoyo = existing.data.apoyo ?? 0
         } else if (st) {
           // New cierre: calculate real cost from calendar marks
-          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, currentYear, currentMonth, w)
+          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, currentYear, currentMonth, w, c.diasOpBase)
           gastoSemanal = real ? real.gastoNeto : currentGastoSemanal
           apoyo = real ? real.apoyo : currentApoyoSemanal
         } else {

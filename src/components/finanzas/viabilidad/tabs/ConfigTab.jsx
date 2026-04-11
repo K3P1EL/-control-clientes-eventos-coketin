@@ -1,6 +1,7 @@
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import { MESES } from "../../../../lib/finanzas/constants"
+import { peruNow } from "../../../../lib/finanzas/helpers"
 import CoberturaExtra from "../components/CoberturaExtra"
 
 // Year/month picker + cobertura extra + how-to-use guide.
@@ -16,7 +17,7 @@ export default function ConfigTab({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
         <div>
           <label className="text-xs text-zinc-500 mb-1 block">Año</label>
-          <NumInput value={year} onChange={v => setYear(v || 2026)} min={2020} />
+          <NumInput value={year} onChange={v => setYear(v || peruNow().getFullYear())} min={2020} />
         </div>
         <div>
           <label className="text-xs text-zinc-500 mb-1 block">Mes (1-12)</label>

@@ -59,8 +59,8 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
                   colorClass = STATE_COLORS.descanso
                   label = "Desc."
                 } else if (d.dia < today) {
-                  // Past work day with no mark = auto-fill as "Trabajó"
-                  colorClass = STATE_COLORS.normal
+                  // Past work day with no mark = auto-fill as "Trabajó" (dimmed to distinguish from explicit marks)
+                  colorClass = "bg-emerald-500/8 border-emerald-500/20 text-emerald-400/60"
                   label = "Trabajó"
                 } else {
                   // Future/today: no auto-fill
