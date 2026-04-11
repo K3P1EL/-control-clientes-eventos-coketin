@@ -31,6 +31,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
   const [showMetrics, setShowMetrics] = useState(false)
   const [soloNegocio, setSoloNegocio] = useState(false)
   const [soloContrato, setSoloContrato] = useState(false)
+  const [showAll, setShowAll] = useState(true)
 
   const toggleSort = (field) => {
     if (sortBy === field) setSortDir(d => d === "asc" ? "desc" : "asc")
@@ -202,6 +203,10 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
         <>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={openNewForm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>+ Nuevo movimiento</button>
+            <div style={{ display: "inline-flex", borderRadius: 8, background: "#09090b", padding: 2, border: "1px solid #3f3f46" }}>
+              <button onClick={() => setShowAll(true)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, background: showAll ? "#0ea5e9" : "transparent", color: showAll ? "#fff" : "#71717a", transition: "all .2s" }}>Todo</button>
+              <button onClick={() => setShowAll(false)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, background: !showAll ? "#0ea5e9" : "transparent", color: !showAll ? "#fff" : "#71717a", transition: "all .2s" }}>Últimos 7</button>
+            </div>
           </div>
 
           {showForm && (
@@ -209,7 +214,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
           )}
 
           <EntriesTable
-            filtered={filtered}
+            filtered={showAll ? filtered : filtered.slice(-7)}
             sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort}
             editId={editId}
             totalIngresos={totalIngresos} totalEgresos={totalEgresos} balance={balance}
