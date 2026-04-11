@@ -1,4 +1,5 @@
 import { MESES } from "../../../../lib/finanzas/constants"
+import { peruNow } from "../../../../lib/finanzas/helpers"
 
 const STATE_COLORS = {
   normal: "bg-emerald-500/15 border-emerald-500/35 text-emerald-300",
@@ -14,6 +15,8 @@ const STATE_COLORS = {
 // Click cycles: work day → noVino → blank. Rest day → trabajo → tienda → blank.
 export default function WorkerCalendar({ worker, calendarDays, effectiveTracker, year, month, onDayClick }) {
   const semanas = [...new Set(calendarDays.map(d => d.semana))]
+  const now = peruNow()
+  const today = now.getFullYear() === year && (now.getMonth() + 1) === month ? now.getDate() : 0
 
   return (
     <div className="bg-zinc-800/40 border-y border-zinc-700/40 px-5 py-4">
@@ -55,8 +58,13 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
                 } else if (isRest) {
                   colorClass = STATE_COLORS.descanso
                   label = "Desc."
-                } else {
+                } else if (d.dia < today) {
+                  // Past work day with no mark = auto-fill as "Trabajó"
                   colorClass = STATE_COLORS.normal
+                  label = "Trabajó"
+                } else {
+                  // Future/today: no auto-fill
+                  colorClass = "bg-zinc-800/40 border-zinc-700/40 text-zinc-500"
                   label = ""
                 }
 
