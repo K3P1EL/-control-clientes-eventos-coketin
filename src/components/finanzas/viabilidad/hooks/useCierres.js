@@ -1,64 +1,47 @@
 import { useState, useEffect, useCallback } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
-import { loadContratos } from "../../../../services/finanzas"
-import { loadCaja } from "../../../../services/finanzas"
 import { peruNow, getWeekNumberISO, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
+import { logError } from "../../../../lib/logger"
+import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
+
+// Use the same lightweight caja snapshot pattern
+import { loadCaja } from "../../../../services/finanzas"
 import { getJSON } from "../../../../lib/storage"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { logError } from "../../../../lib/logger"
 
-// Calculates real ganancia/enCaja from contracts for a specific week or month.
-// Uses the contract's REAL DATE (fechaAdel or fechaCobro) instead of the
-// manual semana/mes buckets, because those buckets are often the same for
-// all contracts and don't distinguish between real weeks.
-function calcContratosForPeriod(contracts, tipo, periodo, year) {
-  let ganancia = 0, enCaja = 0
-  ;(contracts || []).forEach(c => {
-    if (c.eliminado) return
-    // Determine the contract's "home date" from its actual dates.
-    const dateStr = (!c.noTrackAdel && c.fechaAdel && c.fechaAdel.trim()) ? c.fechaAdel : c.fechaCobro
-    const d = parseLocalDate(dateStr)
-    if (!d) return
-    if (d.getFullYear() !== year) return
-
-    let match = false
-    if (tipo === "semana") match = getWeekNumberISO(d) === periodo
-    else if (tipo === "mes") match = (d.getMonth() + 1) === periodo
-
-    if (match) {
-      const calc = calcContract(c)
-      ganancia += calc.ganancia
-      enCaja += calc.enCaja
-    }
+function useCajaSnapshot() {
+  const [entries, setEntries] = useState(() => {
+    const local = getJSON(STORAGE_KEYS.CAJA)
+    return Array.isArray(local) ? local : []
   })
-  return { ganancia, enCaja }
+  useEffect(() => {
+    loadCaja()
+      .then(cloud => { if (Array.isArray(cloud)) setEntries(cloud) })
+      .catch(() => {})
+  }, [])
+  return entries
 }
 
-// Calculates real ingresos/egresos from caja entries for a specific week or month.
-function calcCajaForPeriod(entries, tipo, periodo) {
-  let ingresos = 0, egresos = 0
-  ;(entries || []).forEach(e => {
-    if (e.eliminado) return
-    if (e.delNegocio === false) return
-    if (!e.fecha) return
-    const d = parseLocalDate(e.fecha)
-    if (!d) return
-    let match = false
-    if (tipo === "semana") match = getWeekNumberISO(d) === periodo
-    else if (tipo === "mes") match = (d.getMonth() + 1) === periodo
-    if (!match) return
-    if (e.tipo === "ingreso") ingresos += e.monto || 0
-    else if (e.tipo === "egreso") egresos += e.monto || 0
-  })
-  return { ingresos, egresos, balance: ingresos - egresos }
+// Match by real date (ISO week or month number).
+// Returns { week, year } or null so we can filter by both.
+function getContractDate(c) {
+  const dateStr = (!c.noTrackAdel && c.fechaAdel && c.fechaAdel.trim()) ? c.fechaAdel : c.fechaCobro
+  const d = parseLocalDate(dateStr)
+  if (!d) return null
+  return { week: getWeekNumberISO(d), month: d.getMonth() + 1, year: d.getFullYear() }
+}
+function getEntryDate(e) {
+  if (!e.fecha) return null
+  const d = parseLocalDate(e.fecha)
+  if (!d) return null
+  return { week: getWeekNumberISO(d), month: d.getMonth() + 1, year: d.getFullYear() }
 }
 
-// Owns the cierre history — loads from Supabase on mount, auto-generates
-// cierres for past weeks that don't have one yet using REAL data from
-// Contratos and Caja (not the calculator inputs).
 export function useCierres(calc) {
   const [cierres, setCierres] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const contracts = useContratosSnapshot()
+  const cajaEntries = useCajaSnapshot()
 
   const now = peruNow()
   const currentWeek = getWeekNumberISO(now)
@@ -71,9 +54,9 @@ export function useCierres(calc) {
       .catch(e => { logError("cierres.load", e); setLoaded(true) })
   }, [])
 
-  // Auto-close past weeks using real Contratos + Caja data.
-  const autoClose = useCallback(async () => {
-    if (!loaded || !calc) return
+  // Auto-close past weeks using the live snapshots of Contratos + Caja.
+  useEffect(() => {
+    if (!loaded || !calc || !contracts.length) return
 
     const existing = new Set(
       cierres.filter(c => c.tipo === "semana" && c.anio === currentYear).map(c => c.periodo)
@@ -86,57 +69,55 @@ export function useCierres(calc) {
     }
     if (needsClose.length === 0) return
 
-    // Load real data from Contratos + Caja.
-    let contracts = getJSON(STORAGE_KEYS.CONTRATOS) || []
-    let cajaEntries = getJSON(STORAGE_KEYS.CAJA) || []
-    try {
-      const cloud = await loadContratos()
-      if (Array.isArray(cloud)) contracts = cloud
-    } catch {}
-    try {
-      const cloud = await loadCaja()
-      if (Array.isArray(cloud)) cajaEntries = cloud
-    } catch {}
-
     const gastoSemanal = calc.gastoNetoSemanal || 0
-    const gastoMensual = calc.gastoRealMes || 0
 
-    for (const w of needsClose) {
-      const ct = calcContratosForPeriod(contracts, "semana", w, currentYear)
-      const cj = calcCajaForPeriod(cajaEntries, "semana", w)
-      const libre = ct.enCaja - gastoSemanal
+    const doClose = async () => {
+      for (const w of needsClose) {
+        // Filter contracts by real date + year
+        let ganancia = 0, enCaja = 0
+        contracts.forEach(c => {
+          if (c.eliminado) return
+          const cd = getContractDate(c)
+          if (!cd || cd.year !== currentYear || cd.week !== w) return
+          const cc = calcContract(c)
+          ganancia += cc.ganancia
+          enCaja += cc.enCaja
+        })
+
+        // Filter caja entries by real date + year
+        let cajaIng = 0, cajaEgr = 0
+        cajaEntries.forEach(e => {
+          if (e.eliminado) return
+          if (e.delNegocio === false) return
+          const ed = getEntryDate(e)
+          if (!ed || ed.year !== currentYear || ed.week !== w) return
+          if (e.tipo === "ingreso") cajaIng += e.monto || 0
+          else if (e.tipo === "egreso") cajaEgr += e.monto || 0
+        })
+
+        const libre = enCaja - gastoSemanal
+
+        try {
+          await upsertCierre({
+            tipo: "semana",
+            periodo: w,
+            anio: currentYear,
+            data: { ganancia, enCaja, gastoSemanal, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            viable: libre >= 0,
+            nota: "",
+          })
+        } catch (e) { logError("cierres.autoClose", e) }
+      }
 
       try {
-        await upsertCierre({
-          tipo: "semana",
-          periodo: w,
-          anio: currentYear,
-          data: {
-            ganancia: ct.ganancia,
-            enCaja: ct.enCaja,
-            gastoSemanal,
-            libre,
-            cajaIngresos: cj.ingresos,
-            cajaEgresos: cj.egresos,
-            cajaBalance: cj.balance,
-          },
-          viable: libre >= 0,
-          nota: "",
-        })
-      } catch (e) {
-        logError("cierres.autoClose", e)
-      }
+        const fresh = await loadCierres()
+        setCierres(fresh || [])
+      } catch (e) { logError("cierres.reload", e) }
     }
 
-    try {
-      const fresh = await loadCierres()
-      setCierres(fresh || [])
-    } catch (e) {
-      logError("cierres.reload", e)
-    }
-  }, [loaded, calc, cierres, currentWeek, currentYear])
-
-  useEffect(() => { autoClose() }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+    doClose()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, contracts.length])
 
   const saveCierre = useCallback(async (cierre) => {
     try {
@@ -146,20 +127,12 @@ export function useCierres(calc) {
         if (exists) return prev.map(c => (c.tipo === cierre.tipo && c.periodo === cierre.periodo && c.anio === cierre.anio) ? { ...c, ...cierre } : c)
         return [...prev, cierre]
       })
-    } catch (e) {
-      logError("cierres.save", e)
-      alert("Error guardando cierre")
-    }
+    } catch (e) { logError("cierres.save", e); alert("Error guardando cierre") }
   }, [])
 
   const removeCierre = useCallback(async (id) => {
-    try {
-      await deleteCierre(id)
-      setCierres(prev => prev.filter(c => c.id !== id))
-    } catch (e) {
-      logError("cierres.delete", e)
-      alert("Error eliminando cierre")
-    }
+    try { await deleteCierre(id); setCierres(prev => prev.filter(c => c.id !== id)) }
+    catch (e) { logError("cierres.delete", e); alert("Error eliminando cierre") }
   }, [])
 
   return { cierres, loaded, saveCierre, removeCierre, currentWeek, currentMonth, currentYear }
