@@ -31,6 +31,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
   const [showMetrics, setShowMetrics] = useState(false)
   const [soloNegocio, setSoloNegocio] = useState(false)
   const [soloContrato, setSoloContrato] = useState(false)
+  const [soloExterno, setSoloExterno] = useState(false)
   const [showAll, setShowAll] = useState(true)
 
   const toggleSort = (field) => {
@@ -47,7 +48,8 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
     let list = [...activeEntries]
     if (filterMes) list = list.filter(e => entryMonth(e) === +filterMes)
     if (filterSem) list = list.filter(e => String(entryWeek(e)) === filterSem)
-    if (soloNegocio) list = list.filter(e => e.delNegocio !== false)
+    if (soloExterno) list = list.filter(e => e.delNegocio === false)
+    else if (soloNegocio) list = list.filter(e => e.delNegocio !== false)
     if (soloContrato) list = list.filter(e => e.deContrato && e.delNegocio !== false)
     return list.sort((a, b) => {
       let cmp
@@ -55,7 +57,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
       else cmp = (a.fecha || "").localeCompare(b.fecha || "")
       return sortDir === "asc" ? cmp : -cmp
     })
-  }, [activeEntries, filterMes, filterSem, soloNegocio, soloContrato, sortBy, sortDir])
+  }, [activeEntries, filterMes, filterSem, soloNegocio, soloContrato, soloExterno, sortBy, sortDir])
 
   // setQuickAll/setQuickWeek/setQuickMonth come from props (shared with Contratos).
 
@@ -123,18 +125,24 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
       <ReconciliationChip reconciliation={reconciliation} period={reconciliationLabel} />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button onClick={() => setSoloNegocio(!soloNegocio)}
+        <button onClick={() => { setSoloNegocio(!soloNegocio); if (!soloNegocio) { setSoloExterno(false) } }}
           style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 10, cursor: "pointer", border: soloNegocio ? "1px solid rgba(14,165,233,0.4)" : "1px solid #3f3f46", background: soloNegocio ? "rgba(14,165,233,0.1)" : "rgba(39,39,42,0.5)", color: soloNegocio ? "#38bdf8" : "#a1a1aa", fontSize: 13, fontWeight: 700 }}>
           <span style={{ width: 18, height: 18, borderRadius: 4, border: soloNegocio ? "2px solid #38bdf8" : "2px solid #52525b", background: soloNegocio ? "rgba(14,165,233,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#38bdf8" }}>{soloNegocio ? "✓" : ""}</span>
           🏪 Solo negocio
         </button>
-        {soloNegocio && <span style={{ fontSize: 11, color: "#52525b" }}>Ocultando dinero externo</span>}
         <button onClick={() => setSoloContrato(!soloContrato)}
           style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 10, cursor: "pointer", border: soloContrato ? "1px solid rgba(139,92,246,0.4)" : "1px solid #3f3f46", background: soloContrato ? "rgba(139,92,246,0.1)" : "rgba(39,39,42,0.5)", color: soloContrato ? "#a78bfa" : "#a1a1aa", fontSize: 13, fontWeight: 700 }}>
           <span style={{ width: 18, height: 18, borderRadius: 4, border: soloContrato ? "2px solid #a78bfa" : "2px solid #52525b", background: soloContrato ? "rgba(139,92,246,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#a78bfa" }}>{soloContrato ? "✓" : ""}</span>
           📋 Solo contrato
         </button>
+        <button onClick={() => { setSoloExterno(!soloExterno); if (!soloExterno) { setSoloNegocio(false); setSoloContrato(false) } }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 10, cursor: "pointer", border: soloExterno ? "1px solid rgba(251,191,36,0.4)" : "1px solid #3f3f46", background: soloExterno ? "rgba(251,191,36,0.1)" : "rgba(39,39,42,0.5)", color: soloExterno ? "#fbbf24" : "#a1a1aa", fontSize: 13, fontWeight: 700 }}>
+          <span style={{ width: 18, height: 18, borderRadius: 4, border: soloExterno ? "2px solid #fbbf24" : "2px solid #52525b", background: soloExterno ? "rgba(251,191,36,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#fbbf24" }}>{soloExterno ? "✓" : ""}</span>
+          🌐 Solo externo
+        </button>
+        {soloNegocio && <span style={{ fontSize: 11, color: "#52525b" }}>Ocultando dinero externo</span>}
         {soloContrato && <span style={{ fontSize: 11, color: "#52525b" }}>Solo movimientos de contratos</span>}
+        {soloExterno && <span style={{ fontSize: 11, color: "#52525b" }}>Solo dinero fuera del negocio</span>}
       </div>
 
       {/* Period quick filter — above Movimientos/Métricas so it applies to both */}
