@@ -1,10 +1,92 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useMemo } from "react"
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
 import Select from "../../ui/Select"
-import { fmt } from "../../../../lib/finanzas/helpers"
+import { fmt, fmtS, peruNow, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
 import WorkerCalendar from "../components/WorkerCalendar"
+
+function WeeklyPaySummary({ workersCalc, calendarDays, year, month }) {
+  const now = peruNow()
+  const currentWeek = getWeekNumberISO(now)
+  const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1)
+
+  const summary = useMemo(() => {
+    if (!isCurrentMonth) return null
+    const weekDays = calendarDays.filter(d => {
+      const date = new Date(year, month - 1, d.dia)
+      return getWeekNumberISO(date) === currentWeek
+    })
+    if (weekDays.length === 0) return null
+
+    const rows = workersCalc.filter(w => w.name).map(w => {
+      const marcas = w.diasMarcados || {}
+      let diasTrabajados = 0
+      let diasFaltados = 0
+      weekDays.forEach(d => {
+        const marca = marcas[d.dia] || ""
+        const isRest = w.diaDescanso && d.nombre === w.diaDescanso
+        if (marca === "noVino") { diasFaltados++; return }
+        if (isRest && !marca) return
+        diasTrabajados++
+      })
+      const pago = diasTrabajados * w.costoDiario
+      const pagoCompleto = w.pagoSemanal
+      return { name: w.name, diasTrabajados, diasFaltados, costoDiario: w.costoDiario, pago, pagoCompleto }
+    })
+
+    const total = rows.reduce((s, r) => s + r.pago, 0)
+    const totalPresupuestado = rows.reduce((s, r) => s + r.pagoCompleto, 0)
+    return { rows, total, totalPresupuestado, weekDays: weekDays.length }
+  }, [isCurrentMonth, calendarDays, workersCalc, year, month, currentWeek])
+
+  if (!summary) return null
+
+  const hayDiferencia = summary.total !== summary.totalPresupuestado
+
+  return (
+    <div className="mt-5 pt-4 border-t border-zinc-800">
+      <h3 className="text-sm font-semibold text-zinc-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+        💵 Pago esta semana <span className="text-zinc-600 font-normal normal-case">(Semana {currentWeek})</span>
+      </h3>
+      <div className="bg-zinc-800/40 rounded-xl border border-zinc-700/40 overflow-hidden">
+        <div className="divide-y divide-zinc-700/30">
+          {summary.rows.map(r => (
+            <div key={r.name} className="flex items-center justify-between px-4 py-2.5">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-zinc-200 w-24">{r.name}</span>
+                <span className="text-xs text-zinc-500 font-mono">
+                  {r.diasTrabajados}d × S/{fmt(r.costoDiario, 0)}
+                </span>
+                {r.diasFaltados > 0 && (
+                  <span className="text-[10px] font-semibold text-red-400 bg-red-500/15 px-2 py-0.5 rounded-lg">
+                    faltó {r.diasFaltados}
+                  </span>
+                )}
+              </div>
+              <span className={`text-sm font-bold font-mono ${r.diasFaltados > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                {fmtS(r.pago)}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between px-4 py-3 bg-zinc-700/20 border-t border-zinc-600/30">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-zinc-200">Total</span>
+            {hayDiferencia && (
+              <span className="text-[10px] text-zinc-500">
+                presupuestado: <span className="font-mono">{fmtS(summary.totalPresupuestado)}</span>
+              </span>
+            )}
+          </div>
+          <span className={`text-base font-bold font-mono ${hayDiferencia ? "text-amber-400" : "text-emerald-400"}`}>
+            {fmtS(summary.total)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // Personal table + per-worker calendar + weekday rest summary.
 // `workers` is the raw state, `workersCalc` are the derived numbers.
@@ -147,6 +229,10 @@ export default function PersonalTab({
         </table>
       </div>
       <button onClick={addWorker} className="mt-4 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-sm hover:bg-amber-500/20 transition-all">+ Agregar trabajador</button>
+
+      {/* Weekly pay summary for current week */}
+      <WeeklyPaySummary workersCalc={workersCalc} calendarDays={calendarDays} year={year} month={month} />
+
       <div className="mt-6 pt-4 border-t border-zinc-800">
         <h3 className="text-sm font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Resumen de descansos fijos por día</h3>
         <div className="grid grid-cols-7 gap-2">
