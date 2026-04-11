@@ -81,25 +81,19 @@ export default function TrashModal({ eliminados, onRestore, onPermanentDelete, o
                       <td style={cDark.td}>{c.cliente || <span style={{ color: "#52525b" }}>—</span>}</td>
                       <td style={{ ...cDark.td, textAlign: "right", fontWeight: 700 }}>{formatMoney(c.total)}</td>
                       <td style={cDark.td}>
-                        {c.noTrackAdel ? (
+                        {(c.adelantos || []).every(a => a.noTrack) ? (
                           <DarkBadge color="neutral">No track.</DarkBadge>
-                        ) : c.adelanto > 0 ? (
-                          <>
-                            <div>{formatMoney(c.adelanto)}</div>
-                            <div style={{ fontSize: 10, color: "#a1a1aa" }}>{c.modalAdel || "—"} · {c.recibioAdel || "—"}</div>
-                          </>
+                        ) : (c.adelantos || []).filter(a => !a.noTrack && a.monto > 0).length > 0 ? (
+                          (c.adelantos || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}<span style={{ fontSize: 10, color: "#a1a1aa" }}> {a.modalidad || "—"} · {a.recibio || "—"}</span></div>)
                         ) : (
                           <span style={{ color: "#52525b" }}>—</span>
                         )}
                       </td>
                       <td style={cDark.td}>
-                        {c.noTrackCobro ? (
+                        {(c.cobros || []).every(a => a.noTrack) ? (
                           <DarkBadge color="neutral">No track.</DarkBadge>
-                        ) : c.cobro > 0 ? (
-                          <>
-                            <div>{formatMoney(c.cobro)}</div>
-                            <div style={{ fontSize: 10, color: "#a1a1aa" }}>{c.modalCobro || "—"} · {c.recibioCobro || "—"}</div>
-                          </>
+                        ) : (c.cobros || []).filter(a => !a.noTrack && a.monto > 0).length > 0 ? (
+                          (c.cobros || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}<span style={{ fontSize: 10, color: "#a1a1aa" }}> {a.modalidad || "—"} · {a.recibio || "—"}</span></div>)
                         ) : (
                           <span style={{ color: "#52525b" }}>—</span>
                         )}

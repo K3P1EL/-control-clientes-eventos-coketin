@@ -73,14 +73,72 @@ export function formatMoney(n) {
   return `S/ ${Number(n).toLocaleString("es-PE")}`
 }
 
+// ── Contract normalization ───────────────────────────────────────────────
+// Migrates old single-adelanto/cobro contracts to the new arrays format.
+// Safe to call multiple times — already-migrated contracts pass through.
+export function normalizeContract(c) {
+  if (Array.isArray(c.adelantos) && Array.isArray(c.cobros)) return c
+
+  const adelantos = []
+  if (c.noTrackAdel) {
+    adelantos.push({ monto: 0, modalidad: "", recibio: "", fecha: "", enCaja: false, noTrack: true })
+  } else if ((c.adelanto || 0) > 0 || (c.fechaAdel && c.fechaAdel.trim())) {
+    adelantos.push({ monto: c.adelanto || 0, modalidad: c.modalAdel || "", recibio: c.recibioAdel || "", fecha: c.fechaAdel || "", enCaja: c.enCajaAdel || false, noTrack: false })
+  }
+
+  const cobros = []
+  if (c.noTrackCobro) {
+    cobros.push({ monto: 0, modalidad: "", recibio: "", fecha: "", enCaja: false, noTrack: true })
+  } else if ((c.cobro || 0) > 0 || (c.fechaCobro && c.fechaCobro.trim())) {
+    cobros.push({ monto: c.cobro || 0, modalidad: c.modalCobro || "", recibio: c.recibioCobro || "", fecha: c.fechaCobro || "", enCaja: c.enCajaCobro || false, noTrack: false })
+  }
+
+  const { adelanto, modalAdel, recibioAdel, fechaAdel, enCajaAdel, noTrackAdel,
+          cobro, modalCobro, recibioCobro, fechaCobro, enCajaCobro, noTrackCobro,
+          ...rest } = c
+  return { ...rest, adelantos, cobros }
+}
+
+// Helpers for reading payment arrays
+export function sumPayments(arr) {
+  return (arr || []).filter(a => !a.noTrack).reduce((s, a) => s + (a.monto || 0), 0)
+}
+
+export function getContractHomeDate(c) {
+  const firstAdel = (c.adelantos || []).find(a => !a.noTrack && a.fecha && a.fecha.trim())
+  if (firstAdel) return firstAdel.fecha
+  const firstCobro = (c.cobros || []).find(a => a.fecha && a.fecha.trim())
+  return firstCobro?.fecha || null
+}
+
 // ── Contract math ────────────────────────────────────────────────────────
 // Single source of truth for the derived numbers of one contract.
-// Used by both Contratos module and the "jalar" path in Viabilidad.
+// Supports both old scalar format and new arrays format.
 export function calcContract(c) {
-  const porCobrar = Math.max(0, (c.total || 0) - (c.adelanto || 0))
-  const pendiente = Math.max(0, porCobrar - (c.cobro || 0))
+  const totalAdel = Array.isArray(c.adelantos)
+    ? c.adelantos.reduce((s, a) => s + (a.monto || 0), 0)
+    : (c.adelanto || 0)
+  const totalCobro = Array.isArray(c.cobros)
+    ? c.cobros.reduce((s, a) => s + (a.monto || 0), 0)
+    : (c.cobro || 0)
+
+  const porCobrar = Math.max(0, (c.total || 0) - totalAdel)
+  const pendiente = Math.max(0, porCobrar - totalCobro)
   const ganancia = (c.total || 0) - (c.descuento || 0)
-  const enCaja = (c.enCajaAdel ? (c.adelanto || 0) : 0) + (c.enCajaCobro ? (c.cobro || 0) : 0) - (c.descuento || 0)
+
+  let enCajaAdel, enCajaCobro
+  if (Array.isArray(c.adelantos)) {
+    enCajaAdel = c.adelantos.reduce((s, a) => s + (a.enCaja ? (a.monto || 0) : 0), 0)
+  } else {
+    enCajaAdel = c.enCajaAdel ? (c.adelanto || 0) : 0
+  }
+  if (Array.isArray(c.cobros)) {
+    enCajaCobro = c.cobros.reduce((s, a) => s + (a.enCaja ? (a.monto || 0) : 0), 0)
+  } else {
+    enCajaCobro = c.enCajaCobro ? (c.cobro || 0) : 0
+  }
+
+  const enCaja = enCajaAdel + enCajaCobro - (c.descuento || 0)
   const porRecibir = ganancia - enCaja
   const estado = c.eliminado ? "Eliminado" : pendiente === 0 && c.total > 0 ? "Pagado" : "Pendiente"
   return { porCobrar, pendiente, ganancia, enCaja, porRecibir, estado }

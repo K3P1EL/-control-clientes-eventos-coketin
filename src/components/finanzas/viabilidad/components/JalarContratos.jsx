@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { MESES } from "../../../../lib/finanzas/constants"
-import { peruNow, getWeekNumberISO, calcContract, parseLocalDate, fmtS } from "../../../../lib/finanzas/helpers"
+import { peruNow, getWeekNumberISO, calcContract, getContractHomeDate, parseLocalDate, fmtS } from "../../../../lib/finanzas/helpers"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
 
 const navBtn = { width: 28, height: 28, borderRadius: 8, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }
@@ -46,27 +46,21 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
       if (target === "mensual") return d.getMonth() + 1 === mesSel
       return false
     }
-    const getHomeDate = (c) => {
-      if (!c.noTrackAdel && c.fechaAdel && c.fechaAdel !== "no trackeado" && c.fechaAdel.trim() !== "") return c.fechaAdel
-      return c.fechaCobro || null
-    }
-
     let registros = 0, deNuevos = 0, enCajaNuevos = 0, deAnteriores = 0, descuentos = 0, pendiente = 0
     activeContracts.forEach(c => {
-      const homeDate = getHomeDate(c)
+      const homeDate = getContractHomeDate(c)
       const isHome = homeDate ? dateInPeriod(homeDate) : false
-      const cobroInPeriod = dateInPeriod(c.fechaCobro)
+      const cobrosInPeriod = (c.cobros || []).filter(a => !a.noTrack && dateInPeriod(a.fecha))
 
       if (isHome) {
         registros++
         const calc = calcContract(c)
-        const valor = (c.total || 0) - (c.descuento || 0)
-        deNuevos += valor
+        deNuevos += calc.ganancia
         descuentos += c.descuento || 0
         pendiente += calc.pendiente
         enCajaNuevos += calc.enCaja
-      } else if (cobroInPeriod && (c.cobro || 0) > 0) {
-        deAnteriores += c.cobro || 0
+      } else if (cobrosInPeriod.length > 0) {
+        cobrosInPeriod.forEach(a => { deAnteriores += a.monto || 0 })
       }
     })
     const ganancia = deNuevos + deAnteriores

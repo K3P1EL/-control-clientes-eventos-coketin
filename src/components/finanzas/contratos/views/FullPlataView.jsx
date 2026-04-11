@@ -14,10 +14,16 @@ export default function FullPlataView({ activeContracts }) {
       const calc = calcContract(c)
       if (calc.porRecibir <= 0) return
       const entries = []
-      if (c.adelanto > 0 && !c.enCajaAdel && c.recibioAdel) entries.push({ persona: c.recibioAdel, monto: c.adelanto, tipo: "Adelanto", modal: c.modalAdel })
-      if (c.cobro > 0 && !c.enCajaCobro && c.recibioCobro) entries.push({ persona: c.recibioCobro, monto: c.cobro, tipo: "Cobro", modal: c.modalCobro })
+      ;(c.adelantos || []).forEach(a => {
+        if (a.noTrack || !a.monto || a.enCaja) return
+        if (a.recibio) entries.push({ persona: a.recibio, monto: a.monto, tipo: "Adelanto", modal: a.modalidad })
+      })
+      ;(c.cobros || []).forEach(a => {
+        if (a.noTrack || !a.monto || a.enCaja) return
+        if (a.recibio) entries.push({ persona: a.recibio, monto: a.monto, tipo: "Cobro", modal: a.modalidad })
+      })
       if (entries.length === 0 && calc.porRecibir > 0) {
-        const recv = [c.recibioAdel, c.recibioCobro].filter(Boolean)
+        const recv = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
         if (recv.length > 0) {
           const per = calc.porRecibir / recv.length
           recv.forEach(p => entries.push({ persona: p, monto: per, tipo: "Pendiente", modal: "" }))

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { cDark } from "../../ui/darkStyles"
 import DarkBadge from "../../ui/DarkBadge"
 import DarkStatCard from "../../ui/DarkStatCard"
-import { formatMoney, calcContract, parseLocalDate } from "../../../../lib/finanzas/helpers"
+import { formatMoney, calcContract, sumPayments, parseLocalDate } from "../../../../lib/finanzas/helpers"
 
 const MESES_CORTOS = ["", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
@@ -90,26 +90,20 @@ export default function TablaView({
                     <td style={cDark.td}>{c.cliente || "—"}</td>
                     <td style={{ ...cDark.td, fontFamily: "monospace", fontSize: 11, whiteSpace: "nowrap", lineHeight: 1.4 }}>
                       {(() => {
-                        const adel = !c.noTrackAdel ? fmtDateShort(c.fechaAdel) : null
-                        const cobro = !c.noTrackCobro ? fmtDateShort(c.fechaCobro) : null
-                        if (!adel && !cobro) return <span style={{ color: "#52525b" }}>—</span>
+                        const adelDates = (c.adelantos || []).filter(a => !a.noTrack && a.fecha).map(a => fmtDateShort(a.fecha)).filter(Boolean)
+                        const cobroDates = (c.cobros || []).filter(a => !a.noTrack && a.fecha).map(a => fmtDateShort(a.fecha)).filter(Boolean)
+                        if (!adelDates.length && !cobroDates.length) return <span style={{ color: "#52525b" }}>—</span>
                         return (
                           <>
-                            <div>
-                              <span style={{ color: "#52525b", fontSize: 9, marginRight: 4 }}>adel</span>
-                              <span style={{ color: adel ? "#34d399" : "#52525b" }}>{adel || "—"}</span>
-                            </div>
-                            <div>
-                              <span style={{ color: "#52525b", fontSize: 9, marginRight: 4 }}>cobro</span>
-                              <span style={{ color: cobro ? "#38bdf8" : "#52525b" }}>{cobro || "—"}</span>
-                            </div>
+                            {adelDates.length > 0 && <div><span style={{ color: "#52525b", fontSize: 9, marginRight: 4 }}>adel</span><span style={{ color: "#34d399" }}>{adelDates.join(", ")}</span></div>}
+                            {cobroDates.length > 0 && <div><span style={{ color: "#52525b", fontSize: 9, marginRight: 4 }}>cobro</span><span style={{ color: "#38bdf8" }}>{cobroDates.join(", ")}</span></div>}
                           </>
                         )
                       })()}
                     </td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7" }}>{formatMoney(c.total)}</td>
-                    <td style={cDark.td}>{c.noTrackAdel ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.adelanto)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalAdel} · {c.recibioAdel}</div></>}</td>
-                    <td style={cDark.td}>{c.noTrackCobro ? <DarkBadge color="neutral">No track.</DarkBadge> : <><div>{formatMoney(c.cobro)}</div><div style={{ fontSize: 10, color: "#52525b" }}>{c.modalCobro} · {c.recibioCobro}</div></>}</td>
+                    <td style={cDark.td}>{(c.adelantos || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.adelantos || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}<span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio}</span></div>)}</>}</td>
+                    <td style={cDark.td}>{(c.cobros || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.cobros || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}<span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio}</span></div>)}</>}</td>
                     <td style={cDark.td}>{c.descuento > 0 ? <span style={{ color: "#f87171" }}>-{formatMoney(c.descuento)}</span> : "—"}</td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#34d399" }}>{formatMoney(calc.ganancia)}</td>
                     <td style={cDark.td}>{formatMoney(calc.enCaja)}</td>

@@ -26,33 +26,37 @@ export function useReconciliation(contracts, entries, period) {
       return true
     }
 
-    // ── Esperado: sum up adelanto and cobro separately per date ─────
+    // ── Esperado: sum up each adelanto/cobro entry by its own date ──
     let esperado = 0
     let contratosCount = 0
     contracts.forEach(c => {
       if (c.eliminado) return
       let contributed = false
 
-      // Adelanto piece: date is fechaAdel
-      if (c.enCajaAdel && !c.noTrackAdel) {
-        const adelDate = c.fechaAdel && c.fechaAdel.trim() ? c.fechaAdel : c.fechaCobro
+      // Adelantos: each entry has its own date
+      ;(c.adelantos || []).forEach(a => {
+        if (a.noTrack || !a.enCaja) return
+        const adelDate = (a.fecha && a.fecha.trim()) ? a.fecha : (c.cobros || []).find(cb => cb.fecha)?.fecha || ""
         if (dateInPeriod(adelDate)) {
-          esperado += (c.adelanto || 0)
+          esperado += (a.monto || 0)
           contributed = true
         }
-      }
+      })
 
-      // Cobro piece: date is fechaCobro
-      if (c.enCajaCobro && !c.noTrackCobro) {
-        if (dateInPeriod(c.fechaCobro)) {
-          esperado += (c.cobro || 0)
+      // Cobros: each entry has its own date
+      ;(c.cobros || []).forEach(a => {
+        if (a.noTrack || !a.enCaja) return
+        if (dateInPeriod(a.fecha)) {
+          esperado += (a.monto || 0)
           contributed = true
         }
-      }
+      })
 
-      // Descuento: subtract from the cobro's period (or adelanto if no cobro)
+      // Descuento: subtract from the last cobro's date (or first adelanto)
       if (c.descuento > 0) {
-        const descDate = c.fechaCobro || c.fechaAdel
+        const lastCobro = (c.cobros || []).filter(a => a.fecha).slice(-1)[0]
+        const firstAdel = (c.adelantos || []).filter(a => a.fecha).slice(-1)[0]
+        const descDate = lastCobro?.fecha || firstAdel?.fecha || ""
         if (dateInPeriod(descDate)) {
           esperado -= (c.descuento || 0)
           contributed = true

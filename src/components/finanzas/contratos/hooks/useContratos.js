@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { calcContract, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { calcContract, normalizeContract, getContractHomeDate, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadContratos, saveContratos, deleteContratos } from "../../../../services/finanzas"
 import { remove as removeLocal } from "../../../../lib/storage"
@@ -32,15 +32,16 @@ export function useContratos() {
   const applyLoaded = useCallback((saved) => {
     if (Array.isArray(saved) && saved.length > 0) {
       setContracts(saved.map(c => {
-        let anio = c.anio
-        if (!anio) {
-          const inferFrom = parseLocalDate(c.fechaAdel) || parseLocalDate(c.fechaCobro)
-          anio = inferFrom ? inferFrom.getFullYear() : 2026
+        const norm = normalizeContract(c)
+        if (!norm.anio) {
+          const homeDate = getContractHomeDate(norm)
+          const inferFrom = homeDate ? parseLocalDate(homeDate) : null
+          norm.anio = inferFrom ? inferFrom.getFullYear() : new Date().getFullYear()
         }
-        return { ...c, noTrackAdel: c.noTrackAdel || false, noTrackCobro: c.noTrackCobro || false, anio }
+        return norm
       }))
     } else {
-      setContracts(INITIAL_CONTRACTS)
+      setContracts(INITIAL_CONTRACTS.map(normalizeContract))
     }
     setLoaded(true)
   }, [])
@@ -91,31 +92,37 @@ export function useContratos() {
     try { await deleteContratos() }
     catch (e) { logError("contratos.reset", e) }
     removeLocal(STORAGE_KEYS.CONTRATOS)
-    setContracts(INITIAL_CONTRACTS)
+    setContracts(INITIAL_CONTRACTS.map(normalizeContract))
   }, [])
 
   // Summary calculator. periodCtx={type:"semana"|"mes", value, year} or null
   // for "all of `list`". When given a periodCtx it splits ganancia into
   // "deNuevos" (contracts whose home date falls in the period) and
   // "deAnteriores" (cobros from previous-period contracts).
+  // Classify a payment entry's modalidad as Yape-like or Efectivo
+  const addIngreso = (modalidad, monto, acc) => {
+    if (!monto) return
+    if (modalidad === "Yape" || modalidad === "Transferencia" || modalidad === "Plin") acc.yape += monto
+    else if (modalidad === "Efectivo") acc.efectivo += monto
+  }
+
   const calcSummary = useCallback((list, periodCtx) => {
     if (!periodCtx) {
-      let ganancia = 0, descuentos = 0, enCaja = 0, pendiente = 0, ingresoYape = 0, ingresoEfectivo = 0
+      let ganancia = 0, descuentos = 0, enCaja = 0, pendiente = 0
+      const ing = { yape: 0, efectivo: 0 }
       const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
       list.forEach(c => {
         const calc = calcContract(c)
         ganancia += calc.ganancia; descuentos += c.descuento || 0; enCaja += calc.enCaja; pendiente += calc.pendiente
-        if (c.modalAdel === "Yape") ingresoYape += c.adelanto || 0
-        else if (c.modalAdel === "Efectivo") ingresoEfectivo += c.adelanto || 0
-        if (c.modalCobro === "Yape") ingresoYape += c.cobro || 0
-        else if (c.modalCobro === "Efectivo") ingresoEfectivo += c.cobro || 0
+        ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
+        ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         if (calc.porRecibir > 0) {
-          const personas = [c.recibioAdel, c.recibioCobro].filter(Boolean)
+          const personas = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
           const pp = calc.porRecibir / (personas.length || 1)
           personas.forEach(p => { if (p in porPersona) porPersona[p] += pp; else porPersona["Otro"] += pp })
         }
       })
-      return { registros: list.length, ganancia, descuentos, enCaja, pendiente, ingresoYape, ingresoEfectivo, deNuevos: 0, deAnteriores: 0, porPersona }
+      return { registros: list.length, ganancia, descuentos, enCaja, pendiente, ingresoYape: ing.yape, ingresoEfectivo: ing.efectivo, deNuevos: 0, deAnteriores: 0, porPersona }
     }
 
     const dateInPeriod = (dateStr) => {
@@ -125,46 +132,37 @@ export function useContratos() {
       if (periodCtx.type === "mes") return d.getMonth() + 1 === periodCtx.value
       return false
     }
-    const getHomeDate = (c) => {
-      if (!c.noTrackAdel && c.fechaAdel && c.fechaAdel !== "no trackeado" && c.fechaAdel.trim() !== "") return c.fechaAdel
-      return c.fechaCobro || null
-    }
 
-    let registros = 0, deNuevos = 0, deAnteriores = 0, enCajaTotal = 0, descuentos = 0, pendiente = 0, ingresoYape = 0, ingresoEfectivo = 0
+    let registros = 0, deNuevos = 0, deAnteriores = 0, enCajaTotal = 0, descuentos = 0, pendiente = 0
+    const ing = { yape: 0, efectivo: 0 }
     const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
     activeContracts.forEach(c => {
-      const homeDate = getHomeDate(c)
+      const homeDate = getContractHomeDate(c)
       const isHome = homeDate ? dateInPeriod(homeDate) : false
-      const cobroInPeriod = dateInPeriod(c.fechaCobro)
+      // Check if any cobro falls in this period
+      const cobrosInPeriod = (c.cobros || []).filter(a => !a.noTrack && dateInPeriod(a.fecha))
 
       if (isHome) {
         registros++
         const calc = calcContract(c)
-        const valor = (c.total || 0) - (c.descuento || 0)
-        deNuevos += valor; descuentos += c.descuento || 0; pendiente += calc.pendiente
+        deNuevos += calc.ganancia; descuentos += c.descuento || 0; pendiente += calc.pendiente
         enCajaTotal += calc.enCaja
-        if (c.adelanto) {
-          if (c.modalAdel === "Yape" || c.modalAdel === "Transferencia" || c.modalAdel === "Plin") ingresoYape += c.adelanto
-          else if (c.modalAdel === "Efectivo") ingresoEfectivo += c.adelanto
-        }
-        if (c.cobro) {
-          if (c.modalCobro === "Yape" || c.modalCobro === "Transferencia" || c.modalCobro === "Plin") ingresoYape += c.cobro
-          else if (c.modalCobro === "Efectivo") ingresoEfectivo += c.cobro
-        }
+        ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
+        ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         if (calc.porRecibir > 0) {
-          const personas = [c.recibioAdel, c.recibioCobro].filter(Boolean)
+          const personas = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
           const pp = calc.porRecibir / (personas.length || 1)
           personas.forEach(p => { if (p in porPersona) porPersona[p] += pp; else porPersona["Otro"] += pp })
         }
-      } else if (cobroInPeriod && (c.cobro || 0) > 0) {
-        const cobroEnCaja = c.enCajaCobro ? (c.cobro || 0) : 0
-        deAnteriores += c.cobro || 0
-        enCajaTotal += cobroEnCaja
-        if (c.modalCobro === "Yape" || c.modalCobro === "Transferencia" || c.modalCobro === "Plin") ingresoYape += c.cobro
-        else if (c.modalCobro === "Efectivo") ingresoEfectivo += c.cobro
+      } else if (cobrosInPeriod.length > 0) {
+        cobrosInPeriod.forEach(a => {
+          deAnteriores += a.monto || 0
+          if (a.enCaja) enCajaTotal += a.monto || 0
+          addIngreso(a.modalidad, a.monto, ing)
+        })
       }
     })
-    return { registros, ganancia: deNuevos + deAnteriores, descuentos, enCaja: enCajaTotal, pendiente, ingresoYape, ingresoEfectivo, deNuevos, deAnteriores, porPersona }
+    return { registros, ganancia: deNuevos + deAnteriores, descuentos, enCaja: enCajaTotal, pendiente, ingresoYape: ing.yape, ingresoEfectivo: ing.efectivo, deNuevos, deAnteriores, porPersona }
   }, [activeContracts])
 
   return {
