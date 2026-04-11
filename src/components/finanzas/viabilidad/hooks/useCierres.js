@@ -72,27 +72,32 @@ export function useCierres(calc) {
     const gastoMes = c.gastoRealMes || 0
 
     const doClose = async () => {
-      // ── Weekly cierres ──
+      // ── Weekly cierres (only for weeks with activity) ──
       for (const w of weeks) {
-        let ganancia = 0, enCaja = 0
+        let ganancia = 0, enCaja = 0, hasContracts = false
         contracts.forEach(c => {
           if (c.eliminado) return
           if ((c.anio || currentYear) !== currentYear) return
           if (c.semana !== w) return
+          hasContracts = true
           const cc = calcContract(c)
           ganancia += cc.ganancia
           enCaja += cc.enCaja
         })
 
-        let cajaIng = 0, cajaEgr = 0
+        let cajaIng = 0, cajaEgr = 0, hasCaja = false
         cajaEntries.forEach(e => {
           if (e.eliminado) return
           if (e.delNegocio === false) return
           const ed = getEntryDate(e)
           if (!ed || ed.year !== currentYear || ed.week !== w) return
+          hasCaja = true
           if (e.tipo === "ingreso") cajaIng += e.monto || 0
           else if (e.tipo === "egreso") cajaEgr += e.monto || 0
         })
+
+        // Skip weeks with no activity at all
+        if (!hasContracts && !hasCaja) continue
 
         const libre = enCaja - gastoSemanal
         try {
@@ -104,27 +109,32 @@ export function useCierres(calc) {
         } catch (e) { logError("cierres.autoClose", e) }
       }
 
-      // ── Monthly cierres ──
+      // ── Monthly cierres (only for months with activity) ──
       for (const m of months) {
-        let ganancia = 0, enCaja = 0
+        let ganancia = 0, enCaja = 0, hasContracts = false
         contracts.forEach(c => {
           if (c.eliminado) return
           if ((c.anio || currentYear) !== currentYear) return
           if (c.mes !== m) return
+          hasContracts = true
           const cc = calcContract(c)
           ganancia += cc.ganancia
           enCaja += cc.enCaja
         })
 
-        let cajaIng = 0, cajaEgr = 0
+        let cajaIng = 0, cajaEgr = 0, hasCaja = false
         cajaEntries.forEach(e => {
           if (e.eliminado) return
           if (e.delNegocio === false) return
           const ed = getEntryDate(e)
           if (!ed || ed.year !== currentYear || ed.month !== m) return
+          hasCaja = true
           if (e.tipo === "ingreso") cajaIng += e.monto || 0
           else if (e.tipo === "egreso") cajaEgr += e.monto || 0
         })
+
+        // Skip months with no activity at all
+        if (!hasContracts && !hasCaja) continue
 
         const libre = enCaja - gastoMes
         try {
