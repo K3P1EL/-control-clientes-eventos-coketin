@@ -33,7 +33,7 @@ export default memo(function DeleteRegistroModal({
             <button onClick={()=>setDelConfirm(null)} style={{ padding:8, background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:12, textAlign:"center" }}>Cancelar</button>
           </div>
         </> : <>
-          <p style={{ margin:"0 0 16px", fontSize:13, color:C.muted }}>Este registro no tiene ficha vinculada. Se eliminara permanentemente.</p>
+          <p style={{ margin:"0 0 16px", fontSize:13, color:C.muted }}>Este registro no tiene ficha vinculada. Se eliminará permanentemente.</p>
           <div style={{ display:"flex", gap:10 }}>
             <button onClick={()=>setDelConfirm(null)} style={{ flex:1, padding:10, borderRadius:10, background:"transparent", border:`1px solid ${C.border}`, color:C.muted, cursor:"pointer", fontSize:13, fontWeight:600 }}>Cancelar</button>
             <button onClick={()=>{setDelConfirm(null);onHardDeleteReg(regId)}} style={{ flex:1, padding:10, borderRadius:10, background:C.danger, border:"none", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700 }}>Eliminar</button>

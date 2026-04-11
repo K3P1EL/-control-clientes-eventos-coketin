@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { cDark } from "../ui/darkStyles"
 import DarkMoneyInput from "../ui/DarkMoneyInput"
 import { PERSONAS, MODALS } from "../../../lib/finanzas/constants"
@@ -18,9 +18,12 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
 
   // Check if the form has been modified before closing — prevent
   // accidental data loss on ESC / click-outside / X button.
-  const isDirty = JSON.stringify(form) !== JSON.stringify(contract || { id: nextId, cliente: "", total: 0, adelanto: 0, modalAdel: "Efectivo", recibioAdel: "Yo", fechaAdel: peruToday(), enCajaAdel: true, cobro: 0, modalCobro: "Efectivo", recibioCobro: "Yo", fechaCobro: "", enCajaCobro: false, descuento: 0, notas: "", depend: false, semana: getWeekNumberISO(peruNow()), mes: peruNow().getMonth() + 1, anio: peruNow().getFullYear(), eliminado: false })
+  const initial = useMemo(() => JSON.stringify(contract || { id: nextId, cliente: "", total: 0, adelanto: 0, modalAdel: "Efectivo", recibioAdel: "Yo", fechaAdel: peruToday(), enCajaAdel: true, cobro: 0, modalCobro: "Efectivo", recibioCobro: "Yo", fechaCobro: "", enCajaCobro: false, descuento: 0, notas: "", depend: false, semana: getWeekNumberISO(peruNow()), mes: peruNow().getMonth() + 1, anio: peruNow().getFullYear(), eliminado: false }), [contract, nextId])
+  const isDirty = JSON.stringify(form) !== initial
+  const dirtyRef = useRef(isDirty)
+  dirtyRef.current = isDirty
   const safeClose = () => {
-    if (isDirty && !window.confirm("¿Descartar cambios?")) return
+    if (dirtyRef.current && !window.confirm("¿Descartar cambios sin guardar?")) return
     onClose()
   }
 
@@ -28,7 +31,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
     const onKey = (e) => { if (e.key === "Escape") safeClose() }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  })
+  }, [])
   const fs = cDark.input
   const groupStyle = { display: "flex", flexDirection: "column", gap: 2 }
 

@@ -124,7 +124,7 @@ export function useCierres(calc) {
         try {
           await upsertCierre({
             tipo: "mes", periodo: m, anio: currentYear,
-            data: { ganancia, enCaja, gastoSemanal: gastoMes, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            data: { ganancia, enCaja, gastoMes, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
             viable: libre >= 0, nota: "",
           })
         } catch (e) { logError("cierres.autoClose", e) }

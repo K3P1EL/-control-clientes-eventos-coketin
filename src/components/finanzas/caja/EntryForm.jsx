@@ -35,7 +35,7 @@ export default function EntryForm({ form, setForm, editId, onSubmit, onCancel })
           <input type="text" value={form.quien} onChange={e => setForm(p => ({ ...p, quien: e.target.value }))} placeholder="Nombre..." style={fs} />
         </div>
         <div>
-          <label style={{ fontSize: 11, fontWeight: 600, color: "#a1a1aa", marginBottom: 3, display: "block" }}>{form.tipo === "traspaso" ? "Dirección" : "Modalidad"}</label>
+          <label style={{ fontSize: 11, fontWeight: 600, color: "#a1a1aa", marginBottom: 3, display: "block" }}>{form.tipo === "traspaso" ? "Traspaso" : "Modalidad"}</label>
           <div style={{ display: "flex", gap: 4 }}>
             {form.tipo === "traspaso" ? (
               <>

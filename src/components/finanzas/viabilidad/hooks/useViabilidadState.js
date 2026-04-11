@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
+import { peruNow } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadViabilidad, saveViabilidad } from "../../../../services/finanzas"
 
@@ -22,8 +23,8 @@ const INIT_APOYOS = [
 // Owns the entire persisted state of the Viabilidad module. Persistence
 // is two-tier (Supabase + localStorage fallback) handled by useSupabaseSync.
 export function useViabilidadState() {
-  const [year, setYear] = useState(2026)
-  const [month, setMonth] = useState(4)
+  const [year, setYear] = useState(() => peruNow().getFullYear())
+  const [month, setMonth] = useState(() => peruNow().getMonth() + 1)
   const [workers, setWorkers] = useState(INIT_WORKERS)
   const [services, setServices] = useState(INIT_SERVICES)
   const [apoyos, setApoyos] = useState(INIT_APOYOS)

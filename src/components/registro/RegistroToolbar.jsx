@@ -65,7 +65,7 @@ export default memo(function RegistroToolbar({
         </div>
         <div style={{ display:"inline-flex", borderRadius:8, background:C.bg, padding:2, border:`1px solid ${C.border}` }}>
           <button onClick={()=>setShowAll(true)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:showAll?C.accent:C.bg, color:showAll?"#fff":C.muted, transition:"all .2s" }}>Todo el dia</button>
-          <button onClick={()=>setShowAll(false)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:!showAll?C.accent:C.bg, color:!showAll?"#fff":C.muted, transition:"all .2s" }}>Ultimos 5</button>
+          <button onClick={()=>setShowAll(false)} style={{ padding:"5px 12px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:600, background:!showAll?C.accent:C.bg, color:!showAll?"#fff":C.muted, transition:"all .2s" }}>Últimos 5</button>
         </div>
         <div style={{ display:"inline-flex", borderRadius:10, overflow:"hidden", border:`1px solid ${C.accent}44` }}>
           <button onClick={()=>addReg("F")} style={{ padding:"8px 16px", border:"none", cursor:"pointer", fontSize:13, fontWeight:700, background:C.accent, color:"#fff", display:"flex", alignItems:"center", gap:6 }}>

@@ -4,7 +4,6 @@ import { calcContract, parseLocalDate, getWeekNumberISO } from "../../../../lib/
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadContratos, saveContratos, deleteContratos } from "../../../../services/finanzas"
 import { remove as removeLocal } from "../../../../lib/storage"
-import { STORAGE_KEYS as KEYS } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 
 // Seed used the very first time, before anything is in localStorage or
@@ -91,7 +90,7 @@ export function useContratos() {
   const handleReset = useCallback(async () => {
     try { await deleteContratos() }
     catch (e) { logError("contratos.reset", e) }
-    removeLocal(KEYS.CONTRATOS)
+    removeLocal(STORAGE_KEYS.CONTRATOS)
     setContracts(INITIAL_CONTRACTS)
   }, [])
 
@@ -134,7 +133,6 @@ export function useContratos() {
     let registros = 0, deNuevos = 0, deAnteriores = 0, descuentos = 0, pendiente = 0, ingresoYape = 0, ingresoEfectivo = 0
     const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
     activeContracts.forEach(c => {
-      if (c.eliminado) return
       const homeDate = getHomeDate(c)
       const isHome = homeDate ? dateInPeriod(homeDate) : false
       const cobroInPeriod = dateInPeriod(c.fechaCobro)

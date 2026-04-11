@@ -123,7 +123,8 @@ function RegistroRow({
               {linked.code && <CopyBtn text={linked.code} />}
             </div>
           : <button onClick={async()=>{
-              const nc = await onAddClient({ code:genCode(), reg_ids:[r.id], created_by:user.id, created_by_name:user.name, nombre:"", dni:"", phones:[], direccion:"", referencia:"" }, { reg_id:r.id })
+              const tipo = r.estado === "Contrato" ? "contrato" : "proforma"
+              const nc = await onAddClient({ code:genCode(), reg_ids:[r.id], created_by:user.id, created_by_name:user.name, nombre:"", dni:"", phones:[], direccion:"", referencia:"" }, { tipo, estado:"activo" })
               goToClient(nc.id)
             }} style={{ background:C.purple+"22", border:`1px solid ${C.purple}44`, borderRadius:6, color:C.purple, cursor:"pointer", padding:"2px 8px", fontSize:12, fontWeight:700 }}>+ Ficha</button>
         }

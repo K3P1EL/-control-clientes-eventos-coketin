@@ -113,7 +113,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                   </div>
                   <div>
                     <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gastos {c.tipo === "semana" ? "semana" : "mes"}</div>
-                    <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(d.gastoSemanal || 0)}</div>
+                    <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(d.gastoSemanal || d.gastoMes || 0)}</div>
                   </div>
                   <div style={{ borderLeft: "1px solid rgba(63,63,70,0.4)", paddingLeft: 16 }}>
                     <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Viabilidad</div>

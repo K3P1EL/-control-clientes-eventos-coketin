@@ -615,8 +615,9 @@ export default function App() {
       const newRegIds = [...new Set([...(target.reg_ids||[]), ...(source.reg_ids||[])])]
       const newPhones = [...new Set([...(target.phones||[]), ...(source.phones||[])])]
       updateClient(targetId, { reg_ids: newRegIds, phones: newPhones })
-      Promise.all((source.contratos||[]).map(ct => updateContrato(ct.id, { client_id: targetId })))
+        .then(() => Promise.all((source.contratos||[]).map(ct => updateContrato(ct.id, { client_id: targetId }))))
         .then(() => deleteClient(sourceId))
+        .catch(e => { logError("mergeClients", e); alert("Error al fusionar fichas") })
       return prev
         .map(c => c.id === targetId ? { ...c, reg_ids: newRegIds, phones: newPhones, contratos: [...(c.contratos||[]), ...(source.contratos||[])] } : c)
         .filter(c => c.id !== sourceId)

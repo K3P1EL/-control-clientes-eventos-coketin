@@ -46,7 +46,7 @@ export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, se
     for (let i = 1; i <= currentWeek; i++) set.add(i)
     activeEntries.forEach(e => {
       if (!e.fecha) return
-      const w = getWeekNumberISO(new Date(e.fecha + "T12:00:00"))
+      const w = getWeekNumberISO(parseLocalDate(e.fecha))
       if (w) set.add(w)
     })
     return [...set].sort((a, b) => a - b)
@@ -57,7 +57,7 @@ export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, se
     for (let i = 1; i <= currentMonth; i++) set.add(i)
     activeEntries.forEach(e => {
       if (!e.fecha) return
-      const m = +e.fecha.split("-")[1]
+      const pd = parseLocalDate(e.fecha); const m = pd ? pd.getMonth() + 1 : null
       if (m) set.add(m)
     })
     return [...set].sort((a, b) => a - b)
@@ -151,7 +151,7 @@ export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, se
                 <button onClick={() => semSel > 1 && setSemSel(semSel - 1)} style={navBtn}>‹</button>
                 <select value={semSel} onChange={e => setSemSel(+e.target.value)} style={selStyle}>
                   {semanas.map(s => {
-                    const cnt = activeEntries.filter(e => { if (!e.fecha) return false; return getWeekNumberISO(new Date(e.fecha + "T12:00:00")) === s }).length
+                    const cnt = activeEntries.filter(e => { if (!e.fecha) return false; return getWeekNumberISO(parseLocalDate(e.fecha)) === s }).length
                     return <option key={s} value={s}>Semana {s} ({cnt} movimiento{cnt !== 1 ? "s" : ""})</option>
                   })}
                 </select>
@@ -162,7 +162,7 @@ export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, se
                 <button onClick={() => mesSel > 1 && setMesSel(mesSel - 1)} style={navBtn}>‹</button>
                 <select value={mesSel} onChange={e => setMesSel(+e.target.value)} style={selStyle}>
                   {meses.map(m => {
-                    const cnt = activeEntries.filter(e => e.fecha && +e.fecha.split("-")[1] === m).length
+                    const cnt = activeEntries.filter(e => { const pd = parseLocalDate(e.fecha); return pd && (pd.getMonth() + 1) === m }).length
                     return <option key={m} value={m}>{MESES[m]} ({cnt} movimiento{cnt !== 1 ? "s" : ""})</option>
                   })}
                 </select>

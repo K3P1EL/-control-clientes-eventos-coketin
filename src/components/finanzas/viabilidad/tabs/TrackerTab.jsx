@@ -39,7 +39,7 @@ export default function TrackerTab({
           </select>
           <select value={year} onChange={e => setYear(Number(e.target.value))}
             className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-200 font-semibold focus:outline-none focus:border-sky-500/60 appearance-none cursor-pointer text-center">
-            {Array.from({ length: 11 }, (_, i) => 2020 + i).map(y => <option key={y} value={y}>{y}</option>)}
+            {Array.from({ length: year - 2020 + 2 }, (_, i) => 2020 + i).map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <div className="text-[10px] text-zinc-500 ml-1">{diasCalendario}d · {diasOpBase} op.</div>
         </div>

@@ -32,7 +32,7 @@ export default function EntriesTable({
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay movimientos</td></tr>
+              <tr><td colSpan={12} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay movimientos</td></tr>
             ) : filtered.map(e => {
               const isEditing = editId === e.id
               return (
