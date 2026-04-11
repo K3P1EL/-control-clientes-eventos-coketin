@@ -1,14 +1,52 @@
 import { useState, useEffect, useCallback } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
-import { peruNow, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { loadContratos } from "../../../../services/finanzas"
+import { loadCaja } from "../../../../services/finanzas"
+import { peruNow, getWeekNumberISO, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
+import { getJSON } from "../../../../lib/storage"
+import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 
+// Calculates real ganancia/enCaja from contracts for a specific week or month.
+function calcContratosForPeriod(contracts, tipo, periodo, year) {
+  let ganancia = 0, enCaja = 0
+  ;(contracts || []).forEach(c => {
+    if (c.eliminado) return
+    const calc = calcContract(c)
+    // Use the contract's semana/mes bucket for matching.
+    if (tipo === "semana" && c.semana === periodo && (c.anio || 2026) === year) {
+      ganancia += calc.ganancia
+      enCaja += calc.enCaja
+    } else if (tipo === "mes" && c.mes === periodo && (c.anio || 2026) === year) {
+      ganancia += calc.ganancia
+      enCaja += calc.enCaja
+    }
+  })
+  return { ganancia, enCaja }
+}
+
+// Calculates real ingresos/egresos from caja entries for a specific week or month.
+function calcCajaForPeriod(entries, tipo, periodo) {
+  let ingresos = 0, egresos = 0
+  ;(entries || []).forEach(e => {
+    if (e.eliminado) return
+    if (e.delNegocio === false) return
+    if (!e.fecha) return
+    const d = parseLocalDate(e.fecha)
+    if (!d) return
+    let match = false
+    if (tipo === "semana") match = getWeekNumberISO(d) === periodo
+    else if (tipo === "mes") match = (d.getMonth() + 1) === periodo
+    if (!match) return
+    if (e.tipo === "ingreso") ingresos += e.monto || 0
+    else if (e.tipo === "egreso") egresos += e.monto || 0
+  })
+  return { ingresos, egresos, balance: ingresos - egresos }
+}
+
 // Owns the cierre history — loads from Supabase on mount, auto-generates
-// cierres for past weeks/months that don't have one yet.
-//
-// A "cierre" is a frozen snapshot of the key numbers for one week or
-// month. The current (incomplete) week/month is NOT closed — it shows
-// as "en proceso" in the UI.
+// cierres for past weeks that don't have one yet using REAL data from
+// Contratos and Caja (not the calculator inputs).
 export function useCierres(calc) {
   const [cierres, setCierres] = useState([])
   const [loaded, setLoaded] = useState(false)
@@ -18,16 +56,13 @@ export function useCierres(calc) {
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
-  // Load existing cierres from Supabase.
   useEffect(() => {
     loadCierres()
       .then(data => { setCierres(data || []); setLoaded(true) })
       .catch(e => { logError("cierres.load", e); setLoaded(true) })
   }, [])
 
-  // Auto-close past weeks that don't have a cierre yet.
-  // Runs once after cierres are loaded AND calc data is available.
-  // Only creates cierres for weeks < currentWeek in the current year.
+  // Auto-close past weeks using real Contratos + Caja data.
   const autoClose = useCallback(async () => {
     if (!loaded || !calc) return
 
@@ -35,42 +70,55 @@ export function useCierres(calc) {
       cierres.filter(c => c.tipo === "semana" && c.anio === currentYear).map(c => c.periodo)
     )
 
-    // Only auto-close the last 4 weeks max to avoid flooding on first load.
     const startWeek = Math.max(1, currentWeek - 4)
-    const toClose = []
-
+    const needsClose = []
     for (let w = startWeek; w < currentWeek; w++) {
-      if (existing.has(w)) continue
-      toClose.push({
-        tipo: "semana",
-        periodo: w,
-        anio: currentYear,
-        data: {
-          ganancia: calc.costoMesReal, // placeholder — the real data comes from Contratos/Caja snapshots
-          gastoNeto: calc.gastoNetoSemanal || 0,
-          costoDiarioBruto: calc.costoDiarioBruto || 0,
-          metaDiaria: calc.metaMinimaBase || 0,
-          diasOperados: calc.diasOperados || 0,
-          costoPersonal: calc.costoDiarioPersonal || 0,
-          costoServicios: calc.costoDiarioServicios || 0,
-          apoyoDiario: calc.apoyoDiarioExt || 0,
-        },
-        viable: (calc.cajaLibreSemana || 0) >= 0,
-        nota: "",
-      })
+      if (!existing.has(w)) needsClose.push(w)
     }
+    if (needsClose.length === 0) return
 
-    if (toClose.length === 0) return
+    // Load real data from Contratos + Caja.
+    let contracts = getJSON(STORAGE_KEYS.CONTRATOS) || []
+    let cajaEntries = getJSON(STORAGE_KEYS.CAJA) || []
+    try {
+      const cloud = await loadContratos()
+      if (Array.isArray(cloud)) contracts = cloud
+    } catch {}
+    try {
+      const cloud = await loadCaja()
+      if (Array.isArray(cloud)) cajaEntries = cloud
+    } catch {}
 
-    for (const cierre of toClose) {
+    const gastoSemanal = calc.gastoNetoSemanal || 0
+    const gastoMensual = calc.gastoRealMes || 0
+
+    for (const w of needsClose) {
+      const ct = calcContratosForPeriod(contracts, "semana", w, currentYear)
+      const cj = calcCajaForPeriod(cajaEntries, "semana", w)
+      const libre = ct.enCaja - gastoSemanal
+
       try {
-        await upsertCierre(cierre)
+        await upsertCierre({
+          tipo: "semana",
+          periodo: w,
+          anio: currentYear,
+          data: {
+            ganancia: ct.ganancia,
+            enCaja: ct.enCaja,
+            gastoSemanal,
+            libre,
+            cajaIngresos: cj.ingresos,
+            cajaEgresos: cj.egresos,
+            cajaBalance: cj.balance,
+          },
+          viable: libre >= 0,
+          nota: "",
+        })
       } catch (e) {
         logError("cierres.autoClose", e)
       }
     }
 
-    // Reload after auto-close.
     try {
       const fresh = await loadCierres()
       setCierres(fresh || [])
@@ -81,7 +129,6 @@ export function useCierres(calc) {
 
   useEffect(() => { autoClose() }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Manual save (for editing notes or overriding viability).
   const saveCierre = useCallback(async (cierre) => {
     try {
       await upsertCierre(cierre)

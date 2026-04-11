@@ -3,9 +3,6 @@ import Card from "../../ui/Card"
 import { MESES_CORTO } from "../../../../lib/finanzas/constants"
 import { fmtS } from "../../../../lib/finanzas/helpers"
 
-// Historial de cierres semanales/mensuales. Cada cierre muestra si la
-// semana/mes fue viable o no, con los números clave del periodo.
-// La semana/mes actual aparece como "en proceso".
 export default function HistorialTab({ cierres, currentWeek, currentMonth, currentYear, calc }) {
   const [filterTipo, setFilterTipo] = useState("semana")
 
@@ -23,6 +20,10 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
   const currentPeriodo = filterTipo === "semana" ? currentWeek : currentMonth
   const currentLabel = filterTipo === "semana" ? `Semana ${currentWeek}` : MESES_CORTO[currentMonth]
 
+  // Live numbers for current period from calc
+  const liveGastoSemanal = calc?.gastoNetoSemanal || 0
+  const liveGastoMes = calc?.gastoRealMes || 0
+
   return (
     <Card title="Historial de cierres" icon="📚" accent="violet">
       <div className="flex gap-2 mb-4">
@@ -31,13 +32,13 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
         <span className="text-xs text-zinc-500 self-center ml-2">{currentYear}</span>
       </div>
 
-      {/* Current period — always shown first as "en proceso" */}
+      {/* Current period — en proceso */}
       <div className="mb-4">
         <div style={{
           background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.3)",
           borderRadius: 12, padding: "16px 20px",
         }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 16, fontWeight: 800, color: "#38bdf8" }}>{currentLabel}</span>
               <span style={{
@@ -46,22 +47,21 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
               }}>⏳ En proceso</span>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 12 }}>
+          <div style={{ fontSize: 11, color: "#71717a", marginBottom: 8 }}>
+            Datos en vivo — se actualizan cuando cambiás algo en los otros tabs
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12 }}>
+            <div>
+              <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gastos {filterTipo === "semana" ? "semana" : "mes"}</div>
+              <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(filterTipo === "semana" ? liveGastoSemanal : liveGastoMes)}</div>
+            </div>
             <div>
               <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Meta diaria</div>
               <div style={{ fontWeight: 700, color: "#e4e4e7", fontFamily: "monospace" }}>{fmtS(calc?.metaMinimaBase || 0)}</div>
             </div>
             <div>
-              <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Costo bruto diario</div>
-              <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(calc?.costoDiarioBruto || 0)}</div>
-            </div>
-            <div>
               <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Días operados</div>
               <div style={{ fontWeight: 700, color: "#e4e4e7", fontFamily: "monospace" }}>{calc?.diasOperados || 0}</div>
-            </div>
-            <div>
-              <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gasto neto semanal</div>
-              <div style={{ fontWeight: 700, color: "#fbbf24", fontFamily: "monospace" }}>{fmtS(calc?.gastoNetoSemanal || 0)}</div>
             </div>
           </div>
         </div>
@@ -78,13 +78,15 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
           {filtered.map(c => {
             const label = c.tipo === "semana" ? `Semana ${c.periodo}` : MESES_CORTO[c.periodo]
             const isViable = c.viable
+            const d = c.data || {}
+
             return (
               <div key={`${c.tipo}-${c.periodo}-${c.anio}`} style={{
                 background: isViable ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
                 border: `1px solid ${isViable ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
                 borderRadius: 12, padding: "14px 20px",
               }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 15, fontWeight: 800, color: "#e4e4e7" }}>{label}</span>
                     <span style={{
@@ -98,44 +100,39 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                   </div>
                   <span style={{ fontSize: 10, color: "#52525b" }}>{c.anio}</span>
                 </div>
-                <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 12 }}>
-                  {c.data?.metaDiaria != null && (
-                    <div>
-                      <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Meta diaria</div>
-                      <div style={{ fontWeight: 700, color: "#e4e4e7", fontFamily: "monospace" }}>{fmtS(c.data.metaDiaria)}</div>
+
+                {/* Main numbers */}
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Ganancia</div>
+                    <div style={{ fontWeight: 700, color: "#34d399", fontFamily: "monospace" }}>{fmtS(d.ganancia || 0)}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>En caja real</div>
+                    <div style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace" }}>{fmtS(d.enCaja || 0)}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gastos {c.tipo === "semana" ? "semana" : "mes"}</div>
+                    <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(d.gastoSemanal || 0)}</div>
+                  </div>
+                  <div style={{ borderLeft: "1px solid rgba(63,63,70,0.4)", paddingLeft: 16 }}>
+                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Viabilidad</div>
+                    <div style={{ fontWeight: 800, fontFamily: "monospace", fontSize: 14, color: (d.libre || 0) >= 0 ? "#34d399" : "#f87171" }}>
+                      {(d.libre || 0) >= 0 ? `+${fmtS(d.libre)}` : fmtS(d.libre || 0)}
                     </div>
-                  )}
-                  {c.data?.costoDiarioBruto != null && (
-                    <div>
-                      <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Costo bruto diario</div>
-                      <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(c.data.costoDiarioBruto)}</div>
-                    </div>
-                  )}
-                  {c.data?.diasOperados != null && (
-                    <div>
-                      <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Días operados</div>
-                      <div style={{ fontWeight: 700, color: "#e4e4e7", fontFamily: "monospace" }}>{c.data.diasOperados}</div>
-                    </div>
-                  )}
-                  {c.data?.gastoNeto != null && (
-                    <div>
-                      <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gasto neto</div>
-                      <div style={{ fontWeight: 700, color: "#fbbf24", fontFamily: "monospace" }}>{fmtS(c.data.gastoNeto)}</div>
-                    </div>
-                  )}
-                  {c.data?.costoPersonal != null && (
-                    <div>
-                      <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Personal/día</div>
-                      <div style={{ fontWeight: 700, color: "#a78bfa", fontFamily: "monospace" }}>{fmtS(c.data.costoPersonal)}</div>
-                    </div>
-                  )}
-                  {c.data?.costoServicios != null && (
-                    <div>
-                      <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Servicios/día</div>
-                      <div style={{ fontWeight: 700, color: "#a78bfa", fontFamily: "monospace" }}>{fmtS(c.data.costoServicios)}</div>
-                    </div>
-                  )}
+                    <div style={{ fontSize: 9, color: "#52525b" }}>en caja - gastos</div>
+                  </div>
                 </div>
+
+                {/* Caja real breakdown if available */}
+                {(d.cajaIngresos != null || d.cajaEgresos != null) && (
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: "#a1a1aa", borderTop: "1px solid rgba(63,63,70,0.3)", paddingTop: 8 }}>
+                    <span>Caja ingresos: <strong style={{ color: "#34d399" }}>{fmtS(d.cajaIngresos || 0)}</strong></span>
+                    <span>Caja egresos: <strong style={{ color: "#f87171" }}>{fmtS(d.cajaEgresos || 0)}</strong></span>
+                    <span>Balance caja: <strong style={{ color: (d.cajaBalance || 0) >= 0 ? "#34d399" : "#f87171" }}>{fmtS(d.cajaBalance || 0)}</strong></span>
+                  </div>
+                )}
+
                 {c.nota && <div style={{ marginTop: 8, fontSize: 11, color: "#a1a1aa", fontStyle: "italic" }}>📝 {c.nota}</div>}
               </div>
             )
