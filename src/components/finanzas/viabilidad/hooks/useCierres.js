@@ -8,16 +8,25 @@ import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 
 // Calculates real ganancia/enCaja from contracts for a specific week or month.
+// Uses the contract's REAL DATE (fechaAdel or fechaCobro) instead of the
+// manual semana/mes buckets, because those buckets are often the same for
+// all contracts and don't distinguish between real weeks.
 function calcContratosForPeriod(contracts, tipo, periodo, year) {
   let ganancia = 0, enCaja = 0
   ;(contracts || []).forEach(c => {
     if (c.eliminado) return
-    const calc = calcContract(c)
-    // Use the contract's semana/mes bucket for matching.
-    if (tipo === "semana" && c.semana === periodo && (c.anio || 2026) === year) {
-      ganancia += calc.ganancia
-      enCaja += calc.enCaja
-    } else if (tipo === "mes" && c.mes === periodo && (c.anio || 2026) === year) {
+    // Determine the contract's "home date" from its actual dates.
+    const dateStr = (!c.noTrackAdel && c.fechaAdel && c.fechaAdel.trim()) ? c.fechaAdel : c.fechaCobro
+    const d = parseLocalDate(dateStr)
+    if (!d) return
+    if (d.getFullYear() !== year) return
+
+    let match = false
+    if (tipo === "semana") match = getWeekNumberISO(d) === periodo
+    else if (tipo === "mes") match = (d.getMonth() + 1) === periodo
+
+    if (match) {
+      const calc = calcContract(c)
       ganancia += calc.ganancia
       enCaja += calc.enCaja
     }
