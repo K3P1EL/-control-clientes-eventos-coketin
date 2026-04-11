@@ -52,27 +52,39 @@ export function useCierres(calc) {
   const calcRef = useRef(calc)
   calcRef.current = calc
 
-  // Auto-close past weeks using the live snapshots of Contratos + Caja.
-  // Always regenerates (upsert overwrites) so stale data self-heals.
+  // Auto-close past periods. Only creates NEW cierres — never overwrites
+  // existing ones. This way gastos are "frozen" at the time of closing:
+  // adding a worker in week 16 won't change week 14's snapshot.
   useEffect(() => {
     const c = calcRef.current
     if (!loaded || !c || !contracts.length) return
 
+    // Which periods already have a cierre?
+    const existingSem = new Set(
+      cierres.filter(x => x.tipo === "semana" && x.anio === currentYear).map(x => x.periodo)
+    )
+    const existingMes = new Set(
+      cierres.filter(x => x.tipo === "mes" && x.anio === currentYear).map(x => x.periodo)
+    )
+
     const startWeek = Math.max(1, currentWeek - 4)
     const weeks = []
-    for (let w = startWeek; w < currentWeek; w++) weeks.push(w)
-    if (weeks.length === 0) return
+    for (let w = startWeek; w < currentWeek; w++) {
+      if (!existingSem.has(w)) weeks.push(w)
+    }
+
+    const months = []
+    for (let m = 1; m < currentMonth; m++) {
+      if (!existingMes.has(m)) months.push(m)
+    }
+
+    if (weeks.length === 0 && months.length === 0) return
 
     const gastoSemanal = c.gastoNetoSemanal || 0
-
-    // Build list of past months to close (from Jan to currentMonth-1)
-    const months = []
-    for (let m = 1; m < currentMonth; m++) months.push(m)
-
     const gastoMes = c.gastoRealMes || 0
 
     const doClose = async () => {
-      // ── Weekly cierres (only for weeks with activity) ──
+      // ── Weekly cierres (only new, only with activity) ──
       for (const w of weeks) {
         let ganancia = 0, enCaja = 0, hasContracts = false
         contracts.forEach(c => {
@@ -96,7 +108,6 @@ export function useCierres(calc) {
           else if (e.tipo === "egreso") cajaEgr += e.monto || 0
         })
 
-        // Skip weeks with no activity at all
         if (!hasContracts && !hasCaja) continue
 
         const libre = enCaja - gastoSemanal
@@ -109,7 +120,7 @@ export function useCierres(calc) {
         } catch (e) { logError("cierres.autoClose", e) }
       }
 
-      // ── Monthly cierres (only for months with activity) ──
+      // ── Monthly cierres (only new, only with activity) ──
       for (const m of months) {
         let ganancia = 0, enCaja = 0, hasContracts = false
         contracts.forEach(c => {
@@ -133,7 +144,6 @@ export function useCierres(calc) {
           else if (e.tipo === "egreso") cajaEgr += e.monto || 0
         })
 
-        // Skip months with no activity at all
         if (!hasContracts && !hasCaja) continue
 
         const libre = enCaja - gastoMes
@@ -146,10 +156,12 @@ export function useCierres(calc) {
         } catch (e) { logError("cierres.autoClose", e) }
       }
 
-      try {
-        const fresh = await loadCierres()
-        setCierres(fresh || [])
-      } catch (e) { logError("cierres.reload", e) }
+      if (weeks.length > 0 || months.length > 0) {
+        try {
+          const fresh = await loadCierres()
+          setCierres(fresh || [])
+        } catch (e) { logError("cierres.reload", e) }
+      }
     }
 
     doClose()
