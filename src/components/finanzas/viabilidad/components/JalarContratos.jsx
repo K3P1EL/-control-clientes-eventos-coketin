@@ -144,8 +144,8 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
                 {[
                   { label: "Ganancia", value: data.ganancia, color: "text-emerald-400", border: "border-emerald-500/30", bg: "hover:bg-emerald-500/10", sub: "Total − descuentos" },
                   { label: "En caja", value: data.enCaja, color: "text-sky-400", border: "border-sky-500/30", bg: "hover:bg-sky-500/10", sub: "Ganancia − pendiente" },
-                  { label: "De contratos nuevos", value: data.deNuevos, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10", sub: "Registrados este periodo" },
-                  { label: "De anteriores", value: data.deAnteriores, color: "text-amber-400", border: "border-amber-500/30", bg: "hover:bg-amber-500/10", sub: "Cobros de periodos previos" },
+                  { label: "Ganancia de nuevos", value: data.deNuevos, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10", sub: "Contratos registrados este periodo" },
+                  { label: "Cobros de anteriores", value: data.deAnteriores, color: "text-amber-400", border: "border-amber-500/30", bg: "hover:bg-amber-500/10", sub: "Pagos de contratos de otros periodos" },
                 ].map(m => (
                   <button key={m.label} onClick={() => setVal(m.value)}
                     className={`bg-zinc-800/40 rounded-lg p-3 border ${m.border} text-left transition-all cursor-pointer ${m.bg} active:scale-95`}>
