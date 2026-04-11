@@ -9,7 +9,7 @@ export const MESES = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio
 export const MESES_CORTO = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
 
 // Used by Contratos and Caja modules.
-export const PERSONAS = ["Yo", "Loli", "Mama", "Jose", "Otro"]
+export const PERSONAS = ["", "Yo", "Loli", "Mama", "Jose", "Otro"]
 export const MODALS = ["Efectivo", "Yape", "Transferencia", "Plin"]
 
 // localStorage keys for the Finanzas module. All persistence is local

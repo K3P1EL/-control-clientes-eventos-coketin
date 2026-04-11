@@ -59,7 +59,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
                   <div style={groupStyle}><label style={cDark.label}>Monto</label><DarkMoneyInput style={fs} value={form.adelanto} onChange={v => set("adelanto", v)} /></div>
                   <div style={groupStyle}><label style={cDark.label}>Modalidad</label><select style={fs} value={form.modalAdel} onChange={e => set("modalAdel", e.target.value)}>{MODALS.map(m => <option key={m}>{m}</option>)}</select></div>
-                  <div style={groupStyle}><label style={cDark.label}>Recibió</label><select style={fs} value={form.recibioAdel} onChange={e => set("recibioAdel", e.target.value)}>{PERSONAS.map(p => <option key={p}>{p}</option>)}</select></div>
+                  <div style={groupStyle}><label style={cDark.label}>Recibió</label><select style={fs} value={form.recibioAdel} onChange={e => set("recibioAdel", e.target.value)}>{PERSONAS.map(p => <option key={p||"__none__"} value={p}>{p || "— Nadie"}</option>)}</select></div>
                   <div style={groupStyle}><label style={cDark.label}>Fecha</label><input style={fs} type="date" value={form.fechaAdel} onChange={e => set("fechaAdel", e.target.value)} /></div>
                 </div>
                 <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 12, color: "#a1a1aa", cursor: "pointer" }}>
@@ -82,7 +82,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
                   <div style={groupStyle}><label style={cDark.label}>Monto</label><DarkMoneyInput style={fs} value={form.cobro} onChange={v => set("cobro", v)} /></div>
                   <div style={groupStyle}><label style={cDark.label}>Modalidad</label><select style={fs} value={form.modalCobro} onChange={e => set("modalCobro", e.target.value)}>{MODALS.map(m => <option key={m}>{m}</option>)}</select></div>
-                  <div style={groupStyle}><label style={cDark.label}>Recibió</label><select style={fs} value={form.recibioCobro} onChange={e => set("recibioCobro", e.target.value)}>{PERSONAS.map(p => <option key={p}>{p}</option>)}</select></div>
+                  <div style={groupStyle}><label style={cDark.label}>Recibió</label><select style={fs} value={form.recibioCobro} onChange={e => set("recibioCobro", e.target.value)}>{PERSONAS.map(p => <option key={p||"__none__"} value={p}>{p || "— Nadie"}</option>)}</select></div>
                   <div style={groupStyle}><label style={cDark.label}>Fecha</label><input style={fs} type="date" value={form.fechaCobro} onChange={e => set("fechaCobro", e.target.value)} /></div>
                 </div>
                 <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 12, color: "#a1a1aa", cursor: "pointer" }}>
