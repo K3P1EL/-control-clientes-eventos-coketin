@@ -49,7 +49,7 @@ export default function EntriesTable({
                   <td style={{ padding: "10px 14px" }}>{e.categoria === "sueldo" ? <DarkBadge color="yellow">💰 Sueldo</DarkBadge> : e.categoria === "servicio" ? <DarkBadge color="blue">🏢 Servicio</DarkBadge> : null}</td>
                   <td style={{ padding: "10px 14px", color: "#d4d4d8" }}>{e.concepto}</td>
                   <td style={{ padding: "10px 14px", color: "#a1a1aa" }}>{e.quien || "—"}</td>
-                  <td style={{ padding: "10px 14px" }}>
+                  <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                     {isEditing && <span style={{ fontSize: 9, color: "#38bdf8", fontWeight: 700, marginRight: 4 }}>editando</span>}
                     <button onClick={() => onEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: isEditing ? "#38bdf8" : "#52525b" }} title="Editar">✏️</button>
                     <button onClick={() => onRemove(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#52525b" }} title="Mover a papelera">🗑️</button>
