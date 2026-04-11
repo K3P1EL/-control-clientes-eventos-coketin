@@ -48,7 +48,7 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
       return c.fechaCobro || null
     }
 
-    let registros = 0, deNuevos = 0, deAnteriores = 0, descuentos = 0, pendiente = 0
+    let registros = 0, deNuevos = 0, enCajaNuevos = 0, deAnteriores = 0, descuentos = 0, pendiente = 0
     activeContracts.forEach(c => {
       const homeDate = getHomeDate(c)
       const isHome = homeDate ? dateInPeriod(homeDate) : false
@@ -56,17 +56,19 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
 
       if (isHome) {
         registros++
+        const calc = calcContract(c)
         const valor = (c.total || 0) - (c.descuento || 0)
         deNuevos += valor
         descuentos += c.descuento || 0
-        pendiente += calcContract(c).pendiente
+        pendiente += calc.pendiente
+        enCajaNuevos += calc.enCaja
       } else if (cobroInPeriod && (c.cobro || 0) > 0) {
         deAnteriores += c.cobro || 0
       }
     })
     const ganancia = deNuevos + deAnteriores
     const enCaja = ganancia - pendiente
-    return { ganancia, enCaja, deNuevos, deAnteriores, descuentos, pendiente, count: registros }
+    return { ganancia, enCaja, deNuevos, enCajaNuevos, deAnteriores, descuentos, pendiente, count: registros }
   }, [activeContracts, target, semSel, mesSel, currentYear])
 
   if (!contracts.length) return null
@@ -144,7 +146,7 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
                 {[
                   { label: "Ganancia", value: data.ganancia, color: "text-emerald-400", border: "border-emerald-500/30", bg: "hover:bg-emerald-500/10", sub: "Total − descuentos" },
                   { label: "En caja", value: data.enCaja, color: "text-sky-400", border: "border-sky-500/30", bg: "hover:bg-sky-500/10", sub: "Ganancia − pendiente" },
-                  { label: "Ganancia de nuevos", value: data.deNuevos, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10", sub: "Contratos registrados este periodo" },
+                  { label: "Cobrado de nuevos", value: data.enCajaNuevos, color: "text-cyan-400", border: "border-cyan-500/30", bg: "hover:bg-cyan-500/10", sub: `En caja real (proyectado: ${fmtS(data.deNuevos)})` },
                   { label: "Cobros de anteriores", value: data.deAnteriores, color: "text-amber-400", border: "border-amber-500/30", bg: "hover:bg-amber-500/10", sub: "Pagos de contratos de otros periodos" },
                 ].map(m => (
                   <button key={m.label} onClick={() => setVal(m.value)}
