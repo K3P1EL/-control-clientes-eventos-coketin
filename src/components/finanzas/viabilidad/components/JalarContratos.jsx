@@ -67,7 +67,7 @@ export default function JalarContratos({ setCajaSemanaSol, setCajaAcumMes, targe
       }
     })
     const ganancia = deNuevos + deAnteriores
-    const enCaja = ganancia - pendiente
+    const enCaja = enCajaNuevos + deAnteriores
     return { ganancia, enCaja, deNuevos, enCajaNuevos, deAnteriores, descuentos, pendiente, count: registros }
   }, [activeContracts, target, semSel, mesSel, currentYear])
 
