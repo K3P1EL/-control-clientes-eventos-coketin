@@ -230,22 +230,24 @@ export function useViabilidadCalc(inputs) {
   }, [servicesCalc, diaAnalisis, diasCalendario])
 
   // ── Caja calculations ─────────────────────────────────────────────────
-  // Calculate REAL weekly personal cost from calendar marks for current week.
-  // Falls back to flat pagoSemanal if no calendar data or different month.
+  // Calculate REAL weekly costs from calendar marks for current week.
+  // Personal: reads diasMarcados per worker. Services/apoyo: proportioned
+  // to actual week days (not the static diasOpSemana config).
   const currentWeekISO = getWeekNumberISO(peruNow())
   const now = peruNow()
   const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1)
 
-  const trabajadoresSemanaReal = useMemo(() => {
-    if (!isCurrentMonth) return totalPersonal.pagoSemanal
-    // Find days in this month that fall in the current ISO week
+  const weekCalc = useMemo(() => {
+    if (!isCurrentMonth || currentWeekISO == null) return null
     const weekDays = calendarDays.filter(d => {
       const date = new Date(year, month - 1, d.dia)
-      return getWeekNumberISO(date) === currentWeekISO
+      const w = getWeekNumberISO(date)
+      return w != null && w === currentWeekISO
     })
-    if (weekDays.length === 0) return totalPersonal.pagoSemanal
+    if (weekDays.length === 0) return null
 
-    let cost = 0
+    // Personal: real cost from attendance
+    let personalCost = 0
     workersCalc.forEach(w => {
       if (!w.name) return
       const marcas = w.diasMarcados || {}
@@ -254,17 +256,30 @@ export function useViabilidadCalc(inputs) {
         const isRest = w.diaDescanso && d.nombre === w.diaDescanso
         if (marca === "noVino") return
         if (isRest && !marca) return
-        cost += w.costoDiario
+        personalCost += w.costoDiario
       })
     })
-    return cost
-  }, [isCurrentMonth, calendarDays, workersCalc, totalPersonal.pagoSemanal, year, month, currentWeekISO])
+
+    // Services: proportioned to actual week days, respecting custom divisors
+    const realDays = weekDays.length
+    let servCost = 0
+    servicesCalc.forEach(s => {
+      if (!s.nombre) return
+      servCost += s.costoDiario * realDays
+    })
+
+    // Apoyo: proportioned to actual week days
+    const apoyoCost = contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario) * realDays : 0
+
+    return { personalCost, servCost, apoyoCost, realDays }
+  }, [isCurrentMonth, currentWeekISO, calendarDays, workersCalc, servicesCalc, contarApoyo, totalApoyos.montoMensual, diasCalendario, year, month])
 
   const trabajadoresSemana = totalPersonal.pagoSemanal // presupuestado (flat)
-  const proporcionServSemana = costoDiarioServicios * diasOpSemana
-  const apoyoSemanal = contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario * diasOpSemana) : 0
+  const trabajadoresSemanaReal = weekCalc ? weekCalc.personalCost : trabajadoresSemana
+  const proporcionServSemana = weekCalc ? weekCalc.servCost : costoDiarioServicios * diasOpSemana
+  const apoyoSemanal = weekCalc ? weekCalc.apoyoCost : (contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario * diasOpSemana) : 0)
   const gastoNetoSemanal = trabajadoresSemanaReal + proporcionServSemana - apoyoSemanal
-  const gastoPresupuestadoSemanal = trabajadoresSemana + proporcionServSemana - apoyoSemanal
+  const gastoPresupuestadoSemanal = trabajadoresSemana + (costoDiarioServicios * diasOpSemana) - (contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario * diasOpSemana) : 0)
   const cajaLibreSemana = cajaSemanaSol - gastoNetoSemanal
 
   const trabRealMes = totalPersonal.costoMesReal

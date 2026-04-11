@@ -36,11 +36,11 @@ function getEntryDate(e) {
 // (not the flat pagoSemanal), plus the proportional services and apoyo.
 function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month, targetWeek) {
   const daysInMonth = getDaysInMonth(year, month)
-  // Build list of days in this month that fall in targetWeek
   const weekDays = []
   for (let dia = 1; dia <= daysInMonth; dia++) {
     const d = new Date(year, month - 1, dia)
-    if (getWeekNumberISO(d) === targetWeek) weekDays.push({ dia, nombre: DIAS_SEMANA[d.getDay()] })
+    const w = getWeekNumberISO(d)
+    if (w != null && w === targetWeek) weekDays.push({ dia, nombre: DIAS_SEMANA[d.getDay()] })
   }
   if (weekDays.length === 0) return null
 
@@ -52,19 +52,25 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month
     weekDays.forEach(({ dia, nombre }) => {
       const marca = marcas[dia] || ""
       const isRest = w.diaDescanso && nombre === w.diaDescanso
-      if (marca === "noVino") return // didn't show up
-      if (isRest && !marca) return // rest day, no override
-      // worked: normal day, or rest day with "trabajo"/"tienda" override
+      if (marca === "noVino") return
+      if (isRest && !marca) return
       personalCost += costoDiario
     })
   })
 
-  const diasOpWeek = weekDays.length // approximate op days for the week
-  const totalServMensual = services.filter(s => s.nombre).reduce((s, v) => s + (v.pagoMensual || 0), 0)
-  const servProportion = (totalServMensual / daysInMonth) * diasOpWeek
+  // Services: use custom divisor per service (same as useViabilidadCalc)
+  const realDays = weekDays.length
+  let servProportion = 0
+  services.forEach(s => {
+    if (!s.nombre) return
+    const diasOp = Math.max(1, daysInMonth - 4) // approximate diasOpBase
+    const div = s.divisor || diasOp
+    const costoDiario = div > 0 ? (s.pagoMensual || 0) / div : 0
+    servProportion += costoDiario * realDays
+  })
 
   const totalApoyoMensual = apoyos.filter(a => a.concepto).reduce((s, a) => s + (a.montoMensual || 0), 0)
-  const apoyoProportion = contarApoyo === "SI" ? (totalApoyoMensual / daysInMonth) * diasOpWeek : 0
+  const apoyoProportion = contarApoyo === "SI" ? (totalApoyoMensual / daysInMonth) * realDays : 0
 
   const gastoNeto = personalCost + servProportion - apoyoProportion
   return { gastoNeto, personalCost, servProportion, apoyo: apoyoProportion }
