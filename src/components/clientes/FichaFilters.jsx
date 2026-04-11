@@ -13,8 +13,9 @@ export default memo(function FichaFilters({
   dateTo, setDateTo,
   statusFilter, setStatusFilter,
   canalFilter, setCanalFilter,
+  tipoFilter, setTipoFilter,
 }) {
-  const hasAny = statusFilter || canalFilter || dateFrom || dateTo
+  const hasAny = statusFilter || canalFilter || tipoFilter || dateFrom || dateTo
   return (
     <div style={{ display:"flex", gap:10, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
       <button onClick={()=>setSortAsc(!sortAsc)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer", display:"flex", alignItems:"center", gap:4 }}>
@@ -39,8 +40,13 @@ export default memo(function FichaFilters({
         <option value="F" style={{color:C.purple}}>Local</option>
         <option value="W" style={{color:"#25D366"}}>WhatsApp</option>
       </select>
+      <select value={tipoFilter||""} onChange={e=>setTipoFilter(e.target.value||null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:tipoFilter==="contrato"?C.green:tipoFilter==="proforma"?C.yellow:C.text, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>
+        <option value="">Proformas y Contratos</option>
+        <option value="proforma" style={{color:C.yellow}}>Solo Proformas</option>
+        <option value="contrato" style={{color:C.green}}>Solo Contratos</option>
+      </select>
       {hasAny && (
-        <button onClick={()=>{setStatusFilter(null);setCanalFilter(null);setDateFrom("");setDateTo("")}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar</button>
+        <button onClick={()=>{setStatusFilter(null);setCanalFilter(null);setTipoFilter(null);setDateFrom("");setDateTo("")}} style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:11, textDecoration:"underline" }}>Limpiar</button>
       )}
     </div>
   )

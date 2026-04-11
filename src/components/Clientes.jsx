@@ -58,6 +58,7 @@ export default memo(function Clientes({
   const [selectedFichas, setSelectedFichas] = useState(new Set())
   const [statusFilter, setStatusFilter] = useState(null) // null | "anterior" | "naranja" | "erronea"
   const [canalFilter, setCanalFilter] = useState(null) // null | "W" | "F"
+  const [tipoFilter, setTipoFilter] = useState(null) // null | "proforma" | "contrato"
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [expandedId, setExpandedId] = useState(null)
@@ -102,6 +103,10 @@ export default memo(function Clientes({
     return filteredClients.filter(c => {
       if (statusFilter && fichaStatus(c,regs)!==statusFilter) return false
       if (canalFilter && fichaCanal(c,regs)!==canalFilter) return false
+      if (tipoFilter) {
+        const lastCt = (c.contratos||[])[( c.contratos||[]).length - 1]
+        if (!lastCt || lastCt.tipo !== tipoFilter) return false
+      }
       if (dateFrom || dateTo) {
         if (!c.created_at) return false
         const dt = new Date(c.created_at)
@@ -111,7 +116,7 @@ export default memo(function Clientes({
       }
       return true
     }).sort((a,b) => sortAsc ? new Date(a.created_at||0)-new Date(b.created_at||0) : new Date(b.created_at||0)-new Date(a.created_at||0))
-  }, [filteredClients, regs, statusFilter, canalFilter, dateFrom, dateTo, sortAsc])
+  }, [filteredClients, regs, statusFilter, canalFilter, tipoFilter, dateFrom, dateTo, sortAsc])
 
   // If we have a saved view but no viewEmp yet (admin refresh), auto-set viewEmp to show the client
   useEffect(() => {
@@ -732,6 +737,7 @@ export default memo(function Clientes({
         dateTo={dateTo} setDateTo={setDateTo}
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
         canalFilter={canalFilter} setCanalFilter={setCanalFilter}
+        tipoFilter={tipoFilter} setTipoFilter={setTipoFilter}
       />
 
       {(() => {
