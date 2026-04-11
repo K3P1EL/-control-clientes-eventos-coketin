@@ -58,7 +58,7 @@ export default memo(function Clientes({
   const [selectedFichas, setSelectedFichas] = useState(new Set())
   const [statusFilter, setStatusFilter] = useState(null) // null | "anterior" | "naranja" | "erronea"
   const [canalFilter, setCanalFilter] = useState(null) // null | "W" | "F"
-  const [tipoFilter, setTipoFilter] = useState(null) // null | "proforma" | "contrato"
+  const [tipoFilter, setTipoFilter] = useState("contrato") // null | "proforma" | "contrato"
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [expandedId, setExpandedId] = useState(null)
