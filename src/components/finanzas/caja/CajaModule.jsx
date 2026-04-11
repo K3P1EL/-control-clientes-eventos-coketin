@@ -136,6 +136,59 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
         {soloContrato && <span style={{ fontSize: 11, color: "#52525b" }}>Solo movimientos de contratos</span>}
       </div>
 
+      {/* Period quick filter — above Movimientos/Métricas so it applies to both */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        {(() => {
+          const btnsP = [
+            {
+              id: "sem",
+              label: filterSem ? `Sem ${filterSem}${+filterSem === currentWeekNum ? " ←" : ""}` : `Sem ${currentWeekNum}`,
+              active: !!filterSem,
+              action: () => setQuickWeek(filterSem ? +filterSem : currentWeekNum),
+            },
+            {
+              id: "mes",
+              label: filterMes ? `${MESES_CORTO[+filterMes]}` : MESES_CORTO[currentMonthNum],
+              active: !!filterMes,
+              action: () => setQuickMonth(filterMes ? +filterMes : currentMonthNum),
+            },
+            {
+              id: "todo",
+              label: "Todo",
+              active: !filterSem && !filterMes,
+              action: setQuickAll,
+            },
+          ]
+          return btnsP.map(b => (
+            <button key={b.id} onClick={b.action}
+              style={{
+                padding: "8px 14px", borderRadius: 10,
+                border: b.active ? "1px solid rgba(14,165,233,0.4)" : "1px solid rgba(63,63,70,0.5)",
+                fontSize: 12, fontWeight: 700, cursor: "pointer",
+                background: b.active ? "rgba(14,165,233,0.15)" : "rgba(39,39,42,0.5)",
+                color: b.active ? "#38bdf8" : "#a1a1aa", transition: "all 0.15s", whiteSpace: "nowrap",
+              }}>
+              {b.label}
+            </button>
+          ))
+        })()}
+        {filterSem && (
+          <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 4 }}>
+            <button onClick={() => +filterSem > 1 && setQuickWeek(+filterSem - 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+            <button onClick={() => +filterSem < 53 && setQuickWeek(+filterSem + 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+          </div>
+        )}
+        {filterMes && (
+          <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 4 }}>
+            <button onClick={() => +filterMes > 1 && setQuickMonth(+filterMes - 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+            <button onClick={() => +filterMes < 12 && setQuickMonth(+filterMes + 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+          </div>
+        )}
+        {(filterMes || filterSem) && (
+          <span style={{ fontSize: 11, color: "#52525b" }}>· {filtered.length} movimiento{filtered.length !== 1 ? "s" : ""}</span>
+        )}
+      </div>
+
       <div style={{ display: "flex", gap: 4 }}>
         <button onClick={() => setShowMetrics(false)}
           style={{ padding: "8px 16px", borderRadius: 10, border: !showMetrics ? "1px solid rgba(14,165,233,0.4)" : "1px solid #3f3f46", background: !showMetrics ? "rgba(14,165,233,0.15)" : "rgba(39,39,42,0.5)", color: !showMetrics ? "#38bdf8" : "#a1a1aa", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📋 Movimientos</button>
@@ -147,60 +200,8 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
         <MetricsView desglose={desglose} totalIngresos={totalIngresos} totalEgresos={totalEgresos} balance={balance} />
       ) : (
         <>
-          {/* Period quick filter — same pattern as Contratos.
-              Sem N / Mes / Todo toggle with arrow navigation. */}
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={openNewForm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>+ Nuevo movimiento</button>
-            <span style={{ color: "#3f3f46", fontSize: 16, margin: "0 4px" }}>|</span>
-            {(() => {
-              const btns = [
-                {
-                  id: "sem",
-                  label: filterSem ? `Sem ${filterSem}${+filterSem === currentWeekNum ? " ←" : ""}` : `Sem ${currentWeekNum}`,
-                  active: !!filterSem,
-                  action: () => setQuickWeek(filterSem ? +filterSem : currentWeekNum),
-                },
-                {
-                  id: "mes",
-                  label: filterMes ? `${MESES_CORTO[+filterMes]}` : MESES_CORTO[currentMonthNum],
-                  active: !!filterMes,
-                  action: () => setQuickMonth(filterMes ? +filterMes : currentMonthNum),
-                },
-                {
-                  id: "todo",
-                  label: "Todo",
-                  active: !filterSem && !filterMes,
-                  action: setQuickAll,
-                },
-              ]
-              return btns.map(b => (
-                <button key={b.id} onClick={b.action}
-                  style={{
-                    padding: "8px 14px", borderRadius: 10,
-                    border: b.active ? "1px solid rgba(14,165,233,0.4)" : "1px solid rgba(63,63,70,0.5)",
-                    fontSize: 12, fontWeight: 700, cursor: "pointer",
-                    background: b.active ? "rgba(14,165,233,0.15)" : "rgba(39,39,42,0.5)",
-                    color: b.active ? "#38bdf8" : "#a1a1aa", transition: "all 0.15s", whiteSpace: "nowrap",
-                  }}>
-                  {b.label}
-                </button>
-              ))
-            })()}
-            {filterSem && (
-              <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 4 }}>
-                <button onClick={() => +filterSem > 1 && setQuickWeek(+filterSem - 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
-                <button onClick={() => +filterSem < 53 && setQuickWeek(+filterSem + 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
-              </div>
-            )}
-            {filterMes && (
-              <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 4 }}>
-                <button onClick={() => +filterMes > 1 && setQuickMonth(+filterMes - 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
-                <button onClick={() => +filterMes < 12 && setQuickMonth(+filterMes + 1)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
-              </div>
-            )}
-            {(filterMes || filterSem) && (
-              <span style={{ fontSize: 11, color: "#52525b" }}>· {filtered.length} movimiento{filtered.length !== 1 ? "s" : ""}</span>
-            )}
           </div>
 
           {showForm && (
