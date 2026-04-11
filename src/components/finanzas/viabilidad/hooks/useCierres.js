@@ -22,14 +22,7 @@ function useCajaSnapshot() {
   return entries
 }
 
-// Match by real date (ISO week or month number).
-// Returns { week, year } or null so we can filter by both.
-function getContractDate(c) {
-  const dateStr = (!c.noTrackAdel && c.fechaAdel && c.fechaAdel.trim()) ? c.fechaAdel : c.fechaCobro
-  const d = parseLocalDate(dateStr)
-  if (!d) return null
-  return { week: getWeekNumberISO(d), month: d.getMonth() + 1, year: d.getFullYear() }
-}
+// Caja entries use real dates for week/month (same as CajaModule).
 function getEntryDate(e) {
   if (!e.fecha) return null
   const d = parseLocalDate(e.fecha)
@@ -73,12 +66,12 @@ export function useCierres(calc) {
 
     const doClose = async () => {
       for (const w of needsClose) {
-        // Filter contracts by real date + year
+        // Filter contracts by c.semana + c.anio (same as ContratosModule)
         let ganancia = 0, enCaja = 0
         contracts.forEach(c => {
           if (c.eliminado) return
-          const cd = getContractDate(c)
-          if (!cd || cd.year !== currentYear || cd.week !== w) return
+          if ((c.anio || currentYear) !== currentYear) return
+          if (c.semana !== w) return
           const cc = calcContract(c)
           ganancia += cc.ganancia
           enCaja += cc.enCaja
