@@ -130,7 +130,7 @@ export function useContratos() {
       return c.fechaCobro || null
     }
 
-    let registros = 0, deNuevos = 0, deAnteriores = 0, descuentos = 0, pendiente = 0, ingresoYape = 0, ingresoEfectivo = 0
+    let registros = 0, deNuevos = 0, deAnteriores = 0, enCajaTotal = 0, descuentos = 0, pendiente = 0, ingresoYape = 0, ingresoEfectivo = 0
     const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
     activeContracts.forEach(c => {
       const homeDate = getHomeDate(c)
@@ -139,8 +139,10 @@ export function useContratos() {
 
       if (isHome) {
         registros++
+        const calc = calcContract(c)
         const valor = (c.total || 0) - (c.descuento || 0)
-        deNuevos += valor; descuentos += c.descuento || 0; pendiente += calcContract(c).pendiente
+        deNuevos += valor; descuentos += c.descuento || 0; pendiente += calc.pendiente
+        enCajaTotal += calc.enCaja
         if (c.adelanto) {
           if (c.modalAdel === "Yape" || c.modalAdel === "Transferencia" || c.modalAdel === "Plin") ingresoYape += c.adelanto
           else if (c.modalAdel === "Efectivo") ingresoEfectivo += c.adelanto
@@ -149,19 +151,20 @@ export function useContratos() {
           if (c.modalCobro === "Yape" || c.modalCobro === "Transferencia" || c.modalCobro === "Plin") ingresoYape += c.cobro
           else if (c.modalCobro === "Efectivo") ingresoEfectivo += c.cobro
         }
-        const calc = calcContract(c)
         if (calc.porRecibir > 0) {
           const personas = [c.recibioAdel, c.recibioCobro].filter(Boolean)
           const pp = calc.porRecibir / (personas.length || 1)
           personas.forEach(p => { if (p in porPersona) porPersona[p] += pp; else porPersona["Otro"] += pp })
         }
       } else if (cobroInPeriod && (c.cobro || 0) > 0) {
+        const cobroEnCaja = c.enCajaCobro ? (c.cobro || 0) : 0
         deAnteriores += c.cobro || 0
+        enCajaTotal += cobroEnCaja
         if (c.modalCobro === "Yape" || c.modalCobro === "Transferencia" || c.modalCobro === "Plin") ingresoYape += c.cobro
         else if (c.modalCobro === "Efectivo") ingresoEfectivo += c.cobro
       }
     })
-    return { registros, ganancia: deNuevos + deAnteriores, descuentos, enCaja: deNuevos + deAnteriores - pendiente, pendiente, ingresoYape, ingresoEfectivo, deNuevos, deAnteriores, porPersona }
+    return { registros, ganancia: deNuevos + deAnteriores, descuentos, enCaja: enCajaTotal, pendiente, ingresoYape, ingresoEfectivo, deNuevos, deAnteriores, porPersona }
   }, [activeContracts])
 
   return {
