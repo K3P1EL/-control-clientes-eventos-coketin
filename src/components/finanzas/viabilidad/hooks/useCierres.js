@@ -52,39 +52,42 @@ export function useCierres(calc) {
   const calcRef = useRef(calc)
   calcRef.current = calc
 
-  // Auto-close past periods. Only creates NEW cierres — never overwrites
-  // existing ones. This way gastos are "frozen" at the time of closing:
-  // adding a worker in week 16 won't change week 14's snapshot.
+  // Auto-close past periods.
+  // - Contratos/caja = always recalculated (they're facts that can be corrected)
+  // - Gastos = frozen at first close (config changes shouldn't alter history)
+  //
+  // If a cierre already exists, we recalculate ganancia/enCaja/caja* from
+  // live data but keep the original gastoSemanal/gastoMes. For new cierres
+  // we use the current calc values.
   useEffect(() => {
     const c = calcRef.current
     if (!loaded || !c || !contracts.length) return
 
-    // Which periods already have a cierre?
-    const existingSem = new Set(
-      cierres.filter(x => x.tipo === "semana" && x.anio === currentYear).map(x => x.periodo)
-    )
-    const existingMes = new Set(
-      cierres.filter(x => x.tipo === "mes" && x.anio === currentYear).map(x => x.periodo)
-    )
+    // Index existing cierres by period for quick lookup
+    const existingSemMap = new Map()
+    const existingMesMap = new Map()
+    cierres.forEach(x => {
+      if (x.anio !== currentYear) return
+      if (x.tipo === "semana") existingSemMap.set(x.periodo, x)
+      if (x.tipo === "mes") existingMesMap.set(x.periodo, x)
+    })
 
     const startWeek = Math.max(1, currentWeek - 4)
     const weeks = []
-    for (let w = startWeek; w < currentWeek; w++) {
-      if (!existingSem.has(w)) weeks.push(w)
-    }
+    for (let w = startWeek; w < currentWeek; w++) weeks.push(w)
 
     const months = []
-    for (let m = 1; m < currentMonth; m++) {
-      if (!existingMes.has(m)) months.push(m)
-    }
+    for (let m = 1; m < currentMonth; m++) months.push(m)
 
     if (weeks.length === 0 && months.length === 0) return
 
-    const gastoSemanal = c.gastoNetoSemanal || 0
-    const gastoMes = c.gastoRealMes || 0
+    const currentGastoSemanal = c.gastoNetoSemanal || 0
+    const currentGastoMes = c.gastoRealMes || 0
 
     const doClose = async () => {
-      // ── Weekly cierres (only new, only with activity) ──
+      let changed = false
+
+      // ── Weekly cierres ──
       for (const w of weeks) {
         let ganancia = 0, enCaja = 0, hasContracts = false
         contracts.forEach(c => {
@@ -110,17 +113,22 @@ export function useCierres(calc) {
 
         if (!hasContracts && !hasCaja) continue
 
+        // Freeze gastos: use stored value if cierre exists, otherwise current
+        const existing = existingSemMap.get(w)
+        const gastoSemanal = existing?.data?.gastoSemanal ?? currentGastoSemanal
         const libre = enCaja - gastoSemanal
+
         try {
           await upsertCierre({
             tipo: "semana", periodo: w, anio: currentYear,
             data: { ganancia, enCaja, gastoSemanal, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
-            viable: libre >= 0, nota: "",
+            viable: libre >= 0, nota: existing?.nota || "",
           })
+          changed = true
         } catch (e) { logError("cierres.autoClose", e) }
       }
 
-      // ── Monthly cierres (only new, only with activity) ──
+      // ── Monthly cierres ──
       for (const m of months) {
         let ganancia = 0, enCaja = 0, hasContracts = false
         contracts.forEach(c => {
@@ -146,17 +154,21 @@ export function useCierres(calc) {
 
         if (!hasContracts && !hasCaja) continue
 
+        const existing = existingMesMap.get(m)
+        const gastoMes = existing?.data?.gastoMes ?? currentGastoMes
         const libre = enCaja - gastoMes
+
         try {
           await upsertCierre({
             tipo: "mes", periodo: m, anio: currentYear,
             data: { ganancia, enCaja, gastoMes, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
-            viable: libre >= 0, nota: "",
+            viable: libre >= 0, nota: existing?.nota || "",
           })
+          changed = true
         } catch (e) { logError("cierres.autoClose", e) }
       }
 
-      if (weeks.length > 0 || months.length > 0) {
+      if (changed) {
         try {
           const fresh = await loadCierres()
           setCierres(fresh || [])
