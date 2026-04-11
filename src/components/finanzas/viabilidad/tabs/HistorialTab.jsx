@@ -130,6 +130,19 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                   </div>
                 </div>
 
+                {/* Apoyo line — shows subsidy impact */}
+                {(d.apoyo || 0) > 0 && (() => {
+                  const gastoSinApoyo = (d.gastoSemanal || d.gastoMes || 0) + d.apoyo
+                  const libreSinApoyo = (d.enCaja || 0) - gastoSinApoyo
+                  return (
+                    <div style={{ fontSize: 11, color: "#a1a1aa", marginBottom: 6 }}>
+                      Apoyo incluido: <strong style={{ color: "#34d399" }}>{fmtS(d.apoyo)}</strong>
+                      <span style={{ color: "#52525b" }}> · </span>
+                      Sin apoyo: <strong style={{ color: libreSinApoyo >= 0 ? "#fbbf24" : "#f87171" }}>{libreSinApoyo >= 0 ? "+" : ""}{fmtS(libreSinApoyo)}</strong>
+                    </div>
+                  )
+                })()}
+
                 {/* Caja real breakdown if available */}
                 {(d.cajaIngresos != null || d.cajaEgresos != null) && (
                   <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: "#a1a1aa", borderTop: "1px solid rgba(63,63,70,0.3)", paddingTop: 8 }}>

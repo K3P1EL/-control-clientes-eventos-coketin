@@ -83,6 +83,8 @@ export function useCierres(calc) {
 
     const currentGastoSemanal = c.gastoNetoSemanal || 0
     const currentGastoMes = c.gastoRealMes || 0
+    const currentApoyoSemanal = c.apoyoSemanal || 0
+    const currentApoyoMes = c.apoyoMes || 0
 
     const doClose = async () => {
       let changed = false
@@ -113,15 +115,16 @@ export function useCierres(calc) {
 
         if (!hasContracts && !hasCaja) continue
 
-        // Freeze gastos: use stored value if cierre exists, otherwise current
+        // Freeze gastos + apoyo: use stored value if cierre exists, otherwise current
         const existing = existingSemMap.get(w)
         const gastoSemanal = existing?.data?.gastoSemanal ?? currentGastoSemanal
+        const apoyo = existing?.data?.apoyo ?? currentApoyoSemanal
         const libre = enCaja - gastoSemanal
 
         try {
           await upsertCierre({
             tipo: "semana", periodo: w, anio: currentYear,
-            data: { ganancia, enCaja, gastoSemanal, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            data: { ganancia, enCaja, gastoSemanal, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
             viable: libre >= 0, nota: existing?.nota || "",
           })
           changed = true
@@ -156,12 +159,13 @@ export function useCierres(calc) {
 
         const existing = existingMesMap.get(m)
         const gastoMes = existing?.data?.gastoMes ?? currentGastoMes
+        const apoyo = existing?.data?.apoyo ?? currentApoyoMes
         const libre = enCaja - gastoMes
 
         try {
           await upsertCierre({
             tipo: "mes", periodo: m, anio: currentYear,
-            data: { ganancia, enCaja, gastoMes, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            data: { ganancia, enCaja, gastoMes, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
             viable: libre >= 0, nota: existing?.nota || "",
           })
           changed = true
