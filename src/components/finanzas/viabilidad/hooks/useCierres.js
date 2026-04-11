@@ -48,24 +48,19 @@ export function useCierres(calc) {
   }, [])
 
   // Auto-close past weeks using the live snapshots of Contratos + Caja.
+  // Always regenerates (upsert overwrites) so stale data self-heals.
   useEffect(() => {
     if (!loaded || !calc || !contracts.length) return
 
-    const existing = new Set(
-      cierres.filter(c => c.tipo === "semana" && c.anio === currentYear).map(c => c.periodo)
-    )
-
     const startWeek = Math.max(1, currentWeek - 4)
-    const needsClose = []
-    for (let w = startWeek; w < currentWeek; w++) {
-      if (!existing.has(w)) needsClose.push(w)
-    }
-    if (needsClose.length === 0) return
+    const weeks = []
+    for (let w = startWeek; w < currentWeek; w++) weeks.push(w)
+    if (weeks.length === 0) return
 
     const gastoSemanal = calc.gastoNetoSemanal || 0
 
     const doClose = async () => {
-      for (const w of needsClose) {
+      for (const w of weeks) {
         // Filter contracts by c.semana + c.anio (same as ContratosModule)
         let ganancia = 0, enCaja = 0
         contracts.forEach(c => {
