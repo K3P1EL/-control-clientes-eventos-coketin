@@ -55,7 +55,7 @@ export default function ViabilidadModule() {
     contarApoyo: state.contarApoyo, diasOpSemana: state.diasOpSemana,
   })
 
-  const { cierres, currentWeek, currentMonth: cierreMonth, currentYear: cierreYear } = useCierres(calc)
+  const { cierres, currentWeek, currentMonth: cierreMonth, currentYear: cierreYear } = useCierres(calc, state)
 
   if (!state.loaded) {
     return (

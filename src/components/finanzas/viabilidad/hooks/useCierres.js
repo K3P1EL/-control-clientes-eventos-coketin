@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
-import { peruNow, getWeekNumberISO, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
+import { peruNow, getWeekNumberISO, getDaysInMonth, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
+import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
 
@@ -30,7 +31,46 @@ function getEntryDate(e) {
   return { week: getWeekNumberISO(d), month: d.getMonth() + 1, year: d.getFullYear() }
 }
 
-export function useCierres(calc) {
+// Calculate real personal cost for a specific ISO week by reading worker
+// calendars. Returns the actual cost based on days each worker was present
+// (not the flat pagoSemanal), plus the proportional services and apoyo.
+function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month, targetWeek) {
+  const daysInMonth = getDaysInMonth(year, month)
+  // Build list of days in this month that fall in targetWeek
+  const weekDays = []
+  for (let dia = 1; dia <= daysInMonth; dia++) {
+    const d = new Date(year, month - 1, dia)
+    if (getWeekNumberISO(d) === targetWeek) weekDays.push({ dia, nombre: DIAS_SEMANA[d.getDay()] })
+  }
+  if (weekDays.length === 0) return null
+
+  let personalCost = 0
+  workers.forEach(w => {
+    if (!w.name) return
+    const costoDiario = (w.pagoSemanal && w.diasTrabSem > 0) ? w.pagoSemanal / w.diasTrabSem : 0
+    const marcas = w.diasMarcados || {}
+    weekDays.forEach(({ dia, nombre }) => {
+      const marca = marcas[dia] || ""
+      const isRest = w.diaDescanso && nombre === w.diaDescanso
+      if (marca === "noVino") return // didn't show up
+      if (isRest && !marca) return // rest day, no override
+      // worked: normal day, or rest day with "trabajo"/"tienda" override
+      personalCost += costoDiario
+    })
+  })
+
+  const diasOpWeek = weekDays.length // approximate op days for the week
+  const totalServMensual = services.filter(s => s.nombre).reduce((s, v) => s + (v.pagoMensual || 0), 0)
+  const servProportion = (totalServMensual / daysInMonth) * diasOpWeek
+
+  const totalApoyoMensual = apoyos.filter(a => a.concepto).reduce((s, a) => s + (a.montoMensual || 0), 0)
+  const apoyoProportion = contarApoyo === "SI" ? (totalApoyoMensual / daysInMonth) * diasOpWeek : 0
+
+  const gastoNeto = personalCost + servProportion - apoyoProportion
+  return { gastoNeto, personalCost, servProportion, apoyo: apoyoProportion }
+}
+
+export function useCierres(calc, state) {
   const [cierres, setCierres] = useState([])
   const [loaded, setLoaded] = useState(false)
   const contracts = useContratosSnapshot()
@@ -47,10 +87,11 @@ export function useCierres(calc) {
       .catch(e => { logError("cierres.load", e); setLoaded(true) })
   }, [])
 
-  // Keep a ref to calc so the effect reads fresh values without
-  // re-triggering on every calc change (which would cause loops).
+  // Keep refs so the effect reads fresh values without re-triggering.
   const calcRef = useRef(calc)
   calcRef.current = calc
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   // Auto-close past periods.
   // - Contratos/caja = always recalculated (they're facts that can be corrected)
@@ -115,10 +156,23 @@ export function useCierres(calc) {
 
         if (!hasContracts && !hasCaja) continue
 
-        // Freeze gastos + apoyo: use stored value if cierre exists, otherwise current
+        // Calculate real weekly cost from worker calendars (or use frozen value)
         const existing = existingSemMap.get(w)
-        const gastoSemanal = existing?.data?.gastoSemanal ?? currentGastoSemanal
-        const apoyo = existing?.data?.apoyo ?? currentApoyoSemanal
+        const st = stateRef.current
+        let gastoSemanal, apoyo
+        if (existing?.data?.gastoSemanal != null) {
+          // Frozen: keep original gastos
+          gastoSemanal = existing.data.gastoSemanal
+          apoyo = existing.data.apoyo ?? 0
+        } else if (st) {
+          // New cierre: calculate real cost from calendar marks
+          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, currentYear, currentMonth, w)
+          gastoSemanal = real ? real.gastoNeto : currentGastoSemanal
+          apoyo = real ? real.apoyo : currentApoyoSemanal
+        } else {
+          gastoSemanal = currentGastoSemanal
+          apoyo = currentApoyoSemanal
+        }
         const libre = enCaja - gastoSemanal
 
         try {
