@@ -152,10 +152,14 @@ export function calcContract(c) {
     ? c.cobros.reduce((s, a) => s + (a.monto || 0), 0)
     : (c.cobro || 0)
 
-  const ganancia = (c.total || 0) - (c.descuento || 0)
-  const porCobrar = Math.max(0, ganancia - totalAdel)
+  // descuento = rebaja al cliente (reduce lo que paga)
+  // gastos = costos para cumplir el contrato (reduce tu ganancia, no lo que el cliente paga)
+  const precioFinal = (c.total || 0) - (c.descuento || 0)
+  const gastos = c.gastos || 0
+  const ganancia = precioFinal - gastos
+  const porCobrar = Math.max(0, precioFinal - totalAdel)
   const pendiente = Math.max(0, porCobrar - totalCobro)
-  const exceso = Math.max(0, (totalAdel + totalCobro) - ganancia)
+  const exceso = Math.max(0, (totalAdel + totalCobro) - precioFinal)
 
   let enCajaAdel, enCajaCobro
   if (Array.isArray(c.adelantos)) {
@@ -169,9 +173,9 @@ export function calcContract(c) {
     enCajaCobro = c.enCajaCobro ? (c.cobro || 0) : 0
   }
 
-  // enCaja puede ser negativo si descuento > pagos — es correcto: refleja contratos con pérdida real
-  const enCaja = enCajaAdel + enCajaCobro - (c.descuento || 0)
+  // enCaja puede ser negativo si gastos > pagos — refleja contratos con pérdida real
+  const enCaja = enCajaAdel + enCajaCobro - gastos
   const porRecibir = ganancia - enCaja
   const estado = c.eliminado ? "Eliminado" : pendiente === 0 && c.total > 0 ? "Pagado" : "Pendiente"
-  return { porCobrar, pendiente, ganancia, enCaja, porRecibir, exceso, estado }
+  return { precioFinal, porCobrar, pendiente, ganancia, enCaja, porRecibir, exceso, estado }
 }

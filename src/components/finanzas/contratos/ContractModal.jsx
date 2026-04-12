@@ -121,8 +121,9 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: 12 }}>
             <div style={groupStyle}><label style={cDark.label}>Descuento</label><DarkMoneyInput style={fs} value={form.descuento} onChange={v => set("descuento", Math.max(0, v))} /></div>
+            <div style={groupStyle}><label style={cDark.label}>Gastos</label><DarkMoneyInput style={fs} value={form.gastos} onChange={v => set("gastos", Math.max(0, v))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Año</label><DarkMoneyInput style={fs} value={form.anio} onChange={v => set("anio", Math.min(2099, Math.max(2020, v || peruNow().getFullYear())))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Semana</label><DarkMoneyInput style={fs} value={form.semana} onChange={v => set("semana", Math.min(53, Math.max(1, v || 1)))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Mes</label><DarkMoneyInput style={fs} value={form.mes} onChange={v => set("mes", Math.min(12, Math.max(1, v || 1)))} /></div>
@@ -144,7 +145,8 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
             )
             return null
           })()}
-          <div style={{ background: "rgba(139,92,246,0.05)", borderRadius: 12, padding: 14, border: "1px solid rgba(139,92,246,0.2)", display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+          <div style={{ background: "rgba(139,92,246,0.05)", borderRadius: 12, padding: 14, border: "1px solid rgba(139,92,246,0.2)", display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+            {(form.descuento > 0) && <div><div style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>PRECIO FINAL</div><div style={{ fontSize: 16, fontWeight: 800, color: "#fbbf24" }}>{formatMoney(calc.precioFinal)}</div></div>}
             <div><div style={{ fontSize: 10, color: "#a78bfa", fontWeight: 600 }}>POR COBRAR</div><div style={{ fontSize: 16, fontWeight: 800, color: "#e4e4e7" }}>{formatMoney(calc.porCobrar)}</div></div>
             <div><div style={{ fontSize: 10, color: "#a78bfa", fontWeight: 600 }}>GANANCIA</div><div style={{ fontSize: 16, fontWeight: 800, color: "#e4e4e7" }}>{formatMoney(calc.ganancia)}</div></div>
             <div><div style={{ fontSize: 10, color: "#a78bfa", fontWeight: 600 }}>EN CAJA</div><div style={{ fontSize: 16, fontWeight: 800, color: "#e4e4e7" }}>{formatMoney(calc.enCaja)}</div></div>

@@ -33,6 +33,12 @@ export function useContratos() {
     if (Array.isArray(saved) && saved.length > 0) {
       setContracts(saved.map(c => {
         const norm = fillMissingPaymentDates(normalizeContract(c))
+        // Migrate: old "descuento" was used for gastos (costs), not price discounts.
+        // Move to "gastos" if the new field doesn't exist yet.
+        if (norm.descuento > 0 && !norm.gastos) {
+          norm.gastos = norm.descuento
+          norm.descuento = 0
+        }
         if (!norm.anio) {
           const homeDate = getContractHomeDate(norm)
           const inferFrom = homeDate ? parseLocalDate(homeDate) : null
@@ -113,7 +119,7 @@ export function useContratos() {
       const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
       list.forEach(c => {
         const calc = calcContract(c)
-        ganancia += calc.ganancia; descuentos += c.descuento || 0; enCaja += calc.enCaja; pendiente += calc.pendiente
+        ganancia += calc.ganancia; descuentos += (c.descuento || 0) + (c.gastos || 0); enCaja += calc.enCaja; pendiente += calc.pendiente
         ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         if (calc.porRecibir > 0) {
@@ -151,7 +157,7 @@ export function useContratos() {
       if (isHome) {
         registros++
         const calc = calcContract(c)
-        deNuevos += calc.ganancia; descuentos += c.descuento || 0; pendiente += calc.pendiente
+        deNuevos += calc.ganancia; descuentos += (c.descuento || 0) + (c.gastos || 0); pendiente += calc.pendiente
         enCajaTotal += calc.enCaja
         ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
