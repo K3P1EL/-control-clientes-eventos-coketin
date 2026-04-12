@@ -33,7 +33,7 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
                 const isRest = worker.diaDescanso && d.nombre === worker.diaDescanso
                 const marca = (worker.diasMarcados || {})[d.dia] || ""
                 const isFeriado = effectiveTracker[d.dia] === "Feriado"
-                const isPast = isPastMonth || d.dia < today
+                const isPast = isPastMonth || d.dia <= today
                 const isToday = d.dia === today && !isPastMonth
 
                 let bg, borderColor, textColor, label
