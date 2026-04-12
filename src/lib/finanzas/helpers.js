@@ -65,6 +65,13 @@ export function parseLocalDate(d) {
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
+// ── Date display ────────────────────────────────────────────────────────
+export function fmtFecha(f) {
+  if (!f) return "—"
+  const p = f.split("-")
+  return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : f
+}
+
 // ── Number formatting ────────────────────────────────────────────────────
 export function fmt(n, dec = 2) {
   if (n === null || n === undefined || n === "") return "—"

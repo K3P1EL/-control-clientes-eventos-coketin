@@ -1,13 +1,7 @@
 import { useEffect } from "react"
 import { cDark } from "../ui/darkStyles"
 import DarkBadge from "../ui/DarkBadge"
-import { formatMoney } from "../../../lib/finanzas/helpers"
-
-const fmtFecha = (f) => {
-  if (!f) return "—"
-  const p = f.split("-")
-  return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : f
-}
+import { formatMoney, fmtFecha } from "../../../lib/finanzas/helpers"
 
 export default function CajaTrashModal({ eliminados, onRestore, onPermanentDelete, onClose }) {
   useEffect(() => {

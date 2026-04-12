@@ -142,7 +142,7 @@ export function useContratos() {
     let registros = 0, deNuevos = 0, deAnteriores = 0, enCajaTotal = 0, descuentos = 0, pendiente = 0
     const ing = { yape: 0, efectivo: 0 }
     const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
-    activeContracts.forEach(c => {
+    list.forEach(c => {
       const homeDate = getContractHomeDate(c)
       const isHome = homeDate ? dateInPeriod(homeDate) : false
       // Check if any cobro falls in this period

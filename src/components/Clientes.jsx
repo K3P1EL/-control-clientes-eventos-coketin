@@ -273,7 +273,7 @@ export default memo(function Clientes({
             setView(null);setActiveContrato(0);setBrowseMode(false)
             const rt = getStr("return_tab"); if (rt && rt !== "fichas") { setStr("return_tab", null); (returnToTab || changeTab)(rt) }
           }} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:c.erronea?C.red:C.text }}>{c.nombre||"Ficha de Cliente"}</h2>
           {c.code && <span style={{ padding:"3px 10px", borderRadius:8, fontSize:11, fontWeight:700, fontFamily:"monospace", letterSpacing:1, ...(c.erronea ? { background:C.red+"22", color:C.red, textDecoration:"line-through" } : { background:C.cyan+"22", color:C.cyan }) }}>{c.code}</span>}
@@ -706,7 +706,7 @@ export default memo(function Clientes({
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           {adm && (
             <button onClick={()=>setViewEmp(null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
             </button>
           )}
           <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>

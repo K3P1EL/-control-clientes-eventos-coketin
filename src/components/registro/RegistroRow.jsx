@@ -184,7 +184,9 @@ function areEqual(prev, next) {
     prev.onAddClient === next.onAddClient &&
     prev.onRowDragOver === next.onRowDragOver &&
     prev.onRowDragLeave === next.onRowDragLeave &&
-    prev.onRowDrop === next.onRowDrop
+    prev.onRowDrop === next.onRowDrop &&
+    prev.user === next.user &&
+    prev.cRef === next.cRef
   )
 }
 

@@ -7,7 +7,9 @@ const DEFAULTS = { maxMB: 45, quality: 0.85, allowedTypes: ['image/jpeg','image/
 function compressImage(file, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    const objUrl = URL.createObjectURL(file)
     img.onload = () => {
+      URL.revokeObjectURL(objUrl)
       const MAX_W = 1920
       let w = img.width, h = img.height
       if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W }
@@ -16,8 +18,8 @@ function compressImage(file, quality = 0.85) {
       canvas.getContext("2d").drawImage(img, 0, 0, w, h)
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Compresión falló")), "image/jpeg", quality)
     }
-    img.onerror = () => reject(new Error("No se pudo leer la imagen"))
-    img.src = URL.createObjectURL(file)
+    img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("No se pudo leer la imagen")) }
+    img.src = objUrl
   })
 }
 

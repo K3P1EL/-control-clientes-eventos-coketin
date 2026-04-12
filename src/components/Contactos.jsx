@@ -31,7 +31,7 @@ export default function Contactos({ contactos, user, adm, onAddContacto, onUpdat
       <div>
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
           <button onClick={()=>setView(null)} style={{ background:C.inputBg, border:`1px solid ${C.border}`, color:C.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer", fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>{c.nombre||"Cliente"}</h2>
           {adm && <button onClick={async ()=>{if(window.confirm("¿Eliminar este cliente permanentemente?")){await onDeleteContacto(c.id);setView(null)}}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
@@ -60,7 +60,7 @@ export default function Contactos({ contactos, user, adm, onAddContacto, onUpdat
             {!(c.phones||[]).length && <span style={{ fontSize:12, color:C.muted }}>Sin numeros</span>}
           </div>
           <div style={{ display:"flex", gap:6, marginBottom:16 }}>
-            <input value={newPhone} onChange={e=>setNewPhone(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&newPhone.trim()){const ph=[...(c.phones||[])];if(!ph.includes(newPhone.trim())){ph.push(newPhone.trim());onUpdateContacto(c.id,{phones:ph})}setNewPhone("")}}} style={{ ...inp, marginBottom:0, flex:1 }} placeholder="Agregar numero y pulsa Enter" />
+            <input value={newPhone} onChange={e=>setNewPhone(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&newPhone.trim()){const r=validatePhone(newPhone.trim());if(!r.ok){alert(r.error);return}const ph=[...(c.phones||[])];if(!ph.includes(r.value)){ph.push(r.value);onUpdateContacto(c.id,{phones:ph})}setNewPhone("")}}} style={{ ...inp, marginBottom:0, flex:1 }} placeholder="Agregar numero y pulsa Enter" />
           </div>
 
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>

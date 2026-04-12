@@ -55,7 +55,7 @@ export function DInput({ value, onCommit, tag = "input", ...props }) {
   const timer = useRef(null)
   const mounted = useRef(true)
 
-  useEffect(() => { setLocal(value ?? "") }, [value])
+  useEffect(() => { setLocal(prev => (value ?? "") === prev ? prev : (value ?? "")) }, [value])
   useEffect(() => () => { mounted.current = false; clearTimeout(timer.current) }, [])
 
   const handleChange = (e) => {

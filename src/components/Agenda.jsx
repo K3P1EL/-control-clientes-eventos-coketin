@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { C } from "../lib/colors"
 
 const DAYS_HEADER = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"]
@@ -15,23 +15,26 @@ export default function Agenda({ clients, user, adm, goToClient, onUpdateContrat
   const maxDays = adm ? Infinity : (user.agenda_days ?? 30)
   const scope = adm ? "all" : (user.agenda_scope || "own")
 
-  const allContratos = []
-  clients.filter(c => !c.erronea && !c.deleted_at).forEach(c => {
-    ;(c.contratos || []).forEach(ct => {
-      if (ct.fecha_evento || ct.fecha_armado) {
-        allContratos.push({
-          ...ct,
-          clientId:      c.id,
-          clientName:    c.nombre || "Sin nombre",
-          clientCode:    c.code,
-          clientPhone:   (c.phones||[])[0] || "",
-          createdByName: c.created_by_name,
-        })
-      }
+  const allContratos = useMemo(() => {
+    const result = []
+    clients.filter(c => !c.erronea && !c.deleted_at).forEach(c => {
+      ;(c.contratos || []).forEach(ct => {
+        if (ct.fecha_evento || ct.fecha_armado) {
+          result.push({
+            ...ct,
+            clientId:      c.id,
+            clientName:    c.nombre || "Sin nombre",
+            clientCode:    c.code,
+            clientPhone:   (c.phones||[])[0] || "",
+            createdByName: c.created_by_name,
+          })
+        }
+      })
     })
-  })
+    return result
+  }, [clients])
 
-  const filtered = allContratos.filter(ct => {
+  const filtered = useMemo(() => allContratos.filter(ct => {
     // Hidden by admin
     if (!adm && ct.hidden_agenda) return false
     // Scope filter for non-admins
@@ -64,7 +67,7 @@ export default function Agenda({ clients, user, adm, goToClient, onUpdateContrat
     }
     if (!evDate) return true
     return evDate >= todayStr
-  }).sort((a,b) => (a.fecha_evento||"9999").localeCompare(b.fecha_evento||"9999"))
+  }).sort((a,b) => (a.fecha_evento||"9999").localeCompare(b.fecha_evento||"9999")), [allContratos, filter, todayStr, adm, user, clients, scope, maxDays])
 
   const fmtD = d => { if(!d) return "Sin fecha"; const p=d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` }
   const isOverdue = d => d && d < todayStr

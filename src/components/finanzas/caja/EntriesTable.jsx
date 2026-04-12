@@ -1,14 +1,8 @@
 import { cDark } from "../ui/darkStyles"
 import DarkBadge from "../ui/DarkBadge"
-import { formatMoney } from "../../../lib/finanzas/helpers"
+import { formatMoney, fmtFecha } from "../../../lib/finanzas/helpers"
 
 const thS = { padding: "10px 14px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#a1a1aa", textAlign: "left", whiteSpace: "nowrap", background: "rgba(39,39,42,0.9)", borderBottom: "2px solid rgba(63,63,70,0.8)" }
-
-const fmtFecha = (f) => {
-  if (!f) return "—"
-  const p = f.split("-")
-  return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : f
-}
 
 // Sortable, hover-highlightable list of cash entries with row actions.
 // Two delete buttons per row mirroring the Contratos/Registro pattern:
