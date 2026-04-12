@@ -75,7 +75,7 @@ export default function EntryForm({ form, setForm, editId, onSubmit, onCancel })
           💰 Gasto ajeno
         </button>
         {form.gastoAjeno && <span style={{ fontSize: 11, color: "#a16207" }}>Salió de caja pero no es para el negocio</span>}
-        {form.delNegocio && form.tipo === "egreso" && (
+        {form.delNegocio && form.tipo === "egreso" && !form.gastoAjeno && (
           <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
             <span style={{ fontSize: 10, color: "#52525b", marginRight: 2 }}>Cat:</span>
             {[{ v: "sueldo", l: "💰 Sueldo" }, { v: "servicio", l: "🏢 Servicio" }, { v: "", l: "Otro" }].map(({ v, l }) => (
