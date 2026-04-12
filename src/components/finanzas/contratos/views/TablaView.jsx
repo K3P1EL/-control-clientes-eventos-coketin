@@ -102,8 +102,8 @@ export default function TablaView({
                       })()}
                     </td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7" }}>{formatMoney(c.total)}</td>
-                    <td style={cDark.td}>{(c.adelantos || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.adelantos || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}<span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio}</span></div>)}</>}</td>
-                    <td style={cDark.td}>{(c.cobros || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.cobros || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}<span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio}</span></div>)}</>}</td>
+                    <td style={cDark.td}>{(c.adelantos || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.adelantos || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
+                    <td style={cDark.td}>{(c.cobros || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.cobros || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
                     <td style={cDark.td}>{c.descuento > 0 ? <span style={{ color: "#f87171" }}>-{formatMoney(c.descuento)}</span> : "—"}</td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#34d399" }}>{formatMoney(calc.ganancia)}</td>
                     <td style={cDark.td}>{formatMoney(calc.enCaja)}</td>
