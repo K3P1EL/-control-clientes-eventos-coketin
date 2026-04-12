@@ -218,7 +218,7 @@ export function useCierres(calc, state) {
 
         const existing = existingMesMap.get(m)
         const gastoMes = existing?.data?.gastoMes ?? currentGastoMes
-        const apoyo = existing?.data?.apoyo ?? currentApoyoMes
+        const apoyo = existing ? (existing.data?.apoyo ?? 0) : currentApoyoMes
         const libre = enCaja - gastoMes
 
         try {
