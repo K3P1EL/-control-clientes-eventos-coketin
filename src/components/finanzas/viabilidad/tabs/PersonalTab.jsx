@@ -107,11 +107,13 @@ export default function PersonalTab({
       const m = { ...(w.diasMarcados || {}) }
       const current = m[dia] || ""
       if (isRestDay) {
+        // Rest day: click = "trabajó" (paid extra) → clear
         if (!current) m[dia] = "trabajo"
-        else if (current === "trabajo") m[dia] = "tienda"
         else delete m[dia]
       } else {
+        // Work day: click = "noVino" → "tienda" (went to shop instead, same pay) → clear
         if (!current) m[dia] = "noVino"
+        else if (current === "noVino") m[dia] = "tienda"
         else delete m[dia]
       }
       w.diasMarcados = m
@@ -139,10 +141,10 @@ export default function PersonalTab({
               <th className="text-right px-2">Días/sem</th>
               <th className="text-left px-2">Descanso</th>
               <th className="text-center px-2" title="Si este trabajador descansa, la tienda cierra">🏪</th>
-              <th className="text-right px-2">Desc. mes</th>
-              <th className="text-right px-2">Extra no trab.</th>
-              <th className="text-right px-2">Extra trab.</th>
-              <th className="text-right px-2">Extra tienda</th>
+              <th className="text-right px-2">Desc.</th>
+              <th className="text-right px-2" title="Días marcados como No vino (del calendario)">Faltas</th>
+              <th className="text-right px-2" title="Días extra trabajados en descanso (del calendario)">Extras</th>
+              <th className="text-right px-2" title="Días que atendió tienda en vez de eventos">Tienda</th>
               <th className="text-right px-2">Días proj.</th>
               <th className="text-right px-2">Días real.</th>
               <th className="text-right px-2">$/día</th>
@@ -182,9 +184,9 @@ export default function PersonalTab({
                     )
                   })()}</td>
                   <td className="px-2 text-right text-zinc-400 font-mono">{w.descMes}</td>
-                  <td className="px-2"><NumInput value={workers[i].extrasNoTrabajo} onChange={v => updateWorker(i, "extrasNoTrabajo", v)} /></td>
-                  <td className="px-2"><NumInput value={workers[i].extrasTrabajoExtra} onChange={v => updateWorker(i, "extrasTrabajoExtra", v)} /></td>
-                  <td className="px-2"><NumInput value={workers[i].extrasTrabajoTienda} onChange={v => updateWorker(i, "extrasTrabajoTienda", v)} /></td>
+                  <td className="px-2 text-right font-mono" style={{ color: w.extrasNo > 0 ? "#f87171" : "#3f3f46" }}>{w.extrasNo || "—"}</td>
+                  <td className="px-2 text-right font-mono" style={{ color: w.extrasWork > 0 ? "#34d399" : "#3f3f46" }}>{w.extrasWork || "—"}</td>
+                  <td className="px-2 text-right font-mono" style={{ color: w.extrasTienda > 0 ? "#38bdf8" : "#3f3f46" }}>{w.extrasTienda || "—"}</td>
                   <td className="px-2 text-right text-zinc-400 font-mono">{w.diasProj}</td>
                   <td className="px-2 text-right text-zinc-300 font-mono font-semibold">{w.diasReales}</td>
                   <td className="px-2 text-right text-sky-400 font-mono">{fmt(w.costoDiario)}</td>
@@ -215,9 +217,9 @@ export default function PersonalTab({
               <td className="px-2 text-right font-mono">{fmt(totalPersonal.pagoSemanal, 0)}</td>
               <td></td><td></td><td></td>
               <td className="px-2 text-right font-mono">{totalPersonal.descMes}</td>
-              <td className="px-2 text-right font-mono">{totalPersonal.extrasNo}</td>
-              <td className="px-2 text-right font-mono">{totalPersonal.extrasWork}</td>
-              <td className="px-2 text-right font-mono">{totalPersonal.extrasTienda}</td>
+              <td className="px-2 text-right font-mono" style={{ color: totalPersonal.extrasNo > 0 ? "#f87171" : "#3f3f46" }}>{totalPersonal.extrasNo || "—"}</td>
+              <td className="px-2 text-right font-mono" style={{ color: totalPersonal.extrasWork > 0 ? "#34d399" : "#3f3f46" }}>{totalPersonal.extrasWork || "—"}</td>
+              <td className="px-2 text-right font-mono" style={{ color: totalPersonal.extrasTienda > 0 ? "#38bdf8" : "#3f3f46" }}>{totalPersonal.extrasTienda || "—"}</td>
               <td className="px-2 text-right font-mono">{totalPersonal.diasProj}</td>
               <td className="px-2 text-right font-mono">{totalPersonal.diasReales}</td>
               <td className="px-2 text-right text-sky-400 font-mono">{fmt(totalPersonal.costoDiario)}</td>

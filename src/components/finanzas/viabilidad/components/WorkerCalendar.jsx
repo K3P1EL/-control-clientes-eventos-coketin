@@ -28,8 +28,8 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60 inline-block"></span>Trabajó</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500/60 inline-block"></span>Descanso</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500/60 inline-block"></span>No vino</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>Trabajó extra</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500/60 inline-block"></span>Atendió tienda</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500/60 inline-block"></span>Tienda</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>Extra (desc.)</span>
         </div>
       </div>
       <div className="space-y-1">
@@ -89,7 +89,7 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
         ))}
       </div>
       <div className="mt-3 text-[10px] text-zinc-600">
-        Día de trabajo → click = "No vino". Día de descanso → click = "Trabajó" → "Atendió tienda" → limpiar.
+        Día de trabajo → click = "No vino" → "Tienda" → limpiar. Día de descanso → click = "Trabajó" (pagado) → limpiar.
       </div>
     </div>
   )
