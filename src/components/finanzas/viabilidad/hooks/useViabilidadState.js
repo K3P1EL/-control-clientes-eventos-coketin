@@ -6,7 +6,10 @@ import { loadViabilidad, saveViabilidad } from "../../../../services/finanzas"
 
 // Viabilidad is the OWNER's analysis tool. It pulls data from Contratos
 // and Caja via "Jalar" buttons (JalarContratos, JalarCaja) — intentionally
-// NOT auto-synced, because the owner decides when to snapshot the numbers.
+// NOT auto-synced, because the owner uses it to simulate scenarios in
+// real-time ("what if this week I earned X?"). This is separate from
+// the historical cierres (useCierres.js), which auto-generate frozen
+// snapshots with real data when a week/month ends.
 //
 // Default seed data — only used the first time, before anything is in storage.
 const INIT_WORKERS = [

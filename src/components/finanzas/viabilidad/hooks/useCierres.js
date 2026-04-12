@@ -5,6 +5,17 @@ import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
 
+// HISTORICAL CLOSINGS — auto-generated, NOT manual.
+// Unlike the "Jalar" buttons in Viabilidad (which are for the owner to
+// play with scenarios in real-time), cierres are frozen snapshots that
+// the system generates automatically when a week/month ends. They pull
+// real data from Contratos and Caja at close time, so the historical
+// record is always based on actuals, not on whatever the owner last "jaló".
+//
+// Two modes coexist:
+//   - Real-time (Viabilidad tabs): owner "jala" manually to simulate/analyze
+//   - Historical (HistorialTab cierres): auto-closed with real data
+//
 // Use the same lightweight caja snapshot pattern
 import { loadCaja } from "../../../../services/finanzas"
 import { getJSON } from "../../../../lib/storage"
