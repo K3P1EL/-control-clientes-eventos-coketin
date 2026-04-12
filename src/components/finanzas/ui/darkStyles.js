@@ -18,4 +18,4 @@ export const cDark = {
 }
 
 // Avatar bar colors per persona used in "Mi Plata" view.
-export const barColors = { Yo: "#38bdf8", Loli: "#a78bfa", Mama: "#f472b6", Jose: "#fbbf24", Otro: "#71717a" }
+export const barColors = { Yo: "#38bdf8", Loli: "#a78bfa", Mama: "#f472b6", Jose: "#fbbf24", Otro: "#71717a", "Por cobrar": "#f97316" }

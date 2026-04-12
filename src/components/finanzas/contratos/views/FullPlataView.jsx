@@ -12,6 +12,7 @@ export default function FullPlataView({ activeContracts }) {
   const plataData = useMemo(() => {
     const personas = {}
     PERSONAS.filter(p => p !== "Yo").forEach(p => { personas[p] = { total: 0, contratos: [] } })
+    personas["Por cobrar"] = { total: 0, contratos: [] }
     activeContracts.forEach(c => {
       const calc = calcContract(c)
       if (calc.porRecibir <= 0) return
@@ -30,8 +31,7 @@ export default function FullPlataView({ activeContracts }) {
           const per = calc.porRecibir / recv.length
           recv.forEach(p => entries.push({ persona: p, monto: per, tipo: "Pendiente", modal: "" }))
         } else {
-          // All payments were by "Yo" — pendiente is from the client, not an employee
-          // Don't show in "Mi Plata" since no employee has the money
+          entries.push({ persona: "Por cobrar", monto: calc.porRecibir, tipo: "Pendiente", modal: "" })
         }
       }
       entries.forEach(e => {
