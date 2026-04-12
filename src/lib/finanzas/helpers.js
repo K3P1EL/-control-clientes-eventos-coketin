@@ -117,11 +117,6 @@ export function normalizeContract(c) {
   return { ...rest, adelantos, cobros }
 }
 
-// Helpers for reading payment arrays
-export function sumPayments(arr) {
-  return (arr || []).filter(a => !a.noTrack).reduce((s, a) => s + (a.monto || 0), 0)
-}
-
 export function getContractHomeDate(c) {
   const firstAdel = (c.adelantos || []).find(a => !a.noTrack && a.fecha && a.fecha.trim())
   if (firstAdel) return firstAdel.fecha
@@ -156,6 +151,7 @@ export function calcContract(c) {
     enCajaCobro = c.enCajaCobro ? (c.cobro || 0) : 0
   }
 
+  // enCaja puede ser negativo si descuento > pagos — es correcto: refleja contratos con pérdida real
   const enCaja = enCajaAdel + enCajaCobro - (c.descuento || 0)
   const porRecibir = ganancia - enCaja
   const estado = c.eliminado ? "Eliminado" : pendiente === 0 && c.total > 0 ? "Pagado" : "Pendiente"

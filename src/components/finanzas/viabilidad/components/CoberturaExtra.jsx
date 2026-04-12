@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
 import { fmtS } from "../../../../lib/finanzas/helpers"
@@ -51,6 +51,11 @@ export default function CoberturaExtra({ workers, workersCalc, calendarDays, eff
       essentialName: essential.name,
     }
   }, [workers, workersCalc, calendarDays, effectiveTracker])
+
+  // Sync auto-detected days into cobExtra.dias so useViabilidadCalc includes them in diasOpBase
+  useEffect(() => {
+    if ((cobExtra?.dias || 0) !== autoData.dias) setCobExtra("dias", autoData.dias)
+  }, [autoData.dias, cobExtra?.dias, setCobExtra])
 
   const totalDias = autoData.dias + (cobExtra?.diasExterno || 0)
 

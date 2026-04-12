@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { cDark } from "../../ui/darkStyles"
 import DarkBadge from "../../ui/DarkBadge"
 import DarkStatCard from "../../ui/DarkStatCard"
-import { formatMoney, calcContract, sumPayments, parseLocalDate } from "../../../../lib/finanzas/helpers"
+import { formatMoney, calcContract, parseLocalDate } from "../../../../lib/finanzas/helpers"
 
 const MESES_CORTOS = ["", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
@@ -37,6 +37,7 @@ export default function TablaView({
       enCaja += calc.enCaja
       pendiente += calc.pendiente
     })
+    // Distinta fórmula a helpers.js: aquí resta pendiente porque solo muestra plata ya cobrada pero no entregada a caja
     const porRecibir = Math.max(0, ganancia - pendiente - enCaja)
     return { total, ganancia, enCaja, pendiente, porRecibir }
   }, [filtered])
