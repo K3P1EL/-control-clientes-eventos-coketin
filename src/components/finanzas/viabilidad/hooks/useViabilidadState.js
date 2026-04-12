@@ -29,7 +29,7 @@ export function useViabilidadState() {
   const [services, setServices] = useState(INIT_SERVICES)
   const [apoyos, setApoyos] = useState(INIT_APOYOS)
   const [trackerData, setTrackerData] = useState({})
-  const [diaAnalisis, setDiaAnalisis] = useState(5)
+  const [diaAnalisis, setDiaAnalisis] = useState(() => peruNow().getDate())
   const [cajaSemanaSol, setCajaSemanaSol] = useState(1010)
   const [cajaAcumMes, setCajaAcumMes] = useState(0)
   const [contarApoyo, setContarApoyo] = useState("SI")

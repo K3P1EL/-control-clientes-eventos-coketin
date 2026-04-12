@@ -1,7 +1,8 @@
+import { useState } from "react"
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import StatusBadge from "../../ui/StatusBadge"
-import { fmt } from "../../../../lib/finanzas/helpers"
+import { fmt, peruNow } from "../../../../lib/finanzas/helpers"
 
 // 3A and 3B service-cycle analysis tables. The math is computed
 // upstream by useViabilidadCalc; this component is pure presentation.
@@ -14,10 +15,18 @@ export default function AnalisisTab({
   return (
     <div className="space-y-6">
       <Card title="Día de análisis" icon="📅" accent="sky">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <div>
             <label className="text-xs text-zinc-500 mb-1 block">Día a simular</label>
-            <NumInput value={diaAnalisis} onChange={v => setDiaAnalisis(Math.max(1, Math.min(diasCalendario, v || 1)))} min={1} className="w-24" />
+            <div className="flex items-center gap-2">
+              <NumInput value={diaAnalisis} onChange={v => setDiaAnalisis(Math.max(1, Math.min(diasCalendario, v || 1)))} min={1} className="w-24" />
+              {diaAnalisis !== peruNow().getDate() && (
+                <button onClick={() => setDiaAnalisis(peruNow().getDate())}
+                  style={{ padding: "4px 10px", borderRadius: 8, fontSize: 10, fontWeight: 700, cursor: "pointer", border: "1px solid rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.1)", color: "#38bdf8" }}>
+                  Hoy ({peruNow().getDate()})
+                </button>
+              )}
+            </div>
           </div>
           {proximosVencimientos.length > 0 ? (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2">
