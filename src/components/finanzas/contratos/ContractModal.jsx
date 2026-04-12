@@ -150,6 +150,11 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
             <div><div style={{ fontSize: 10, color: "#a78bfa", fontWeight: 600 }}>EN CAJA</div><div style={{ fontSize: 16, fontWeight: 800, color: "#e4e4e7" }}>{formatMoney(calc.enCaja)}</div></div>
             <div><div style={{ fontSize: 10, color: calc.pendiente > 0 ? "#f87171" : "#34d399", fontWeight: 600 }}>PENDIENTE</div><div style={{ fontSize: 16, fontWeight: 800, color: calc.pendiente > 0 ? "#f87171" : "#34d399" }}>{formatMoney(calc.pendiente)}</div></div>
           </div>
+          {calc.exceso > 0 && (
+            <div style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "8px 14px", fontSize: 11, color: "#fbbf24", fontWeight: 600 }}>
+              ⚠️ Se cobró {formatMoney(calc.exceso)} de más — revisa el descuento o los pagos
+            </div>
+          )}
         </div>
         <div style={{ padding: "16px 24px", borderTop: "1px solid #3f3f46", display: "flex", gap: 10, justifyContent: "flex-end", position: "sticky", bottom: 0, background: "#18181b", borderRadius: "0 0 18px 18px" }}>
           <button onClick={safeClose} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #3f3f46", background: "#27272a", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#a1a1aa" }}>Cancelar</button>
