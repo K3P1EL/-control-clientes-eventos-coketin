@@ -58,13 +58,15 @@ export function useReconciliation(contracts, entries, period) {
         }
       })
 
-      // Descuento: subtract from the last cobro's date (or first adelanto)
-      if (c.descuento > 0) {
+      // Gastos: costs to fulfill the contract (reduces what's in caja).
+      // Descuento reduces the client price but doesn't take money out of caja.
+      const totalGastos = (c.gastos || 0)
+      if (totalGastos > 0) {
         const lastCobro = (c.cobros || []).filter(a => a.fecha).slice(-1)[0]
         const firstAdel = (c.adelantos || []).filter(a => a.fecha)[0]
-        const descDate = lastCobro?.fecha || firstAdel?.fecha || ""
-        if (dateInPeriod(descDate)) {
-          esperado -= (c.descuento || 0)
+        const gastosDate = lastCobro?.fecha || firstAdel?.fecha || ""
+        if (dateInPeriod(gastosDate)) {
+          esperado -= totalGastos
           contributed = true
         }
       }
