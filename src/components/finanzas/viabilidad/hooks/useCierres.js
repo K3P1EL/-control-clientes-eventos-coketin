@@ -183,16 +183,27 @@ export function useCierres(calc, state) {
 
       // ── Weekly cierres ──
       for (const { week: w, isoYear: wYear } of weeks) {
-        let ganancia = 0, enCaja = 0, hasContracts = false
+        let deNuevos = 0, deAnteriores = 0, enCaja = 0, hasContracts = false
         contracts.forEach(ct => {
           if (ct.eliminado) return
-          if ((ct.anio || currentYear) !== wYear) return
-          if (ct.semana !== w) return
-          hasContracts = true
-          const cc = calcContract(ct)
-          ganancia += cc.ganancia
-          enCaja += cc.enCaja
+          const isHome = (ct.anio || currentYear) === wYear && ct.semana === w
+          if (isHome) {
+            hasContracts = true
+            const cc = calcContract(ct)
+            deNuevos += cc.ganancia
+            enCaja += cc.enCaja
+          } else {
+            // Cobros from other weeks that landed in this week
+            ;(ct.cobros || []).filter(a => !a.noTrack && a.enCaja && a.fecha).forEach(a => {
+              const d = parseLocalDate(a.fecha)
+              if (d && getWeekNumberISO(d) === w && getISOYear(d) === wYear) {
+                deAnteriores += a.monto || 0
+                hasContracts = true
+              }
+            })
+          }
         })
+        const ganancia = deNuevos + deAnteriores
 
         let cajaIng = 0, cajaEgr = 0, hasCaja = false
         cajaEntries.forEach(e => {
@@ -231,7 +242,7 @@ export function useCierres(calc, state) {
         try {
           await upsertCierre({
             tipo: "semana", periodo: w, anio: wYear,
-            data: { ganancia, enCaja, gastoSemanal, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            data: { ganancia, deNuevos, deAnteriores, enCaja, gastoSemanal, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
             viable: libre >= 0, nota: existing?.nota || "",
           })
           changed = true
@@ -243,22 +254,32 @@ export function useCierres(calc, state) {
         const mNum = typeof mItem === "number" ? mItem : mItem.month
         const mYear = typeof mItem === "number" ? currentYear : mItem.year
 
-        let ganancia = 0, enCaja = 0, hasContracts = false
+        let deNuevosM = 0, deAnterioresM = 0, enCaja = 0, hasContracts = false
         contracts.forEach(ct => {
           if (ct.eliminado) return
-          if ((ct.anio || mYear) !== mYear) return
-          if (ct.mes !== mNum) return
-          hasContracts = true
-          const cc = calcContract(ct)
-          ganancia += cc.ganancia
-          enCaja += cc.enCaja
+          const isHome = (ct.anio || mYear) === mYear && ct.mes === mNum
+          if (isHome) {
+            hasContracts = true
+            const cc = calcContract(ct)
+            deNuevosM += cc.ganancia
+            enCaja += cc.enCaja
+          } else {
+            ;(ct.cobros || []).filter(a => !a.noTrack && a.enCaja && a.fecha).forEach(a => {
+              const d = parseLocalDate(a.fecha)
+              if (d && d.getFullYear() === mYear && (d.getMonth() + 1) === mNum) {
+                deAnterioresM += a.monto || 0
+                hasContracts = true
+              }
+            })
+          }
         })
+        const ganancia = deNuevosM + deAnterioresM
 
         let cajaIng = 0, cajaEgr = 0, hasCaja = false
         cajaEntries.forEach(e => {
           if (e.eliminado) return
           if (e.delNegocio === false) return
-          if (e.gastoAjeno) return // exclude non-business expenses from viability history
+          if (e.gastoAjeno) return
           const ed = getEntryDate(e)
           if (!ed || ed.year !== mYear || ed.month !== mNum) return
           hasCaja = true
@@ -276,7 +297,7 @@ export function useCierres(calc, state) {
         try {
           await upsertCierre({
             tipo: "mes", periodo: mNum, anio: mYear,
-            data: { ganancia, enCaja, gastoMes, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            data: { ganancia, deNuevos: deNuevosM, deAnteriores: deAnterioresM, enCaja, gastoMes, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
             viable: libre >= 0, nota: existing?.nota || "",
           })
           changed = true

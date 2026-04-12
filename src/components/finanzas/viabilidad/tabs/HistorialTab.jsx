@@ -120,26 +120,37 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                   <span style={{ fontSize: 10, color: "#52525b" }}>{c.anio}</span>
                 </div>
 
-                {/* Main numbers */}
-                <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12, marginBottom: 8 }}>
-                  <div>
-                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Ganancia</div>
-                    <div style={{ fontWeight: 700, color: "#34d399", fontFamily: "monospace" }}>{fmtS(d.ganancia || 0)}</div>
+                {/* 3 perspectives: vendí / cobré / tengo */}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 12, marginBottom: 8 }}>
+                  {/* ¿Cuánto vendí? */}
+                  <div style={{ background: "rgba(16,185,129,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(16,185,129,0.15)" }}>
+                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Vendí (nuevos)</div>
+                    <div style={{ fontWeight: 700, color: "#34d399", fontFamily: "monospace" }}>{fmtS(d.deNuevos ?? d.ganancia ?? 0)}</div>
                   </div>
-                  <div>
-                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>En caja real</div>
+                  {/* ¿Cuánto cobré de antes? */}
+                  {(d.deAnteriores || 0) > 0 && (
+                    <div style={{ background: "rgba(139,92,246,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(139,92,246,0.15)" }}>
+                      <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Cobré (anteriores)</div>
+                      <div style={{ fontWeight: 700, color: "#a78bfa", fontFamily: "monospace" }}>{fmtS(d.deAnteriores)}</div>
+                    </div>
+                  )}
+                  {/* ¿Cuánto tengo? */}
+                  <div style={{ background: "rgba(14,165,233,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(14,165,233,0.15)" }}>
+                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>En caja</div>
                     <div style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace" }}>{fmtS(d.enCaja || 0)}</div>
                   </div>
-                  <div>
-                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gastos {c.tipo === "semana" ? "semana" : "mes"}</div>
+                  {/* Gastos */}
+                  <div style={{ background: "rgba(239,68,68,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(239,68,68,0.15)" }}>
+                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Gastos</div>
                     <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(d.gastoSemanal || d.gastoMes || 0)}</div>
                   </div>
-                  <div style={{ borderLeft: "1px solid rgba(63,63,70,0.4)", paddingLeft: 16 }}>
-                    <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Viabilidad</div>
+                  {/* Viabilidad */}
+                  <div style={{ background: (d.libre || 0) >= 0 ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", border: `1px solid ${(d.libre || 0) >= 0 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}` }}>
+                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Libre</div>
                     <div style={{ fontWeight: 800, fontFamily: "monospace", fontSize: 14, color: (d.libre || 0) >= 0 ? "#34d399" : "#f87171" }}>
                       {(d.libre || 0) >= 0 ? `+${fmtS(d.libre)}` : fmtS(d.libre || 0)}
                     </div>
-                    <div style={{ fontSize: 9, color: "#52525b" }}>en caja - gastos</div>
+                    <div style={{ fontSize: 8, color: "#52525b" }}>en caja - gastos</div>
                   </div>
                 </div>
 
