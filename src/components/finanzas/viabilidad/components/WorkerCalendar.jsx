@@ -68,9 +68,8 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
                       position: "relative",
                     }}
                   >
-                    {isToday && <div style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: "50%", background: "#38bdf8" }} />}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "monospace", color: isToday ? "#38bdf8" : textColor }}>{d.dia}</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "monospace", color: textColor }}>{d.dia}</span>
                       <span style={{ fontSize: 9, textTransform: "uppercase", color: "#52525b" }}>{d.nombre.slice(0, 3)}</span>
                     </div>
                     {label && (
