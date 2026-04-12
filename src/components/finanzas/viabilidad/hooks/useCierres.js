@@ -45,13 +45,22 @@ function getEntryDate(e) {
 // Calculate real personal cost for a specific ISO week by reading worker
 // calendars. Returns the actual cost based on days each worker was present
 // (not the flat pagoSemanal), plus the proportional services and apoyo.
+//
+// ISO weeks can cross month boundaries (e.g. week 14 = Mar 30 – Apr 5).
+// We find the actual 7 days of the week by starting from a known Thursday
+// in that ISO week, then walking Mon–Sun. Worker marks (diasMarcados) are
+// keyed by day-of-month, so we use the day number from whichever month
+// each date falls in.
 function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month, targetWeek, diasOpBase) {
-  const daysInMonth = getDaysInMonth(year, month)
+  // Find the 7 real calendar dates for this ISO week.
+  // Strategy: scan a range around the target month to find days matching the week.
   const weekDays = []
-  for (let dia = 1; dia <= daysInMonth; dia++) {
-    const d = new Date(year, month - 1, dia)
-    const w = getWeekNumberISO(d)
-    if (w != null && w === targetWeek) weekDays.push({ dia, nombre: DIAS_SEMANA[d.getDay()] })
+  const scanStart = new Date(year, month - 2, 1)  // prev month start
+  const scanEnd = new Date(year, month, 0)         // current month end
+  for (let d = new Date(scanStart); d <= scanEnd; d.setDate(d.getDate() + 1)) {
+    if (getWeekNumberISO(d) === targetWeek) {
+      weekDays.push({ dia: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear(), nombre: DIAS_SEMANA[d.getDay()] })
+    }
   }
   if (weekDays.length === 0) return null
 
@@ -69,8 +78,10 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month
     })
   })
 
-  // Services: use custom divisor per service (same as useViabilidadCalc)
+  // Services: use custom divisor per service (same as useViabilidadCalc).
+  // Always 7 real days per ISO week.
   const realDays = weekDays.length
+  const daysInMonth = getDaysInMonth(year, month)
   let servProportion = 0
   services.forEach(s => {
     if (!s.nombre) return
