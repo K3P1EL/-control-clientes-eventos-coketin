@@ -127,8 +127,14 @@ export function useContratos() {
 
     const dateInPeriod = (dateStr) => {
       const d = parseLocalDate(dateStr); if (!d || isNaN(d)) return false
+      if (periodCtx.type === "semana") {
+        // For ISO weeks, allow dates from adjacent year (week 53 crosses year boundary)
+        const w = getWeekNumberISO(d)
+        if (w !== periodCtx.value) return false
+        const calYear = d.getFullYear()
+        return calYear === periodCtx.year || calYear === periodCtx.year + 1 || calYear === periodCtx.year - 1
+      }
       if (d.getFullYear() !== periodCtx.year) return false
-      if (periodCtx.type === "semana") return getWeekNumberISO(d) === periodCtx.value
       if (periodCtx.type === "mes") return d.getMonth() + 1 === periodCtx.value
       return false
     }

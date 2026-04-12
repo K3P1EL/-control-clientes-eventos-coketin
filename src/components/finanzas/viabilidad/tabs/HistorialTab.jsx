@@ -5,11 +5,15 @@ import { fmtS } from "../../../../lib/finanzas/helpers"
 
 export default function HistorialTab({ cierres, currentWeek, currentMonth, currentYear, calc }) {
   const [filterTipo, setFilterTipo] = useState("semana")
+  const [viewYear, setViewYear] = useState(currentYear)
+
+  // Available years from cierres data
+  const availableYears = [...new Set(cierres.map(c => c.anio))].sort((a, b) => b - a)
+  if (!availableYears.includes(currentYear)) availableYears.unshift(currentYear)
 
   const filtered = cierres
     .filter(c => {
-      if (c.tipo !== filterTipo || c.anio !== currentYear) return false
-      // Hide periods with zero activity (no contracts, no caja)
+      if (c.tipo !== filterTipo || c.anio !== viewYear) return false
       const d = c.data || {}
       if (!d.ganancia && !d.enCaja && !d.cajaIngresos && !d.cajaEgresos) return false
       return true
@@ -32,14 +36,23 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
 
   return (
     <Card title="Historial de cierres" icon="📚" accent="violet">
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap items-center">
         <button onClick={() => setFilterTipo("semana")} style={pillStyle(filterTipo === "semana")}>📅 Semanal</button>
         <button onClick={() => setFilterTipo("mes")} style={pillStyle(filterTipo === "mes")}>🗓️ Mensual</button>
-        <span className="text-xs text-zinc-500 self-center ml-2">{currentYear}</span>
+        <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+          {availableYears.map(y => (
+            <button key={y} onClick={() => setViewYear(y)} style={{
+              padding: "4px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
+              border: viewYear === y ? "1px solid rgba(139,92,246,0.4)" : "1px solid #3f3f46",
+              background: viewYear === y ? "rgba(139,92,246,0.15)" : "transparent",
+              color: viewYear === y ? "#a78bfa" : "#52525b",
+            }}>{y}</button>
+          ))}
+        </div>
       </div>
 
-      {/* Current period — en proceso */}
-      <div className="mb-4">
+      {/* Current period — en proceso (only for current year) */}
+      {viewYear === currentYear && <div className="mb-4">
         <div style={{
           background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.3)",
           borderRadius: 12, padding: "16px 20px",
@@ -71,7 +84,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Past closed periods */}
       {filtered.length === 0 ? (

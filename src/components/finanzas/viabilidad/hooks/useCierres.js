@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
-import { peruNow, getWeekNumberISO, getDaysInMonth, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
+import { peruNow, getWeekNumberISO, getISOYear, getDaysInMonth, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
@@ -83,6 +83,7 @@ export function useCierres(calc, state) {
 
   const now = peruNow()
   const currentWeek = getWeekNumberISO(now)
+  const currentISOYear = getISOYear(now) // can differ from calendar year at boundaries
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
@@ -109,21 +110,44 @@ export function useCierres(calc, state) {
     const c = calcRef.current
     if (!loaded || !c || !contracts.length) return
 
-    // Index existing cierres by period for quick lookup
+    // Index existing cierres by "anio-periodo" key for quick lookup
     const existingSemMap = new Map()
     const existingMesMap = new Map()
     cierres.forEach(x => {
-      if (x.anio !== currentYear) return
-      if (x.tipo === "semana") existingSemMap.set(x.periodo, x)
-      if (x.tipo === "mes") existingMesMap.set(x.periodo, x)
+      if (x.tipo === "semana") existingSemMap.set(`${x.anio}-${x.periodo}`, x)
+      if (x.tipo === "mes") existingMesMap.set(`${x.anio}-${x.periodo}`, x)
     })
 
-    const startWeek = Math.max(1, currentWeek - 4)
+    // Build list of past weeks to close. Use ISO year (not calendar year)
+    // so week 53 of 2026 is handled correctly even in January 2027.
     const weeks = []
-    for (let w = startWeek; w < currentWeek; w++) weeks.push(w)
+    const startWeek = Math.max(1, currentWeek - 4)
+    if (startWeek <= currentWeek) {
+      for (let w = startWeek; w < currentWeek; w++) {
+        weeks.push({ week: w, isoYear: currentISOYear })
+      }
+    }
+    // If we're in early January and ISO year differs from calendar year,
+    // also close the last weeks of the previous ISO year
+    if (currentISOYear === currentYear && currentWeek <= 4) {
+      // Check if previous year's last weeks need closing (weeks 49-53)
+      const prevYear = currentYear - 1
+      const dec31 = new Date(prevYear, 11, 31)
+      const maxWeekPrevYear = getWeekNumberISO(dec31) || 52
+      for (let w = Math.max(1, maxWeekPrevYear - 3); w <= maxWeekPrevYear; w++) {
+        if (!existingSemMap.has(`${prevYear}-${w}`)) {
+          weeks.push({ week: w, isoYear: prevYear })
+        }
+      }
+    }
 
     const months = []
     for (let m = 1; m < currentMonth; m++) months.push(m)
+    // If January, also close December of previous year
+    if (currentMonth === 1) {
+      const prevYear = currentYear - 1
+      if (!existingMesMap.has(`${prevYear}-12`)) months.push({ month: 12, year: prevYear })
+    }
 
     if (weeks.length === 0 && months.length === 0) return
 
@@ -136,14 +160,14 @@ export function useCierres(calc, state) {
       let changed = false
 
       // ── Weekly cierres ──
-      for (const w of weeks) {
+      for (const { week: w, isoYear: wYear } of weeks) {
         let ganancia = 0, enCaja = 0, hasContracts = false
-        contracts.forEach(c => {
-          if (c.eliminado) return
-          if ((c.anio || currentYear) !== currentYear) return
-          if (c.semana !== w) return
+        contracts.forEach(ct => {
+          if (ct.eliminado) return
+          if ((ct.anio || currentYear) !== wYear) return
+          if (ct.semana !== w) return
           hasContracts = true
-          const cc = calcContract(c)
+          const cc = calcContract(ct)
           ganancia += cc.ganancia
           enCaja += cc.enCaja
         })
@@ -153,7 +177,10 @@ export function useCierres(calc, state) {
           if (e.eliminado) return
           if (e.delNegocio === false) return
           const ed = getEntryDate(e)
-          if (!ed || ed.year !== currentYear || ed.week !== w) return
+          if (!ed) return
+          // Match by ISO year + week (not calendar year)
+          const entryISOYear = getISOYear(parseLocalDate(e.fecha))
+          if (entryISOYear !== wYear || ed.week !== w) return
           hasCaja = true
           if (e.tipo === "ingreso") cajaIng += e.monto || 0
           else if (e.tipo === "egreso") cajaEgr += e.monto || 0
@@ -162,15 +189,13 @@ export function useCierres(calc, state) {
         if (!hasContracts && !hasCaja) continue
 
         // Calculate real weekly cost from worker calendars (or use frozen value)
-        const existing = existingSemMap.get(w)
+        const existing = existingSemMap.get(`${wYear}-${w}`)
         const st = stateRef.current
         let gastoSemanal, apoyo
         if (existing?.data?.gastoSemanal != null) {
-          // Frozen: keep original gastos
           gastoSemanal = existing.data.gastoSemanal
           apoyo = existing.data.apoyo ?? 0
         } else if (st) {
-          // New cierre: calculate real cost from calendar marks
           const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, currentYear, currentMonth, w, c.diasOpBase)
           gastoSemanal = real ? real.gastoNeto : currentGastoSemanal
           apoyo = real ? real.apoyo : currentApoyoSemanal
@@ -182,7 +207,7 @@ export function useCierres(calc, state) {
 
         try {
           await upsertCierre({
-            tipo: "semana", periodo: w, anio: currentYear,
+            tipo: "semana", periodo: w, anio: wYear,
             data: { ganancia, enCaja, gastoSemanal, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
             viable: libre >= 0, nota: existing?.nota || "",
           })
@@ -191,14 +216,17 @@ export function useCierres(calc, state) {
       }
 
       // ── Monthly cierres ──
-      for (const m of months) {
+      for (const mItem of months) {
+        const mNum = typeof mItem === "number" ? mItem : mItem.month
+        const mYear = typeof mItem === "number" ? currentYear : mItem.year
+
         let ganancia = 0, enCaja = 0, hasContracts = false
-        contracts.forEach(c => {
-          if (c.eliminado) return
-          if ((c.anio || currentYear) !== currentYear) return
-          if (c.mes !== m) return
+        contracts.forEach(ct => {
+          if (ct.eliminado) return
+          if ((ct.anio || mYear) !== mYear) return
+          if (ct.mes !== mNum) return
           hasContracts = true
-          const cc = calcContract(c)
+          const cc = calcContract(ct)
           ganancia += cc.ganancia
           enCaja += cc.enCaja
         })
@@ -208,7 +236,7 @@ export function useCierres(calc, state) {
           if (e.eliminado) return
           if (e.delNegocio === false) return
           const ed = getEntryDate(e)
-          if (!ed || ed.year !== currentYear || ed.month !== m) return
+          if (!ed || ed.year !== mYear || ed.month !== mNum) return
           hasCaja = true
           if (e.tipo === "ingreso") cajaIng += e.monto || 0
           else if (e.tipo === "egreso") cajaEgr += e.monto || 0
@@ -216,14 +244,14 @@ export function useCierres(calc, state) {
 
         if (!hasContracts && !hasCaja) continue
 
-        const existing = existingMesMap.get(m)
+        const existing = existingMesMap.get(`${mYear}-${mNum}`)
         const gastoMes = existing?.data?.gastoMes ?? currentGastoMes
         const apoyo = existing ? (existing.data?.apoyo ?? 0) : currentApoyoMes
         const libre = enCaja - gastoMes
 
         try {
           await upsertCierre({
-            tipo: "mes", periodo: m, anio: currentYear,
+            tipo: "mes", periodo: mNum, anio: mYear,
             data: { ganancia, enCaja, gastoMes, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
             viable: libre >= 0, nota: existing?.nota || "",
           })

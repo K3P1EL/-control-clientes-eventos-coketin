@@ -31,6 +31,17 @@ export function getWeekNumberISO(d) {
   return 1 + Math.round(((safe.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
 }
 
+// Returns the ISO year for a date (can differ from calendar year at
+// year boundaries, e.g. Jan 1 2027 belongs to ISO year 2026 week 53).
+export function getISOYear(d) {
+  const date = parseLocalDate(d) || (d instanceof Date ? d : null)
+  if (!date || isNaN(date.getTime())) return null
+  const safe = new Date(date.getTime())
+  safe.setHours(0, 0, 0, 0)
+  safe.setDate(safe.getDate() + 3 - ((safe.getDay() + 6) % 7))
+  return safe.getFullYear()
+}
+
 // "America/Lima" stays the source of truth for "today" — events are local.
 export function peruNow() {
   return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }))
