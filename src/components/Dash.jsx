@@ -57,7 +57,7 @@ function StorageBrowser() {
     setLoading(false)
   }
 
-  useEffect(() => { load("registros") }, [])
+  useEffect(() => { load("registros") }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSelect = (path) => {
     setSelected(prev => {

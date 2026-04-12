@@ -55,7 +55,7 @@ export function useReconciliation(contracts, entries, period) {
       // Descuento: subtract from the last cobro's date (or first adelanto)
       if (c.descuento > 0) {
         const lastCobro = (c.cobros || []).filter(a => a.fecha).slice(-1)[0]
-        const firstAdel = (c.adelantos || []).filter(a => a.fecha).slice(-1)[0]
+        const firstAdel = (c.adelantos || []).filter(a => a.fecha)[0]
         const descDate = lastCobro?.fecha || firstAdel?.fecha || ""
         if (dateInPeriod(descDate)) {
           esperado -= (c.descuento || 0)

@@ -48,9 +48,15 @@ export default function Finanzas() {
     let ganancia = 0, descuentos = 0, enCaja = 0, pendiente = 0, ingresoYape = 0, ingresoEfectivo = 0, registros = 0
     const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
     activeContracts.forEach(c => {
-      if (tipo === "semana" && c.semana !== periodValue) return
-      if (tipo === "mes" && c.mes !== periodValue) return
-      if ((c.anio || currentYear) !== currentYear) return
+      const cYear = c.anio || currentYear
+      if (tipo === "semana") {
+        if (c.semana !== periodValue) return
+        // Allow adjacent year for ISO week 53 boundary
+        if (cYear !== currentYear && cYear !== currentYear - 1 && cYear !== currentYear + 1) return
+      } else {
+        if (c.mes !== periodValue) return
+        if (cYear !== currentYear) return
+      }
       registros++
       const calc = calcContract(c)
       ganancia += calc.ganancia; descuentos += c.descuento || 0; enCaja += calc.enCaja; pendiente += calc.pendiente

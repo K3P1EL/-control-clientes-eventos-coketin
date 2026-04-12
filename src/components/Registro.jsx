@@ -48,7 +48,7 @@ export default memo(function Registro({
 
   useEffect(() => {
     if (locales.length && !locales.includes(selLocal)) setSelLocal(locales[0])
-  }, [locales])
+  }, [locales, selLocal])
 
   const shift= n => { const p=date.split("/"); const d=new Date(+p[2],+p[1]-1,+p[0]); d.setDate(d.getDate()+n); setDate(`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`) }
 

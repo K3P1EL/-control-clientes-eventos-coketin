@@ -26,7 +26,7 @@ export default function Contactos({ contactos, user, adm, onAddContacto, onUpdat
   // Detail view
   if (view) {
     const c = contactos.find(x => x.id === view)
-    if (!c) { if (contactos.length > 0) setView(null); return null }
+    if (!c) { setView(null); return null }
     return (
       <div>
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
@@ -34,7 +34,7 @@ export default function Contactos({ contactos, user, adm, onAddContacto, onUpdat
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>Volver
           </button>
           <h2 style={{ margin:0, fontSize:20, fontWeight:700 }}>{c.nombre||"Cliente"}</h2>
-          {adm && <button onClick={()=>{if(window.confirm("¿Eliminar este cliente permanentemente?"))onDeleteContacto(c.id);setView(null)}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
+          {adm && <button onClick={async ()=>{if(window.confirm("¿Eliminar este cliente permanentemente?")){await onDeleteContacto(c.id);setView(null)}}} style={{ marginLeft:"auto", background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:8, color:C.danger, cursor:"pointer", padding:"6px 14px", fontSize:12, fontWeight:600 }}>Eliminar</button>}
         </div>
 
         <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, maxWidth:600 }}>

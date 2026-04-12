@@ -35,7 +35,7 @@ export default function CoberturaExtra({ workers, workersCalc, calendarDays, eff
         if (!w.name) return
         const marca = (w.diasMarcados || {})[d.dia] || ""
         const isTheirRest = w.diaDescanso && d.nombre === w.diaDescanso
-        if (isTheirRest && marca === "trabajo") {
+        if (isTheirRest && (marca === "trabajo" || marca === "tienda")) {
           quienCubrio.set(w.name, (quienCubrio.get(w.name) || 0) + 1)
         } else if (!isTheirRest && marca !== "noVino") {
           // Normal work day for this worker and they showed up
