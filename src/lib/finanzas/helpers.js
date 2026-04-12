@@ -117,6 +117,23 @@ export function normalizeContract(c) {
   return { ...rest, adelantos, cobros }
 }
 
+// Fill empty dates on payments with the contract's home date so they
+// appear in the correct period for reconciliation. Called once at load.
+export function fillMissingPaymentDates(c) {
+  const home = getContractHomeDate(c)
+  if (!home) return c
+  let changed = false
+  const adelantos = (c.adelantos || []).map(a => {
+    if (!a.noTrack && a.monto > 0 && !a.fecha) { changed = true; return { ...a, fecha: home } }
+    return a
+  })
+  const cobros = (c.cobros || []).map(a => {
+    if (!a.noTrack && a.monto > 0 && !a.fecha) { changed = true; return { ...a, fecha: home } }
+    return a
+  })
+  return changed ? { ...c, adelantos, cobros } : c
+}
+
 export function getContractHomeDate(c) {
   const firstAdel = (c.adelantos || []).find(a => !a.noTrack && a.fecha && a.fecha.trim())
   if (firstAdel) return firstAdel.fecha

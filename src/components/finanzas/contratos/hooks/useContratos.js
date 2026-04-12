@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { calcContract, normalizeContract, getContractHomeDate, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { calcContract, normalizeContract, fillMissingPaymentDates, getContractHomeDate, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadContratos, saveContratos, deleteContratos } from "../../../../services/finanzas"
 import { remove as removeLocal } from "../../../../lib/storage"
@@ -32,7 +32,7 @@ export function useContratos() {
   const applyLoaded = useCallback((saved) => {
     if (Array.isArray(saved) && saved.length > 0) {
       setContracts(saved.map(c => {
-        const norm = normalizeContract(c)
+        const norm = fillMissingPaymentDates(normalizeContract(c))
         if (!norm.anio) {
           const homeDate = getContractHomeDate(norm)
           const inferFrom = homeDate ? parseLocalDate(homeDate) : null
