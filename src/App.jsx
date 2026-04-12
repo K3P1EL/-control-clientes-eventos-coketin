@@ -168,27 +168,21 @@ export default function App() {
       importRegistro().catch(() => {})
       importClientes().catch(() => {})
 
-      // Fetch profile in parallel
+      // Fetch profile using Supabase client (sends user JWT automatically)
       let profile = null
       try {
-        const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 3000)
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`, {
-          signal: controller.signal,
-          headers: {
-            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-          },
-        })
-        clearTimeout(timer)
-        const rows = await res.json()
-        if (Array.isArray(rows) && rows.length > 0) profile = rows[0]
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle()
+        if (error) logError("Profile fetch", error)
+        else profile = data
       } catch (fetchErr) {
         logError("Profile fetch", fetchErr)
       }
 
-      // Fallback: build profile from session data
+      // Fallback: build profile from session data if not in DB yet
       if (!profile) {
         profile = {
           id: userId,
