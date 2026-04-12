@@ -4,6 +4,10 @@ import { peruNow } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadViabilidad, saveViabilidad } from "../../../../services/finanzas"
 
+// Viabilidad is the OWNER's analysis tool. It pulls data from Contratos
+// and Caja via "Jalar" buttons (JalarContratos, JalarCaja) — intentionally
+// NOT auto-synced, because the owner decides when to snapshot the numbers.
+//
 // Default seed data — only used the first time, before anything is in storage.
 const INIT_WORKERS = [
   { name: "Juan", pagoSemanal: 360, diasTrabSem: 6, diaDescanso: "Martes", extrasNoTrabajo: 0, extrasTrabajoExtra: 0, extrasTrabajoTienda: 0, diasMarcados: {}, negocioDepende: false },

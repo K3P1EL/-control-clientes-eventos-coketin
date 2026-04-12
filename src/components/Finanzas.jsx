@@ -9,7 +9,16 @@ import { useCajaDesglose } from "./finanzas/caja/hooks/useCajaDesglose"
 import { exportResumen } from "../lib/finanzas/exportResumen"
 
 // Top-level Finanzas entry. Holds a small tab bar to switch between
-// the 3 sub-modules.
+// the 3 sub-modules: Contratos, Caja, and Viabilidad.
+//
+// ARCHITECTURE: The 3 modules are intentionally semi-independent.
+// - Contratos = filled by EMPLOYEES (what they report collecting)
+// - Caja = filled by the OWNER (what actually arrived in hand)
+// - Viabilidad = analysis tool that PULLS data from the other two
+//   via "Jalar" buttons (not auto-synced, by design)
+//
+// Contratos and Caja will NOT match perfectly — the difference is the
+// control mechanism ("my employee says X, I received Y").
 //
 // The period filter (filterSem / filterMes) is SHARED across modules
 // so that switching between Contratos and Caja keeps the same time

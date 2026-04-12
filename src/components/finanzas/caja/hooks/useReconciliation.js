@@ -3,6 +3,12 @@ import { parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpe
 
 // Computes the cross-module reconciliation between Contratos and Caja.
 //
+// IMPORTANT BUSINESS CONTEXT: Contratos and Caja are filled by DIFFERENT
+// people. Contratos = what employees report they collected. Caja = what
+// the owner actually received. They are NOT expected to match perfectly.
+// The difference is a control tool: "my employee says they collected
+// S/300 but I only got S/190 — where are the other S/110?"
+//
 // Key insight: a single contract can have its adelanto in one month and
 // its cobro in another (e.g. adelanto 31-mar, cobro 01-abr). The old
 // approach assigned the ENTIRE `enCaja` to whichever month the "home
