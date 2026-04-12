@@ -1,8 +1,12 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import ViabilidadModule from "./finanzas/viabilidad/ViabilidadModule"
 import ContratosModule from "./finanzas/contratos/ContratosModule"
 import CajaModule from "./finanzas/caja/CajaModule"
-import { peruNow, getWeekNumberISO } from "../lib/finanzas/helpers"
+import { peruNow, getWeekNumberISO, calcContract } from "../lib/finanzas/helpers"
+import { MESES_CORTO } from "../lib/finanzas/constants"
+import { useContratosSnapshot } from "./finanzas/caja/hooks/useContratosSnapshot"
+import { useCajaDesglose } from "./finanzas/caja/hooks/useCajaDesglose"
+import { exportResumen } from "../lib/finanzas/exportResumen"
 
 // Top-level Finanzas entry. Holds a small tab bar to switch between
 // the 3 sub-modules.
@@ -20,16 +24,57 @@ const MODULES = [
 export default function Finanzas() {
   const [activeModule, setActiveModule] = useState("viabilidad")
 
-  // Shared period filter: one of the two is active at a time, or both
-  // empty for "Todo". When the user changes the period in any module,
-  // every other module sees the same filter immediately.
-  const [filterSem, setFilterSem] = useState(String(getWeekNumberISO(peruNow())))
+  const now = peruNow()
+  const currentWeekNum = getWeekNumberISO(now)
+  const currentMonthNum = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+
+  const [filterSem, setFilterSem] = useState(String(currentWeekNum))
   const [filterMes, setFilterMes] = useState("")
 
-  // Convenience helpers that the modules call via props.
   const setQuickAll = () => { setFilterSem(""); setFilterMes("") }
   const setQuickWeek = (w) => { setFilterMes(""); setFilterSem(String(w)) }
   const setQuickMonth = (m) => { setFilterSem(""); setFilterMes(String(m)) }
+
+  // Snapshots for export (lightweight, no CRUD)
+  const contractsSnap = useContratosSnapshot()
+  const activeContracts = useMemo(() => (contractsSnap || []).filter(c => !c.eliminado), [contractsSnap])
+
+  const handleExport = (tipo) => {
+    const periodValue = tipo === "semana" ? currentWeekNum : currentMonthNum
+    const periodoLabel = tipo === "semana" ? `Semana ${currentWeekNum}, ${MESES_CORTO[currentMonthNum]} ${currentYear}` : `${MESES_CORTO[currentMonthNum]} ${currentYear}`
+
+    // Build summary from contracts
+    let ganancia = 0, descuentos = 0, enCaja = 0, pendiente = 0, ingresoYape = 0, ingresoEfectivo = 0, registros = 0
+    const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
+    activeContracts.forEach(c => {
+      if (tipo === "semana" && c.semana !== periodValue) return
+      if (tipo === "mes" && c.mes !== periodValue) return
+      if ((c.anio || currentYear) !== currentYear) return
+      registros++
+      const calc = calcContract(c)
+      ganancia += calc.ganancia; descuentos += c.descuento || 0; enCaja += calc.enCaja; pendiente += calc.pendiente
+      ;(c.adelantos || []).forEach(a => {
+        if (a.noTrack) return
+        if (a.modalidad === "Yape" || a.modalidad === "Transferencia" || a.modalidad === "Plin") ingresoYape += a.monto || 0
+        else if (a.modalidad === "Efectivo") ingresoEfectivo += a.monto || 0
+      })
+      ;(c.cobros || []).forEach(a => {
+        if (a.noTrack) return
+        if (a.modalidad === "Yape" || a.modalidad === "Transferencia" || a.modalidad === "Plin") ingresoYape += a.monto || 0
+        else if (a.modalidad === "Efectivo") ingresoEfectivo += a.monto || 0
+      })
+      if (calc.porRecibir > 0) {
+        const personas = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
+        const pp = calc.porRecibir / (personas.length || 1)
+        personas.forEach(p => { if (p in porPersona) porPersona[p] += pp; else porPersona["Otro"] += pp })
+      }
+    })
+
+    const summary = { registros, ganancia, descuentos, enCaja, pendiente, ingresoYape, ingresoEfectivo, deNuevos: 0, deAnteriores: 0, porPersona }
+
+    exportResumen({ periodo: periodoLabel, periodoLabel, summary, desglose: null, viabilidad: null, tipo })
+  }
 
   // Background color is set on the parent <main> in App.jsx when tab==="finanzas",
   // so we don't need to wrap ourselves in a colored container — we just inherit
@@ -48,6 +93,12 @@ export default function Finanzas() {
             <div>
               <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-sky-400 to-emerald-400 bg-clip-text text-transparent">Finanza Coketín</h1>
               <p className="text-xs text-zinc-500 mt-0.5">Sistema integral de gestión financiera</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div style={{ display: "inline-flex", borderRadius: 10, overflow: "hidden", border: "1px solid #3f3f46" }}>
+                <button onClick={() => handleExport("semana")} style={{ padding: "6px 12px", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: "#27272a", color: "#34d399", display: "flex", alignItems: "center", gap: 4 }}>📊 Sem {currentWeekNum}</button>
+                <button onClick={() => handleExport("mes")} style={{ padding: "6px 12px", border: "none", borderLeft: "1px solid #3f3f46", cursor: "pointer", fontSize: 11, fontWeight: 700, background: "#27272a", color: "#38bdf8", display: "flex", alignItems: "center", gap: 4 }}>📊 {MESES_CORTO[currentMonthNum]}</button>
+              </div>
             </div>
             <div className="flex items-center gap-1 bg-zinc-900/80 rounded-xl p-1 border border-zinc-800">
               {MODULES.map(m => (
