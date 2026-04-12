@@ -6,29 +6,32 @@ import { formatMoney, calcContract } from "../../../../lib/finanzas/helpers"
 
 // "Mi Plata" view: aggregates ALL outstanding "porRecibir" amounts
 // from active contracts, grouped by person.
+// "Yo" is excluded — the owner can't owe money to themselves. Only
+// employees who collected payments but haven't turned them in appear.
 export default function FullPlataView({ activeContracts }) {
   const plataData = useMemo(() => {
     const personas = {}
-    PERSONAS.forEach(p => { personas[p] = { total: 0, contratos: [] } })
+    PERSONAS.filter(p => p !== "Yo").forEach(p => { personas[p] = { total: 0, contratos: [] } })
     activeContracts.forEach(c => {
       const calc = calcContract(c)
       if (calc.porRecibir <= 0) return
       const entries = []
       ;(c.adelantos || []).forEach(a => {
         if (a.noTrack || !a.monto || a.enCaja) return
-        if (a.recibio) entries.push({ persona: a.recibio, monto: a.monto, tipo: "Adelanto", modal: a.modalidad })
+        if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Adelanto", modal: a.modalidad })
       })
       ;(c.cobros || []).forEach(a => {
         if (a.noTrack || !a.monto || a.enCaja) return
-        if (a.recibio) entries.push({ persona: a.recibio, monto: a.monto, tipo: "Cobro", modal: a.modalidad })
+        if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Cobro", modal: a.modalidad })
       })
       if (entries.length === 0 && calc.porRecibir > 0) {
-        const recv = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
+        const recv = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(p => p && p !== "Yo"))]
         if (recv.length > 0) {
           const per = calc.porRecibir / recv.length
           recv.forEach(p => entries.push({ persona: p, monto: per, tipo: "Pendiente", modal: "" }))
         } else {
-          entries.push({ persona: "Otro", monto: calc.porRecibir, tipo: "Pendiente", modal: "" })
+          // All payments were by "Yo" — pendiente is from the client, not an employee
+          // Don't show in "Mi Plata" since no employee has the money
         }
       }
       entries.forEach(e => {
