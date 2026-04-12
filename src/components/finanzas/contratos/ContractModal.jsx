@@ -154,7 +154,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
           </div>
           {calc.exceso > 0 && (
             <div style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "8px 14px", fontSize: 11, color: "#fbbf24", fontWeight: 600 }}>
-              ⚠️ Se cobró {formatMoney(calc.exceso)} de más — revisa el descuento o los pagos
+              ⚠️ Se cobró {formatMoney(calc.exceso)} de más — sumado a la ganancia ({formatMoney(calc.ganancia)})
             </div>
           )}
         </div>

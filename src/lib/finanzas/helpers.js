@@ -156,10 +156,12 @@ export function calcContract(c) {
   // gastos = costos para cumplir el contrato (reduce tu ganancia, no lo que el cliente paga)
   const precioFinal = (c.total || 0) - (c.descuento || 0)
   const gastos = c.gastos || 0
-  const ganancia = precioFinal - gastos
+  const totalPagado = totalAdel + totalCobro
+  const excedente = Math.max(0, totalPagado - precioFinal)
+  const ganancia = precioFinal - gastos + excedente
   const porCobrar = Math.max(0, precioFinal - totalAdel)
   const pendiente = Math.max(0, porCobrar - totalCobro)
-  const exceso = Math.max(0, (totalAdel + totalCobro) - precioFinal)
+  const exceso = excedente
 
   let enCajaAdel, enCajaCobro
   if (Array.isArray(c.adelantos)) {
