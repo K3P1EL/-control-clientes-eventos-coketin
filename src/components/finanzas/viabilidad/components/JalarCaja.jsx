@@ -84,6 +84,7 @@ export default function JalarCaja({ setCajaSemanaSol, setCajaAcumMes, target, se
     activeEntries.forEach(e => {
       if (!inPeriod(e.fecha)) return
       if (e.tipo === "traspaso") return
+      if (e.gastoAjeno) return // exclude non-business expenses from viability
       count++
       const m = e.monto || 0
       const isNeg = e.delNegocio !== false

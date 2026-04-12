@@ -187,6 +187,7 @@ export function useCierres(calc, state) {
         cajaEntries.forEach(e => {
           if (e.eliminado) return
           if (e.delNegocio === false) return
+          if (e.gastoAjeno) return // exclude non-business expenses from viability history
           const ed = getEntryDate(e)
           if (!ed) return
           // Match by ISO year + week (not calendar year)
@@ -246,6 +247,7 @@ export function useCierres(calc, state) {
         cajaEntries.forEach(e => {
           if (e.eliminado) return
           if (e.delNegocio === false) return
+          if (e.gastoAjeno) return // exclude non-business expenses from viability history
           const ed = getEntryDate(e)
           if (!ed || ed.year !== mYear || ed.month !== mNum) return
           hasCaja = true
