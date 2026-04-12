@@ -114,8 +114,8 @@ export function useContratos() {
       list.forEach(c => {
         const calc = calcContract(c)
         ganancia += calc.ganancia; descuentos += c.descuento || 0; enCaja += calc.enCaja; pendiente += calc.pendiente
-        ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
-        ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
+        ;(c.adelantos || []).forEach(a => { if (!a.noTrack && a.enCaja) addIngreso(a.modalidad, a.monto, ing) })
+        ;(c.cobros || []).forEach(a => { if (!a.noTrack && a.enCaja) addIngreso(a.modalidad, a.monto, ing) })
         if (calc.porRecibir > 0) {
           const personas = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
           const pp = calc.porRecibir / (personas.length || 1)
@@ -147,8 +147,8 @@ export function useContratos() {
         const calc = calcContract(c)
         deNuevos += calc.ganancia; descuentos += c.descuento || 0; pendiente += calc.pendiente
         enCajaTotal += calc.enCaja
-        ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
-        ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
+        ;(c.adelantos || []).forEach(a => { if (!a.noTrack && a.enCaja) addIngreso(a.modalidad, a.monto, ing) })
+        ;(c.cobros || []).forEach(a => { if (!a.noTrack && a.enCaja) addIngreso(a.modalidad, a.monto, ing) })
         if (calc.porRecibir > 0) {
           const personas = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
           const pp = calc.porRecibir / (personas.length || 1)
