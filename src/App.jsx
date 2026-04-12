@@ -168,15 +168,22 @@ export default function App() {
       importRegistro().catch(() => {})
       importClientes().catch(() => {})
 
-      // Fetch profile using Supabase client (sends user JWT automatically).
-      // 3-second timeout so a broken RLS policy doesn't hang the app.
+      // Fetch profile — try Supabase client first, fast timeout to avoid hanging
       let profile = null
       try {
-        const profilePromise = supabase.from("profiles").select("*").eq("id", userId).maybeSingle()
-        const timeout = new Promise(r => setTimeout(() => r({ data: null, error: "timeout" }), 3000))
-        const { data, error } = await Promise.race([profilePromise, timeout])
-        if (error) logError("Profile fetch", error)
-        else profile = data
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 3000)
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`, {
+          signal: controller.signal,
+          headers: {
+            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+        })
+        clearTimeout(timer)
+        const rows = await res.json()
+        if (Array.isArray(rows) && rows.length > 0) profile = rows[0]
       } catch (fetchErr) {
         logError("Profile fetch", fetchErr)
       }
