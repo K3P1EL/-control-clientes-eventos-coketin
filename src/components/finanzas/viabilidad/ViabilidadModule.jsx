@@ -106,7 +106,9 @@ export default function ViabilidadModule() {
           year={state.year} setYear={state.setYear}
           month={state.month} setMonth={state.setMonth}
           diasCalendario={calc.diasCalendario} diasOpBase={calc.diasOpBase}
-          workers={state.workers} cobExtra={cobExtra} setCobExtra={setCobExtra}
+          workers={state.workers} workersCalc={calc.workersCalc}
+          calendarDays={calc.calendarDays} effectiveTracker={calc.effectiveTracker}
+          cobExtra={cobExtra} setCobExtra={setCobExtra}
         />
       )}
 
