@@ -19,6 +19,10 @@ export default function MetricsView({ desglose, totalIngresos, totalEgresos, bal
     { label: "🔸 Fuera del contrato", inVal: desglose.yapeNegIn - desglose.contYapeIn, outVal: desglose.yapeNegOut - desglose.contYapeOut, indent: true },
     { label: "📱 Yape Negocio — Subtotal", inVal: desglose.yapeNegIn, outVal: desglose.yapeNegOut, bold: true, border: true },
     { label: "📱 Yape — 👤 Externo", inVal: desglose.yapeExtIn, outVal: desglose.yapeExtOut, externo: true, border: true },
+    ...(desglose.gastoAjenoIn > 0 || desglose.gastoAjenoOut > 0 ? [
+      { label: "", spacer: true },
+      { label: "💰 Gasto ajeno (no es del negocio)", inVal: desglose.gastoAjenoIn, outVal: desglose.gastoAjenoOut, bold: true, externo: true, border: true },
+    ] : []),
   ]
 
   return (

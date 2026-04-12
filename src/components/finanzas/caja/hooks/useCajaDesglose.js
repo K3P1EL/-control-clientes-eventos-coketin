@@ -37,11 +37,11 @@ export function useCajaDesglose(filtered) {
         if (isYape) { yapeOut += m; if (isNeg) yapeNegOut += m; else yapeExtOut += m }
         else { efecOut += m; if (isNeg) efecNegOut += m; else efecExtOut += m }
         if (isNeg) negOut += m; else extOut += m
-        if (isCont) { contratoOut += m; if (isYape) contYapeOut += m; else contEfecOut += m }
-        else { fueraOut += m; if (isYape) fueraYapeOut += m; else fueraEfecOut += m }
-        if (e.categoria === "sueldo") sueldoOut += m
-        if (e.categoria === "servicio") servicioOut += m
         if (e.gastoAjeno) gastoAjenoOut += m
+        else if (isCont) { contratoOut += m; if (isYape) contYapeOut += m; else contEfecOut += m }
+        else { fueraOut += m; if (isYape) fueraYapeOut += m; else fueraEfecOut += m }
+        if (!e.gastoAjeno && e.categoria === "sueldo") sueldoOut += m
+        if (!e.gastoAjeno && e.categoria === "servicio") servicioOut += m
       }
     })
 
