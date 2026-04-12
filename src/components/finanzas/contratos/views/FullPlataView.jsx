@@ -25,14 +25,9 @@ export default function FullPlataView({ activeContracts }) {
         if (a.noTrack || !a.monto || a.enCaja) return
         if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Cobro", modal: a.modalidad })
       })
-      if (entries.length === 0 && calc.porRecibir > 0) {
-        const recv = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(p => p && p !== "Yo"))]
-        if (recv.length > 0) {
-          const per = calc.porRecibir / recv.length
-          recv.forEach(p => entries.push({ persona: p, monto: per, tipo: "Pendiente", modal: "" }))
-        } else {
-          entries.push({ persona: "Por cobrar", monto: calc.porRecibir, tipo: "Pendiente", modal: "" })
-        }
+      if (entries.length === 0 && calc.pendiente > 0) {
+        // No employee has uncollected money — the pendiente is from the client
+        entries.push({ persona: "Por cobrar", monto: calc.pendiente, tipo: "Pendiente", modal: "" })
       }
       entries.forEach(e => {
         const key = e.persona in personas ? e.persona : "Otro"
