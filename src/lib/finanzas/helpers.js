@@ -107,7 +107,7 @@ export function sumPayments(arr) {
 export function getContractHomeDate(c) {
   const firstAdel = (c.adelantos || []).find(a => !a.noTrack && a.fecha && a.fecha.trim())
   if (firstAdel) return firstAdel.fecha
-  const firstCobro = (c.cobros || []).find(a => a.fecha && a.fecha.trim())
+  const firstCobro = (c.cobros || []).find(a => !a.noTrack && a.fecha && a.fecha.trim())
   return firstCobro?.fecha || null
 }
 
