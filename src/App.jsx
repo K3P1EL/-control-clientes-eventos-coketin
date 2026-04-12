@@ -132,7 +132,10 @@ export default function App() {
     ])
     setRegs(regData)
     const photosObj = {}
-    fotosData.forEach(f => { photosObj[f.registro_id] = f.url })
+    fotosData.forEach(f => {
+      if (!photosObj[f.registro_id]) photosObj[f.registro_id] = []
+      photosObj[f.registro_id].push(f.url)
+    })
     setPhotos(photosObj)
     setClients(clientData)
     setAlmacen(almData)
@@ -275,15 +278,13 @@ export default function App() {
     setPendingAlmLink(null)
   }, [pendingAlmLink, dataReady, user, clients, almacen])
 
-  // ── Process /ver/FIC-XXXXX link (any logged-in user, temp almacen access)
-  const [tempAlmAccess, setTempAlmAccess] = useState(null) // client_id with temp access
+  // ── Process /ver/FIC-XXXXX link (any logged-in user)
   useEffect(() => {
     if (!pendingVerLink || !dataReady || !user) return
     const client = clients.find(c => c.code === pendingVerLink && !c.deleted_at)
     if (!client) { alert("Ficha no encontrada: " + pendingVerLink); setPendingVerLink(null); return }
     const existing = almacen.find(s => s.client_id === client.id && !s.deleted_at && s.estado !== "devuelto")
     if (existing) {
-      setTempAlmAccess(client.id)
       setTab("almacen")
       setNavAlmClientId(client.id)
     } else {
@@ -784,7 +785,7 @@ export default function App() {
 
   const changeTab = (t) => {
     if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
-    setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null); setTempAlmAccess(null)
+    setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null)
     // Sidebar tab-switching resets the per-tab "selected employee/ficha" views,
     // so every explicit navigation lands on the grid. Internal flows like the
     // ficha's Volver button use `returnToTab` instead to preserve the origin.
@@ -798,7 +799,7 @@ export default function App() {
   // helpers use setTab (not changeTab) — they never clear them.
   const returnToTab = (t) => {
     if (uploadCount > 0 && !window.confirm("Hay archivos subiendo, si sales se perderán. ¿Seguro?")) return
-    setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null); setTempAlmAccess(null)
+    setTab(t); setMobSide(false); setNavClientId(null); setNavRegId(null); setNavRegDate(null)
   }
 
   return (

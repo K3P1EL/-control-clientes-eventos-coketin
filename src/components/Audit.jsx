@@ -42,8 +42,8 @@ export default function Audit({ regs, photos }) {
                 <td style={td}>{r.canal||"--"}</td>
                 <td style={td}>{r.estado||"--"}</td>
                 <td style={td}>
-                  {photos[r.id]
-                    ? <img src={photos[r.id]} alt="" style={{ width:48, height:48, objectFit:"cover", borderRadius:6, cursor:"pointer", border:`1px solid ${C.border}` }} onClick={()=>window.open(photos[r.id])} />
+                  {photos[r.id]?.length
+                    ? <img src={photos[r.id][0]} alt="" style={{ width:48, height:48, objectFit:"cover", borderRadius:6, cursor:"pointer", border:`1px solid ${C.border}` }} onClick={()=>window.open(photos[r.id][0])} />
                     : <span style={{ color:C.muted }}>—</span>}
                 </td>
               </tr>

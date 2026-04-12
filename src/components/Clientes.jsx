@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, memo } from "react"
 import { C } from "../lib/colors"
-import { today, fmtDate, canChangeTipo, genCode, canScanOCR, OCR_PER_HOUR_LIMIT, fichaStatus, fichaCanal } from "../lib/helpers"
+import { today, fmtDate, consumeChangeTipo, genCode, canScanOCR, OCR_PER_HOUR_LIMIT, fichaStatus, fichaCanal } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
 import { getOCRUsage } from "../services/config"
 import { lbl, inp, mi, btn, td, ib, DInput, SafeImg, DatePicker } from "./shared"
@@ -471,11 +471,11 @@ export default memo(function Clientes({
                   </h3>
                   <div style={{ display:"flex", gap:6 }}>
                     <div style={{ display:"inline-flex", borderRadius:20, background:C.bg, padding:2 }}>
-                      <button onClick={()=>{if(ct.tipo!=="proforma"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}
+                      <button onClick={()=>{if(ct.tipo!=="proforma"){if(!consumeChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}
                         const adelSum=(ct.adelantos||[]).filter(a=>!a.invalid).reduce((s,a)=>s+(Number(a.monto)||0),0)
                         if(adelSum>0&&!window.confirm(`Ya hay S/${adelSum} en adelantos cobrados. ¿Cambiar a Proforma de todas formas?`))return
                         onUpdateContrato(c.id,ct.id,{tipo:"proforma"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo!=="contrato"?C.yellow:C.bg, color:ct.tipo!=="contrato"?"#fff":C.muted, transition:"all .2s" }}>Proforma</button>
-                      <button onClick={()=>{if(ct.tipo!=="contrato"){if(!canChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"contrato"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo==="contrato"?C.green:C.bg, color:ct.tipo==="contrato"?"#fff":C.muted, transition:"all .2s" }}>Contrato</button>
+                      <button onClick={()=>{if(ct.tipo!=="contrato"){if(!consumeChangeTipo()){alert("Limite de cambios alcanzado (3 por hora)");return}onUpdateContrato(c.id,ct.id,{tipo:"contrato"})}}} style={{ padding:"4px 14px", borderRadius:18, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.tipo==="contrato"?C.green:C.bg, color:ct.tipo==="contrato"?"#fff":C.muted, transition:"all .2s" }}>Contrato</button>
                     </div>
                     {!isSimple && <button onClick={()=>onUpdateContrato(c.id,ct.id,{estado:ct.estado==="finalizado"?"activo":"finalizado"})} style={{ padding:"4px 12px", borderRadius:20, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, background:ct.estado==="finalizado"?C.blue+"33":C.border, color:ct.estado==="finalizado"?C.blue:C.muted }}>
                       {ct.estado==="finalizado"?"✓ Finalizado":"En curso"}

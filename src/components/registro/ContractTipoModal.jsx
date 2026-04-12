@@ -1,9 +1,15 @@
-import { memo } from "react"
+import { memo, useEffect } from "react"
 import { C } from "../../lib/colors"
 
 // Mini modal "Proforma o Contrato?" que aparece al subir archivos
 // desde la tabla de Registro cuando NO existe ficha previa.
 export default memo(function ContractTipoModal({ contractFiles, onCancel, onPick }) {
+  useEffect(() => {
+    if (!contractFiles) return
+    const h = e => { if (e.key === "Escape") onCancel() }
+    window.addEventListener("keydown", h)
+    return () => window.removeEventListener("keydown", h)
+  }, [contractFiles, onCancel])
   if (!contractFiles) return null
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onCancel}>

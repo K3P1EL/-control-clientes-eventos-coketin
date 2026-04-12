@@ -1,6 +1,6 @@
-import { memo } from "react"
+import { memo, useEffect } from "react"
 import { C } from "../../lib/colors"
-import { canChangeTipo } from "../../lib/helpers"
+import { consumeChangeTipo } from "../../lib/helpers"
 
 // Modal que muestra la grilla de archivos vinculados a una ficha
 // (proforma o contrato), con toggle de tipo, marcar/quitar error
@@ -10,6 +10,12 @@ export default memo(function FilePreviewModal({
   onUpdateContrato, onDeleteContratoArchivo,
   onAddMore, setViewFile, onClose,
 }) {
+  useEffect(() => {
+    if (!previewRegId) return
+    const h = e => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", h)
+    return () => window.removeEventListener("keydown", h)
+  }, [previewRegId, onClose])
   if (!previewRegId) return null
   const linked = clients.find(c => !c.deleted_at && (c.reg_ids || []).includes(previewRegId))
   if (!linked) return null
@@ -19,7 +25,7 @@ export default memo(function FilePreviewModal({
   const tipo = lastCt?.tipo || "proforma"
   const toggleTipo = (newTipo) => {
     if (!lastCt || tipo === newTipo) return
-    if (!canChangeTipo()) { alert("Limite de cambios alcanzado (3 por hora)"); return }
+    if (!consumeChangeTipo()) { alert("Limite de cambios alcanzado (3 por hora)"); return }
     onUpdateContrato(linked.id, lastCt.id, { tipo: newTipo })
   }
   const errCount = archivos.filter(a => errorFiles.has(a.id)).length

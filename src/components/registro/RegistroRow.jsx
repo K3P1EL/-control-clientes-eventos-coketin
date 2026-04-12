@@ -1,6 +1,6 @@
 import { memo } from "react"
 import { C, estadoColors } from "../../lib/colors"
-import { genCode, canChangeTipo } from "../../lib/helpers"
+import { genCode, consumeChangeTipo } from "../../lib/helpers"
 import { LIMITS } from "../../lib/constants"
 import { Bdg, DInput, TagSelect, mi, sel, td } from "../shared"
 
@@ -103,7 +103,7 @@ function RegistroRow({
       <td style={td}><div style={lock}>
         <TagSelect value={r.estado} onChange={v=>{
           if ((v==="Proforma"||v==="Contrato") && v!==r.estado) {
-            if (!canChangeTipo()) { alert(`Limite de cambios alcanzado (${LIMITS.TIPO_CHANGES_PER_HOUR} por hora)`); return }
+            if (!consumeChangeTipo()) { alert(`Limite de cambios alcanzado (${LIMITS.TIPO_CHANGES_PER_HOUR} por hora)`); return }
           }
           upd(r.id,"estado",v)
         }} tags={tags} getColor={t=>getTagColor(t,tags)} disabled={!canEdit} disabledTags={dis} allowClear={!hasFicha} />

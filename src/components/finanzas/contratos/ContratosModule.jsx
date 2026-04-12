@@ -134,9 +134,6 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
           onClose={() => setTrashOpen(false)}
         />
       )}
-      <div style={{ textAlign: "center" }}>
-        <button onClick={handleReset} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#3f3f46", textDecoration: "underline" }}>Resetear datos originales</button>
-      </div>
 
       {editContract !== undefined && (
         <ContractModal contract={editContract} onSave={handleSave} onClose={() => setEditContract(undefined)} nextId={nextContractId} />

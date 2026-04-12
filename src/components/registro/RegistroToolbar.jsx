@@ -2,8 +2,8 @@ import { memo } from "react"
 import { C } from "../../lib/colors"
 import { today } from "../../lib/helpers"
 
-const toD   = d => { const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
-const fromD = d => { const p=d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` }
+const toD   = d => { if (!d) return ""; const p=d.split("/"); return `${p[2]}-${p[1]}-${p[0]}` }
+const fromD = d => { if (!d) return ""; const p=d.split("-"); return `${p[2]}/${p[1]}/${p[0]}` }
 
 // Header + filtros del Registro: volver, título, rango temporal,
 // navegación de fecha, selector local, toggle todo/últimos 5,

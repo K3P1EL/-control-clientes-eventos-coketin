@@ -1,9 +1,15 @@
-import { memo } from "react"
+import { memo, useEffect } from "react"
 import { C } from "../../lib/colors"
 
 // Visor fullscreen de un archivo único (imagen, video o PDF).
 // Se abre desde el grid del FilePreviewModal o de la tabla.
 export default memo(function FileViewerModal({ viewFile, onClose }) {
+  useEffect(() => {
+    if (!viewFile) return
+    const h = e => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", h)
+    return () => window.removeEventListener("keydown", h)
+  }, [viewFile, onClose])
   if (!viewFile) return null
   const t = viewFile.tipo
   return (

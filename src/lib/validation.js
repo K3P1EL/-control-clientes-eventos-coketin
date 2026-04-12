@@ -26,17 +26,6 @@ export function validatePhone(raw) {
   return { ok: false, error: "Teléfono debe tener 9 dígitos (móvil) o 7 (fijo)" }
 }
 
-export const isValidPhone = (raw) => validatePhone(raw).ok
-
-// Normaliza un teléfono al formato canónico (sin espacios/guiones/+).
-// Si no es válido, devuelve el original limpio para no perder data legacy.
-export function normalizePhone(raw) {
-  const r = validatePhone(raw)
-  if (r.ok) return r.value
-  // Clean digits but keep as-is for legacy data — don't store invalid formats
-  const cleaned = String(raw || "").replace(/[^\d]/g, "")
-  return cleaned || ""
-}
 
 // ── Número de contrato ───────────────────────────────────────────────────
 // Solo dígitos, entre 1 y 12 caracteres. Acepta opcionalmente guiones.
@@ -51,28 +40,3 @@ export function validateContrato(raw) {
 
 export const isValidContrato = (raw) => validateContrato(raw).ok
 
-// ── Email ────────────────────────────────────────────────────────────────
-// Cheap RFC-ish check — enough for forms, not for security boundaries.
-export function validateEmail(raw) {
-  const v = String(raw || "").trim().toLowerCase()
-  if (!v) return { ok: false, error: "Email vacío" }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { ok: false, error: "Email inválido" }
-  if (v.length > 254) return { ok: false, error: "Email muy largo" }
-  return { ok: true, value: v }
-}
-
-export const isValidEmail = (raw) => validateEmail(raw).ok
-
-// ── Number with optional min/max ─────────────────────────────────────────
-// Accepts numbers or numeric strings. Returns the parsed number on success.
-export function validateNumber(raw, { min, max, integer = false } = {}) {
-  if (raw === null || raw === undefined || raw === "") return { ok: false, error: "Vacío" }
-  const n = typeof raw === "number" ? raw : Number(String(raw).replace(",", "."))
-  if (isNaN(n)) return { ok: false, error: "No es un número" }
-  if (integer && !Number.isInteger(n)) return { ok: false, error: "Debe ser entero" }
-  if (typeof min === "number" && n < min) return { ok: false, error: `Mínimo ${min}` }
-  if (typeof max === "number" && n > max) return { ok: false, error: `Máximo ${max}` }
-  return { ok: true, value: n }
-}
-
-export const isValidNumber = (raw, opts) => validateNumber(raw, opts).ok

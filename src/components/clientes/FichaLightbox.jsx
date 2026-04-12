@@ -1,9 +1,15 @@
-import { memo } from "react"
+import { memo, useEffect } from "react"
 import { C } from "../../lib/colors"
 
 // Lightbox fullscreen para previsualizar imagen, video o PDF.
 // `item` debe tener { tipo, url, nombre? }. null = oculto.
 export default memo(function FichaLightbox({ item, onClose }) {
+  useEffect(() => {
+    if (!item) return
+    const h = e => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", h)
+    return () => window.removeEventListener("keydown", h)
+  }, [item, onClose])
   if (!item) return null
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.85)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>

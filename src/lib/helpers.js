@@ -77,13 +77,9 @@ export function fichaCanal(c, regs) {
 // Global rate limiter for tipo changes
 import { LIMITS } from "./constants"
 const _tipoLimit = { hour: 0, count: 0 }
-export const canChangeTipo = () => {
-  const h = Math.floor(Date.now() / 3600000)
-  if (_tipoLimit.hour !== h) { _tipoLimit.hour = h; _tipoLimit.count = 0 }
-  if (_tipoLimit.count >= LIMITS.TIPO_CHANGES_PER_HOUR) return false
-  _tipoLimit.count++
-  return true
-}
+const _syncHour = () => { const h = Math.floor(Date.now() / 3600000); if (_tipoLimit.hour !== h) { _tipoLimit.hour = h; _tipoLimit.count = 0 } }
+export const canChangeTipo = () => { _syncHour(); return _tipoLimit.count < LIMITS.TIPO_CHANGES_PER_HOUR }
+export const consumeChangeTipo = () => { _syncHour(); if (_tipoLimit.count >= LIMITS.TIPO_CHANGES_PER_HOUR) return false; _tipoLimit.count++; return true }
 
 // OCR rate limiter — caps per-user calls per hour to avoid runaway Vision API costs
 const OCR_PER_HOUR = 30

@@ -250,18 +250,6 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
         </>
       )}
 
-      <div style={{ textAlign: "center" }}>
-        <button
-          onClick={() => {
-            if (window.confirm("¿Resetear Caja a los datos originales?\n\nSe borrarán TODOS los movimientos (incluidos los que agregaste) y se cargarán los 14 seed iniciales.")) {
-              handleReset()
-            }
-          }}
-          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#3f3f46", textDecoration: "underline" }}
-        >
-          Resetear datos originales
-        </button>
-      </div>
     </div>
   )
 }

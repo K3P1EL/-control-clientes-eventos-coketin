@@ -70,11 +70,11 @@ export function useContratos() {
   }, [])
 
   const handleDelete = useCallback((id) => {
-    setContracts(prev => prev.map(c => c.id === id ? { ...c, eliminado: true, notas: "ELIMINADO" } : c))
+    setContracts(prev => prev.map(c => c.id === id ? { ...c, eliminado: true, _notasBackup: c.notas, notas: "ELIMINADO" } : c))
   }, [])
 
   const handleRestore = useCallback((id) => {
-    setContracts(prev => prev.map(c => c.id === id ? { ...c, eliminado: false, notas: "" } : c))
+    setContracts(prev => prev.map(c => c.id === id ? { ...c, eliminado: false, notas: c._notasBackup ?? "", _notasBackup: undefined } : c))
   }, [])
 
   // Hard delete — drops the row from the array entirely. The next

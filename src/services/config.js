@@ -30,10 +30,17 @@ export async function getOCRUsage() {
   return val.month === cur ? val : { month: cur, count: 0 }
 }
 
+let _ocrLock = null
 export async function incrementOCRCount() {
-  const current = await getOCRUsage()
-  const month = getCurrentMonth()
-  const usage = { month, count: current.month === month ? current.count + 1 : 1 }
-  await setConfig('ocr_usage', usage)
-  return usage
+  // Serialize concurrent calls to avoid lost increments
+  while (_ocrLock) await _ocrLock
+  let resolve
+  _ocrLock = new Promise(r => { resolve = r })
+  try {
+    const current = await getOCRUsage()
+    const month = getCurrentMonth()
+    const usage = { month, count: current.month === month ? current.count + 1 : 1 }
+    await setConfig('ocr_usage', usage)
+    return usage
+  } finally { _ocrLock = null; resolve() }
 }

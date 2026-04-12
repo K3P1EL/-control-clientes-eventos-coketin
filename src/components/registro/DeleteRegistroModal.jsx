@@ -1,4 +1,4 @@
-import { memo } from "react"
+import { memo, useEffect } from "react"
 import { C } from "../../lib/colors"
 
 // Modal de confirmación de borrado de registro.
@@ -8,6 +8,12 @@ import { C } from "../../lib/colors"
 export default memo(function DeleteRegistroModal({
   delConfirm, setDelConfirm, onHardDeleteReg, onDeleteClient,
 }) {
+  useEffect(() => {
+    if (!delConfirm) return
+    const h = e => { if (e.key === "Escape") setDelConfirm(null) }
+    window.addEventListener("keydown", h)
+    return () => window.removeEventListener("keydown", h)
+  }, [delConfirm, setDelConfirm])
   if (!delConfirm) return null
   const { regId, linked } = delConfirm
   const cts = linked ? (linked.contratos || []) : []
