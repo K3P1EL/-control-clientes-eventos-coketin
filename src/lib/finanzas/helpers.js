@@ -152,9 +152,9 @@ export function calcContract(c) {
     ? c.cobros.reduce((s, a) => s + (a.monto || 0), 0)
     : (c.cobro || 0)
 
-  const porCobrar = Math.max(0, (c.total || 0) - totalAdel)
-  const pendiente = Math.max(0, porCobrar - totalCobro)
   const ganancia = (c.total || 0) - (c.descuento || 0)
+  const porCobrar = Math.max(0, ganancia - totalAdel)
+  const pendiente = Math.max(0, porCobrar - totalCobro)
 
   let enCajaAdel, enCajaCobro
   if (Array.isArray(c.adelantos)) {
