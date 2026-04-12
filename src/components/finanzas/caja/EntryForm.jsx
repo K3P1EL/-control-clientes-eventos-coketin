@@ -23,8 +23,9 @@ export default function EntryForm({ form, setForm, editId, onSubmit, onCancel })
         </div>
         <div>
           <label style={{ fontSize: 11, fontWeight: 600, color: "#a1a1aa", marginBottom: 3, display: "block" }}>Monto (S/)</label>
-          <input type="text" inputMode="numeric" value={form.monto || ""} placeholder="0"
-            onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setForm(p => ({ ...p, monto: parseFloat(v) || 0 })) }} style={fs} />
+          <input type="text" inputMode="decimal" value={form.montoRaw ?? (form.monto || "")} placeholder="0"
+            onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ""); setForm(p => ({ ...p, montoRaw: v, monto: parseFloat(v) || 0 })) }}
+            onBlur={() => setForm(p => ({ ...p, montoRaw: undefined }))} style={fs} />
         </div>
         <div>
           <label style={{ fontSize: 11, fontWeight: 600, color: "#a1a1aa", marginBottom: 3, display: "block" }}>Concepto</label>
