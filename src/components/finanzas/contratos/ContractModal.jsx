@@ -153,8 +153,8 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
             <div><div style={{ fontSize: 10, color: calc.pendiente > 0 ? "#f87171" : "#34d399", fontWeight: 600 }}>PENDIENTE</div><div style={{ fontSize: 16, fontWeight: 800, color: calc.pendiente > 0 ? "#f87171" : "#34d399" }}>{formatMoney(calc.pendiente)}</div></div>
           </div>
           {calc.exceso > 0 && (
-            <div style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "8px 14px", fontSize: 11, color: "#fbbf24", fontWeight: 600 }}>
-              ⚠️ Se cobró {formatMoney(calc.exceso)} de más — sumado a la ganancia ({formatMoney(calc.ganancia)})
+            <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 10, padding: "8px 14px", fontSize: 11, color: "#34d399", fontWeight: 600 }}>
+              +{formatMoney(calc.exceso)} extra cobrado — ganancia real: {formatMoney(calc.ganancia)}
             </div>
           )}
         </div>
