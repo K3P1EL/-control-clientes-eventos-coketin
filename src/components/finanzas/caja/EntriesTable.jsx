@@ -39,7 +39,7 @@ export default function EntriesTable({
                   <td style={{ padding: "10px 14px", fontWeight: 700, fontFamily: "monospace", color: e.tipo === "ingreso" ? "#34d399" : e.tipo === "egreso" ? "#f87171" : "#fbbf24" }}>{e.tipo === "egreso" ? "-" : ""}{formatMoney(e.monto)}</td>
                   <td style={{ padding: "10px 14px" }}>{e.tipo === "traspaso" ? <DarkBadge color="yellow">{e.modalidad === "Yape>Efectivo" ? "📱→💵" : "💵→📱"}</DarkBadge> : <DarkBadge color={e.modalidad === "Yape" ? "purple" : "neutral"}>{e.modalidad === "Yape" ? "📱 Yape" : "💵 Efectivo"}</DarkBadge>}</td>
                   <td style={{ padding: "10px 14px" }}><DarkBadge color={e.delNegocio ? "blue" : "yellow"}>{e.delNegocio ? "🏪 Negocio" : "👤 Externo"}</DarkBadge></td>
-                  <td style={{ padding: "10px 14px" }}>{e.usoPersonal ? <DarkBadge color="yellow">💰 Personal</DarkBadge> : e.delNegocio !== false ? (e.deContrato ? <DarkBadge color="purple">📋 Contrato</DarkBadge> : <DarkBadge color="neutral">Fuera</DarkBadge>) : null}</td>
+                  <td style={{ padding: "10px 14px" }}>{e.gastoAjeno ? <DarkBadge color="yellow">💰 Personal</DarkBadge> : e.delNegocio !== false ? (e.deContrato ? <DarkBadge color="purple">📋 Contrato</DarkBadge> : <DarkBadge color="neutral">Fuera</DarkBadge>) : null}</td>
                   <td style={{ padding: "10px 14px" }}>{e.categoria === "sueldo" ? <DarkBadge color="yellow">💰 Sueldo</DarkBadge> : e.categoria === "servicio" ? <DarkBadge color="blue">🏢 Servicio</DarkBadge> : null}</td>
                   <td style={{ padding: "10px 14px", color: "#d4d4d8" }}>{e.concepto}</td>
                   <td style={{ padding: "10px 14px", color: "#a1a1aa" }}>{e.quien || "—"}</td>

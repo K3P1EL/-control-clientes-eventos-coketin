@@ -13,7 +13,7 @@ export function useCajaDesglose(filtered) {
     let contratoIn = 0, contratoOut = 0, fueraIn = 0, fueraOut = 0
     let contYapeIn = 0, contYapeOut = 0, contEfecIn = 0, contEfecOut = 0
     let fueraYapeIn = 0, fueraYapeOut = 0, fueraEfecIn = 0, fueraEfecOut = 0
-    let sueldoOut = 0, servicioOut = 0, usoPersonalOut = 0, usoPersonalIn = 0
+    let sueldoOut = 0, servicioOut = 0, gastoAjenoOut = 0, gastoAjenoIn = 0
 
     filtered.forEach(e => {
       const m = e.monto || 0
@@ -30,7 +30,7 @@ export function useCajaDesglose(filtered) {
         if (isYape) { yapeIn += m; if (isNeg) yapeNegIn += m; else yapeExtIn += m }
         else { efecIn += m; if (isNeg) efecNegIn += m; else efecExtIn += m }
         if (isNeg) negIn += m; else extIn += m
-        if (e.usoPersonal) usoPersonalIn += m
+        if (e.gastoAjeno) gastoAjenoIn += m
         else if (isCont) { contratoIn += m; if (isYape) contYapeIn += m; else contEfecIn += m }
         else { fueraIn += m; if (isYape) fueraYapeIn += m; else fueraEfecIn += m }
       } else if (e.tipo === "egreso") {
@@ -41,7 +41,7 @@ export function useCajaDesglose(filtered) {
         else { fueraOut += m; if (isYape) fueraYapeOut += m; else fueraEfecOut += m }
         if (e.categoria === "sueldo") sueldoOut += m
         if (e.categoria === "servicio") servicioOut += m
-        if (e.usoPersonal) usoPersonalOut += m
+        if (e.gastoAjeno) gastoAjenoOut += m
       }
     })
 
@@ -59,7 +59,7 @@ export function useCajaDesglose(filtered) {
       contYapeBal: contYapeIn - contYapeOut, contEfecBal: contEfecIn - contEfecOut,
       fueraYapeBal: fueraYapeIn - fueraYapeOut, fueraEfecBal: fueraEfecIn - fueraEfecOut,
       contYapeIn, contYapeOut, contEfecIn, contEfecOut,
-      sueldoOut, servicioOut, usoPersonalIn, usoPersonalOut, usoPersonalBal: usoPersonalIn - usoPersonalOut,
+      sueldoOut, servicioOut, gastoAjenoIn, gastoAjenoOut, gastoAjenoBal: gastoAjenoIn - gastoAjenoOut,
     }
   }, [filtered])
 }

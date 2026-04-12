@@ -61,7 +61,7 @@ export default function EntryForm({ form, setForm, editId, onSubmit, onCancel })
           <span style={{ width: 18, height: 18, borderRadius: 4, border: form.delNegocio ? "2px solid #38bdf8" : "2px solid #52525b", background: form.delNegocio ? "rgba(14,165,233,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#38bdf8" }}>{form.delNegocio ? "✓" : ""}</span>
           🏪 Del negocio
         </button>
-        <span style={{ fontSize: 11, color: "#52525b" }}>{form.usoPersonal ? "Salió de caja pero no es gasto del negocio" : form.delNegocio ? "Ingreso/egreso del negocio" : "Dinero de otras personas"}</span>
+        <span style={{ fontSize: 11, color: "#52525b" }}>{form.delNegocio ? "Ingreso/egreso del negocio" : "Dinero de otras personas"}</span>
         {form.delNegocio && (
           <button onClick={() => setForm(p => ({ ...p, deContrato: !p.deContrato }))}
             style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, cursor: "pointer", border: form.deContrato ? "1px solid rgba(139,92,246,0.4)" : "1px solid #3f3f46", background: form.deContrato ? "rgba(139,92,246,0.1)" : "#27272a", color: form.deContrato ? "#a78bfa" : "#71717a", fontSize: 12, fontWeight: 700 }}>
@@ -69,11 +69,12 @@ export default function EntryForm({ form, setForm, editId, onSubmit, onCancel })
             📋 Del contrato
           </button>
         )}
-        <button onClick={() => setForm(p => ({ ...p, usoPersonal: !p.usoPersonal, ...( p.usoPersonal ? {} : { delNegocio: false, deContrato: false }) }))}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, cursor: "pointer", border: form.usoPersonal ? "1px solid rgba(251,191,36,0.4)" : "1px solid #3f3f46", background: form.usoPersonal ? "rgba(251,191,36,0.1)" : "#27272a", color: form.usoPersonal ? "#fbbf24" : "#71717a", fontSize: 12, fontWeight: 700 }}>
-          <span style={{ width: 18, height: 18, borderRadius: 4, border: form.usoPersonal ? "2px solid #fbbf24" : "2px solid #52525b", background: form.usoPersonal ? "rgba(251,191,36,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#fbbf24" }}>{form.usoPersonal ? "✓" : ""}</span>
-          💰 Uso personal
+        <button onClick={() => setForm(p => ({ ...p, gastoAjeno: !p.gastoAjeno }))}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, cursor: "pointer", border: form.gastoAjeno ? "1px solid rgba(251,191,36,0.4)" : "1px solid #3f3f46", background: form.gastoAjeno ? "rgba(251,191,36,0.1)" : "#27272a", color: form.gastoAjeno ? "#fbbf24" : "#71717a", fontSize: 12, fontWeight: 700 }}>
+          <span style={{ width: 18, height: 18, borderRadius: 4, border: form.gastoAjeno ? "2px solid #fbbf24" : "2px solid #52525b", background: form.gastoAjeno ? "rgba(251,191,36,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#fbbf24" }}>{form.gastoAjeno ? "✓" : ""}</span>
+          💰 Gasto ajeno
         </button>
+        {form.gastoAjeno && <span style={{ fontSize: 11, color: "#a16207" }}>Salió de caja pero no es para el negocio</span>}
         {form.delNegocio && form.tipo === "egreso" && (
           <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
             <span style={{ fontSize: 10, color: "#52525b", marginRight: 2 }}>Cat:</span>
