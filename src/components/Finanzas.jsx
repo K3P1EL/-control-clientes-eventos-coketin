@@ -130,19 +130,19 @@ export default function Finanzas() {
           </div>
         </header>
 
-        <div style={{ display: activeModule === "viabilidad" ? "block" : "none" }}><ViabilidadModule /></div>
-        <div style={{ display: activeModule === "contratos" ? "block" : "none" }}>
+        {activeModule === "viabilidad" && <ViabilidadModule />}
+        {activeModule === "contratos" && (
           <ContratosModule
             filterSem={filterSem} filterMes={filterMes}
             setQuickAll={setQuickAll} setQuickWeek={setQuickWeek} setQuickMonth={setQuickMonth}
           />
-        </div>
-        <div style={{ display: activeModule === "caja" ? "block" : "none" }}>
+        )}
+        {activeModule === "caja" && (
           <CajaModule
             filterSem={filterSem} filterMes={filterMes}
             setQuickAll={setQuickAll} setQuickWeek={setQuickWeek} setQuickMonth={setQuickMonth}
           />
-        </div>
+        )}
       </div>
     </div>
   )

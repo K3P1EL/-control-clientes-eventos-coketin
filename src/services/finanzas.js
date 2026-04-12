@@ -15,10 +15,16 @@ const TABLES = {
 }
 
 // Returns the current authenticated user_id, or null if not logged in.
+// Cached after first call to avoid a network round-trip on every save.
+let _cachedUserId = null
 async function currentUserId() {
+  if (_cachedUserId) return _cachedUserId
   const { data } = await supabase.auth.getUser()
-  return data?.user?.id || null
+  _cachedUserId = data?.user?.id || null
+  return _cachedUserId
 }
+// Clear cache on sign-out so a new user gets a fresh lookup
+supabase.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") _cachedUserId = null })
 
 // Generic loader. Returns the `data` jsonb for the current user, or null
 // if there is no row yet (first time). Throws on real errors so callers

@@ -1,35 +1,10 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { MESES, STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { peruNow, getWeekNumberISO, parseLocalDate, fmtS } from "../../../../lib/finanzas/helpers"
-import { loadCaja } from "../../../../services/finanzas"
-import { getJSON } from "../../../../lib/storage"
-import { logError } from "../../../../lib/logger"
+import { useCajaSnapshot } from "../hooks/useCajaSnapshot"
 
 const navBtn = { width: 28, height: 28, borderRadius: 8, border: "1px solid #3f3f46", background: "#27272a", color: "#a1a1aa", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }
 const selStyle = { background: "#27272a", border: "1px solid #3f3f46", borderRadius: 8, padding: "6px 12px", fontSize: 13, color: "#e4e4e7", cursor: "pointer" }
-
-// Lightweight read-only snapshot of Caja entries (same pattern as
-// useContratosSnapshot). Reads localStorage instantly, refreshes from
-// Supabase in background.
-function useCajaSnapshot() {
-  const [entries, setEntries] = useState(() => {
-    const local = getJSON(STORAGE_KEYS.CAJA)
-    return Array.isArray(local) ? local : []
-  })
-
-  useEffect(() => {
-    let cancelled = false
-    loadCaja()
-      .then(cloud => {
-        if (cancelled) return
-        if (Array.isArray(cloud)) setEntries(cloud)
-      })
-      .catch(e => logError("viabilidad.cajaSnapshot", e))
-    return () => { cancelled = true }
-  }, [])
-
-  return entries
-}
 
 // "Jalar datos de Caja" — collapsible panel that reads the real cash
 // entries, filters by period, and shows clickable metric cards to

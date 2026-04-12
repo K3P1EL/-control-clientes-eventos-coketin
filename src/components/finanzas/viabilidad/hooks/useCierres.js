@@ -16,23 +16,7 @@ import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
 //   - Real-time (Viabilidad tabs): owner "jala" manually to simulate/analyze
 //   - Historical (HistorialTab cierres): auto-closed with real data
 //
-// Use the same lightweight caja snapshot pattern
-import { loadCaja } from "../../../../services/finanzas"
-import { getJSON } from "../../../../lib/storage"
-import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-
-function useCajaSnapshot() {
-  const [entries, setEntries] = useState(() => {
-    const local = getJSON(STORAGE_KEYS.CAJA)
-    return Array.isArray(local) ? local : []
-  })
-  useEffect(() => {
-    loadCaja()
-      .then(cloud => { if (Array.isArray(cloud)) setEntries(cloud) })
-      .catch(() => {})
-  }, [])
-  return entries
-}
+import { useCajaSnapshot } from "./useCajaSnapshot"
 
 // Caja entries use real dates for week/month (same as CajaModule).
 function getEntryDate(e) {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { peruNow } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
@@ -69,10 +69,11 @@ export function useViabilidadState() {
     loader: loadViabilidad,
     saver: saveViabilidad,
     applyLoaded,
-    data: {
+    // Stable reference — only changes when actual data changes, not on every render
+    data: useMemo(() => ({
       year, month, workers, services, apoyos, trackerData,
       diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll,
-    },
+    }), [year, month, workers, services, apoyos, trackerData, diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll]),
     loaded,
   })
 

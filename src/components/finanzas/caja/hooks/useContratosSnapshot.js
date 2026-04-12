@@ -31,12 +31,13 @@ export function useContratosSnapshot() {
     // Re-read from localStorage whenever the user switches back to this
     // tab. ContratosModule writes to localStorage on every change, so
     // this picks up any edits made while the user was in the other tab.
+    let lastRaw = localStorage.getItem(STORAGE_KEYS.CONTRATOS) || ""
     const onFocus = () => {
+      const raw = localStorage.getItem(STORAGE_KEYS.CONTRATOS) || ""
+      if (raw === lastRaw) return // same string = no changes, skip parse
+      lastRaw = raw
       const fresh = getJSON(STORAGE_KEYS.CONTRATOS)
-      if (Array.isArray(fresh)) setContracts(prev => {
-        if (prev.length === fresh.length && JSON.stringify(prev) === JSON.stringify(fresh)) return prev
-        return fresh
-      })
+      if (Array.isArray(fresh)) setContracts(fresh)
     }
     window.addEventListener("focus", onFocus)
 
