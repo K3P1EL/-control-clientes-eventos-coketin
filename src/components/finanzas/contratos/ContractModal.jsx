@@ -33,8 +33,8 @@ function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyl
     <div style={{ marginBottom: 6 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
         <div style={groupStyle}><label style={cDark.label}>Monto</label><DarkMoneyInput style={fs} value={entry.monto} onChange={v => upd("monto", v)} /></div>
-        <div style={groupStyle}><label style={cDark.label}>Modalidad</label><select style={fs} value={entry.modalidad} onChange={e => upd("modalidad", e.target.value)}>{MODALS.map(m => <option key={m}>{m}</option>)}</select></div>
-        <div style={groupStyle}><label style={cDark.label}>Recibió</label><select style={fs} value={entry.recibio} onChange={e => upd("recibio", e.target.value)}>{PERSONAS.map(p => <option key={p||"__none__"} value={p}>{p || "— Nadie"}</option>)}</select></div>
+        <div style={groupStyle}><label style={cDark.label}>Modalidad</label><select style={{ ...fs, opacity: entry.recibio ? 1 : 0.4 }} value={entry.modalidad} onChange={e => upd("modalidad", e.target.value)} disabled={!entry.recibio}><option value="">—</option>{MODALS.map(m => <option key={m}>{m}</option>)}</select></div>
+        <div style={groupStyle}><label style={cDark.label}>Recibió</label><select style={fs} value={entry.recibio} onChange={e => { const v = e.target.value; onChange({ ...entry, recibio: v, ...(!v ? { modalidad: "" } : {}) }) }}>{PERSONAS.map(p => <option key={p||"__none__"} value={p}>{p || "— Nadie"}</option>)}</select></div>
         <div style={groupStyle}><label style={cDark.label}>Fecha</label><input style={fs} type="date" value={entry.fecha} onChange={e => upd("fecha", e.target.value)} /></div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
