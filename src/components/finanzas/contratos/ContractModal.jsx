@@ -135,6 +135,15 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
           </div>
           <div style={groupStyle}><label style={cDark.label}>Notas</label><input style={fs} value={form.notas} onChange={e => set("notas", e.target.value)} placeholder="Notas del evento..." /></div>
 
+          {(() => {
+            const totalAdel = (form.adelantos || []).reduce((s, a) => s + (a.monto || 0), 0)
+            if (totalAdel > (form.total || 0) && form.total > 0) return (
+              <div style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "8px 14px", fontSize: 11, color: "#fbbf24", fontWeight: 600 }}>
+                ⚠️ Adelantos ({formatMoney(totalAdel)}) superan el total del contrato ({formatMoney(form.total)})
+              </div>
+            )
+            return null
+          })()}
           <div style={{ background: "rgba(139,92,246,0.05)", borderRadius: 12, padding: 14, border: "1px solid rgba(139,92,246,0.2)", display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
             <div><div style={{ fontSize: 10, color: "#a78bfa", fontWeight: 600 }}>POR COBRAR</div><div style={{ fontSize: 16, fontWeight: 800, color: "#e4e4e7" }}>{formatMoney(calc.porCobrar)}</div></div>
             <div><div style={{ fontSize: 10, color: "#a78bfa", fontWeight: 600 }}>GANANCIA</div><div style={{ fontSize: 16, fontWeight: 800, color: "#e4e4e7" }}>{formatMoney(calc.ganancia)}</div></div>
@@ -144,7 +153,13 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
         </div>
         <div style={{ padding: "16px 24px", borderTop: "1px solid #3f3f46", display: "flex", gap: 10, justifyContent: "flex-end", position: "sticky", bottom: 0, background: "#18181b", borderRadius: "0 0 18px 18px" }}>
           <button onClick={safeClose} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #3f3f46", background: "#27272a", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#a1a1aa" }}>Cancelar</button>
-          <button onClick={() => { onSave(form); onClose() }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 2px 8px rgba(14,165,233,0.3)" }}>
+          <button onClick={() => {
+              // Clean phantom entries: remove 0-monto non-noTrack entries if there are others
+              const cleanAdel = form.adelantos.filter(a => a.noTrack || a.monto > 0)
+              const cleanCobros = form.cobros.filter(a => a.noTrack || a.monto > 0)
+              onSave({ ...form, adelantos: cleanAdel.length ? cleanAdel : form.adelantos, cobros: cleanCobros.length ? cleanCobros : form.cobros })
+              onClose()
+            }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 2px 8px rgba(14,165,233,0.3)" }}>
             {isNew ? "Crear Contrato" : "Guardar Cambios"}
           </button>
         </div>

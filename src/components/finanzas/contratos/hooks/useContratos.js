@@ -156,9 +156,11 @@ export function useContratos() {
         }
       } else if (cobrosInPeriod.length > 0) {
         cobrosInPeriod.forEach(a => {
-          deAnteriores += a.monto || 0
-          if (a.enCaja) enCajaTotal += a.monto || 0
-          addIngreso(a.modalidad, a.monto, ing)
+          if (a.enCaja) {
+            deAnteriores += a.monto || 0
+            enCajaTotal += a.monto || 0
+            addIngreso(a.modalidad, a.monto, ing)
+          }
         })
       }
     })

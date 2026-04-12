@@ -239,19 +239,31 @@ export function useViabilidadCalc(inputs) {
 
   const weekCalc = useMemo(() => {
     if (!isCurrentMonth || currentWeekISO == null) return null
-    const weekDays = calendarDays.filter(d => {
+
+    // Days in THIS month that fall in the current ISO week (for worker marks)
+    const weekDaysThisMonth = calendarDays.filter(d => {
       const date = new Date(year, month - 1, d.dia)
       const w = getWeekNumberISO(date)
       return w != null && w === currentWeekISO
     })
-    if (weekDays.length === 0) return null
 
-    // Personal: real cost from attendance
+    // Count FULL week days (including days from adjacent month) for proportioning
+    let fullWeekDays = 0
+    for (let offset = -6; offset <= 6; offset++) {
+      const d = new Date(year, month - 1, weekDaysThisMonth[0]?.dia || 1)
+      d.setDate(d.getDate() + offset)
+      if (getWeekNumberISO(d) === currentWeekISO) fullWeekDays++
+    }
+    if (fullWeekDays === 0) fullWeekDays = weekDaysThisMonth.length || 1
+
+    if (weekDaysThisMonth.length === 0) return null
+
+    // Personal: real cost from attendance (only days in this month have marks)
     let personalCost = 0
     workersCalc.forEach(w => {
       if (!w.name) return
       const marcas = w.diasMarcados || {}
-      weekDays.forEach(d => {
+      weekDaysThisMonth.forEach(d => {
         const marca = marcas[d.dia] || ""
         const isRest = w.diaDescanso && d.nombre === w.diaDescanso
         if (marca === "noVino") return
@@ -260,18 +272,16 @@ export function useViabilidadCalc(inputs) {
       })
     })
 
-    // Services: proportioned to actual week days, respecting custom divisors
-    const realDays = weekDays.length
+    // Services/apoyo: proportion to FULL week days (not just this month's portion)
     let servCost = 0
     servicesCalc.forEach(s => {
       if (!s.nombre) return
-      servCost += s.costoDiario * realDays
+      servCost += s.costoDiario * fullWeekDays
     })
 
-    // Apoyo: proportioned to actual week days
-    const apoyoCost = contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario) * realDays : 0
+    const apoyoCost = contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario) * fullWeekDays : 0
 
-    return { personalCost, servCost, apoyoCost, realDays }
+    return { personalCost, servCost, apoyoCost, realDays: fullWeekDays }
   }, [isCurrentMonth, currentWeekISO, calendarDays, workersCalc, servicesCalc, contarApoyo, totalApoyos.montoMensual, diasCalendario, year, month])
 
   const trabajadoresSemana = totalPersonal.pagoSemanal // presupuestado (flat)
