@@ -4,16 +4,18 @@ import DarkMoneyInput from "../ui/DarkMoneyInput"
 import { PERSONAS, MODALS } from "../../../lib/finanzas/constants"
 import { peruNow, peruToday, getWeekNumberISO, formatMoney, calcContract, normalizeContract } from "../../../lib/finanzas/helpers"
 
-const EMPTY_ADEL = { monto: 0, modalidad: "Efectivo", recibio: "Yo", fecha: peruToday(), enCaja: true, noTrack: false }
-const EMPTY_COBRO = { monto: 0, modalidad: "Efectivo", recibio: "Yo", fecha: "", enCaja: false, noTrack: false }
+// Factory functions — evaluate peruToday() fresh each call so long-running sessions get today's date
+const emptyAdel = () => ({ monto: 0, modalidad: "Efectivo", recibio: "Yo", fecha: peruToday(), enCaja: true, noTrack: false })
+const emptyCobro = () => ({ monto: 0, modalidad: "Efectivo", recibio: "Yo", fecha: "", enCaja: false, noTrack: false })
 
 function defaultForm(nextId) {
+  const now = peruNow()
   return {
     id: nextId, cliente: "", total: 0,
-    adelantos: [{ ...EMPTY_ADEL }],
-    cobros: [{ ...EMPTY_COBRO }],
+    adelantos: [emptyAdel()],
+    cobros: [emptyCobro()],
     descuento: 0, notas: "", depend: false,
-    semana: getWeekNumberISO(peruNow()), mes: peruNow().getMonth() + 1, anio: peruNow().getFullYear(), eliminado: false,
+    semana: getWeekNumberISO(now), mes: now.getMonth() + 1, anio: now.getFullYear(), eliminado: false,
   }
 }
 
@@ -60,11 +62,11 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
 
   // Array helpers
   const setAdelanto = (idx, entry) => setForm(p => ({ ...p, adelantos: p.adelantos.map((a, i) => i === idx ? entry : a) }))
-  const addAdelanto = () => setForm(p => ({ ...p, adelantos: [...p.adelantos, { ...EMPTY_ADEL, fecha: peruToday() }] }))
+  const addAdelanto = () => setForm(p => ({ ...p, adelantos: [...p.adelantos, emptyAdel()] }))
   const removeAdelanto = (idx) => setForm(p => ({ ...p, adelantos: p.adelantos.filter((_, i) => i !== idx) }))
 
   const setCobro = (idx, entry) => setForm(p => ({ ...p, cobros: p.cobros.map((a, i) => i === idx ? entry : a) }))
-  const addCobro = () => setForm(p => ({ ...p, cobros: [...p.cobros, { ...EMPTY_COBRO }] }))
+  const addCobro = () => setForm(p => ({ ...p, cobros: [...p.cobros, emptyCobro()] }))
   const removeCobro = (idx) => setForm(p => ({ ...p, cobros: p.cobros.filter((_, i) => i !== idx) }))
 
   const initial = useMemo(() => JSON.stringify(normalized || defaultForm(nextId)), [normalized, nextId])
