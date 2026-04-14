@@ -116,17 +116,23 @@ export function useContratos() {
     if (!periodCtx) {
       let ganancia = 0, descuentos = 0, enCaja = 0, pendiente = 0
       const ing = { yape: 0, efectivo: 0 }
-      const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
+      // "Yo" is the owner and can't owe money to themselves. Client pendiente goes to "Por cobrar".
+      const porPersona = { Loli: 0, Mama: 0, Jose: 0, Otro: 0, "Por cobrar": 0 }
       list.forEach(c => {
         const calc = calcContract(c)
         ganancia += calc.ganancia; descuentos += (c.descuento || 0) + (c.gastos || 0); enCaja += calc.enCaja; pendiente += calc.pendiente
         ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
-        if (calc.porRecibir > 0) {
-          const personas = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
-          const pp = calc.porRecibir / (personas.length || 1)
-          personas.forEach(p => { if (p in porPersona) porPersona[p] += pp; else porPersona["Otro"] += pp })
-        }
+        // Uncollected money held by employees (enCaja=false, recibio != Yo)
+        ;(c.adelantos || []).concat(c.cobros || []).forEach(a => {
+          if (a.noTrack || !a.monto || a.enCaja) return
+          if (a.recibio && a.recibio !== "Yo") {
+            if (a.recibio in porPersona) porPersona[a.recibio] += a.monto
+            else porPersona["Otro"] += a.monto
+          }
+        })
+        // Client-side pendiente → "Por cobrar"
+        if (calc.pendiente > 0) porPersona["Por cobrar"] += calc.pendiente
       })
       return { registros: list.length, ganancia, descuentos, enCaja, pendiente, ingresoYape: ing.yape, ingresoEfectivo: ing.efectivo, deNuevos: 0, deAnteriores: 0, porPersona }
     }
@@ -147,7 +153,7 @@ export function useContratos() {
 
     let registros = 0, deNuevos = 0, deAnteriores = 0, enCajaTotal = 0, descuentos = 0, pendiente = 0
     const ing = { yape: 0, efectivo: 0 }
-    const porPersona = { Yo: 0, Loli: 0, Mama: 0, Jose: 0, Otro: 0 }
+    const porPersona = { Loli: 0, Mama: 0, Jose: 0, Otro: 0, "Por cobrar": 0 }
     list.forEach(c => {
       const homeDate = getContractHomeDate(c)
       const isHome = homeDate ? dateInPeriod(homeDate) : false
@@ -161,11 +167,15 @@ export function useContratos() {
         enCajaTotal += calc.enCaja
         ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
-        if (calc.porRecibir > 0) {
-          const personas = [...new Set([...(c.adelantos || []).map(a => a.recibio), ...(c.cobros || []).map(a => a.recibio)].filter(Boolean))]
-          const pp = calc.porRecibir / (personas.length || 1)
-          personas.forEach(p => { if (p in porPersona) porPersona[p] += pp; else porPersona["Otro"] += pp })
-        }
+        // Uncollected money held by employees (exclude "Yo")
+        ;(c.adelantos || []).concat(c.cobros || []).forEach(a => {
+          if (a.noTrack || !a.monto || a.enCaja) return
+          if (a.recibio && a.recibio !== "Yo") {
+            if (a.recibio in porPersona) porPersona[a.recibio] += a.monto
+            else porPersona["Otro"] += a.monto
+          }
+        })
+        if (calc.pendiente > 0) porPersona["Por cobrar"] += calc.pendiente
       } else if (cobrosInPeriod.length > 0) {
         cobrosInPeriod.forEach(a => {
           if (a.enCaja) {
