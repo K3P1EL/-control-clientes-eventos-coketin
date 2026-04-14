@@ -8,7 +8,7 @@ import { formatMoney, calcContract } from "../../../../lib/finanzas/helpers"
 // from active contracts, grouped by person.
 // "Yo" is excluded — the owner can't owe money to themselves. Only
 // employees who collected payments but haven't turned them in appear.
-export default function FullPlataView({ activeContracts }) {
+export default function FullPlataView({ activeContracts, onEdit }) {
   const plataData = useMemo(() => {
     const personas = {}
     PERSONAS.filter(p => p !== "Yo").forEach(p => { personas[p] = { total: 0, contratos: [] } })
@@ -35,7 +35,7 @@ export default function FullPlataView({ activeContracts }) {
       entries.forEach(e => {
         const key = e.persona in personas ? e.persona : "Otro"
         personas[key].total += e.monto
-        personas[key].contratos.push({ ...e, contractId: c.id, cliente: c.cliente })
+        personas[key].contratos.push({ ...e, contractId: c.id, cliente: c.cliente, contract: c })
       })
     })
     return personas
@@ -87,17 +87,36 @@ export default function FullPlataView({ activeContracts }) {
                 <div style={{ fontSize: 20, fontWeight: 900, color: "#f87171" }}>{formatMoney(Math.round(data.total))}</div>
               </div>
               <div style={{ padding: "4px 0" }}>
-                {data.contratos.map((ct, i) => (
-                  <div key={i} style={{ padding: "8px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: i < data.contratos.length - 1 ? "1px solid rgba(63,63,70,0.15)" : "none" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: "#38bdf8" }}>{ct.contractId}</span>
-                      <DarkBadge color={ct.tipo === "Adelanto" ? "green" : ct.tipo === "Cobro" ? "blue" : "yellow"}>{ct.tipo}</DarkBadge>
-                      {ct.modal && <span style={{ fontSize: 10, color: "#52525b" }}>{ct.modal}</span>}
-                      {ct.fecha && <span style={{ fontSize: 9, color: "#52525b", fontFamily: "monospace" }}>{(() => { const p = ct.fecha.split("-"); return p.length === 3 ? `${p[2]}-${["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+p[1]-1] || p[1]}` : ct.fecha })()}</span>}
+                {data.contratos.map((ct, i) => {
+                  const fmtFecha = ct.fecha ? (() => { const p = ct.fecha.split("-"); return p.length === 3 ? `${p[2]}-${["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+p[1]-1] || p[1]}` : ct.fecha })() : null
+                  const isPendiente = ct.tipo === "Pendiente"
+                  return (
+                    <div key={i}
+                      onClick={() => onEdit && ct.contract && onEdit(ct.contract)}
+                      style={{
+                        padding: "10px 18px", display: "flex", justifyContent: "space-between", alignItems: "center",
+                        borderBottom: i < data.contratos.length - 1 ? "1px solid rgba(63,63,70,0.15)" : "none",
+                        cursor: onEdit ? "pointer" : "default",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={e => onEdit && (e.currentTarget.style.background = "rgba(63,63,70,0.25)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      title={onEdit ? "Clic para editar contrato" : ""}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: "#38bdf8" }}>{ct.contractId}</span>
+                        <DarkBadge color={ct.tipo === "Adelanto" ? "green" : ct.tipo === "Cobro" ? "blue" : "yellow"}>{ct.tipo}</DarkBadge>
+                        {ct.modal && <span style={{ fontSize: 10, color: "#71717a" }}>{ct.modal}</span>}
+                        {fmtFecha && (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: isPendiente ? "#fbbf24" : "#a1a1aa", fontFamily: "monospace", background: isPendiente ? "rgba(251,191,36,0.1)" : "transparent", padding: isPendiente ? "2px 8px" : "0", borderRadius: 6 }}>
+                            📅 {fmtFecha}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#f87171" }}>{formatMoney(Math.round(ct.monto))}</span>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#f87171" }}>{formatMoney(Math.round(ct.monto))}</span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ))}

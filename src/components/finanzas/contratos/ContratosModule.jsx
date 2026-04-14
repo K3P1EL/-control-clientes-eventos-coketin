@@ -107,7 +107,7 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
       {view === "mensual" && (
         <MonthlyView activeContracts={activeContracts} anios={anios} currentMonthNum={currentMonthNum} currentYear={currentYear} calcSummary={calcSummary} />
       )}
-      {view === "plata" && <FullPlataView activeContracts={activeContracts} />}
+      {view === "plata" && <FullPlataView activeContracts={activeContracts} onEdit={setEditContract} />}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <button onClick={() => setEditContract(null)}
