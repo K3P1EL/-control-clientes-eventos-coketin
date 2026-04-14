@@ -120,50 +120,41 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                   <span style={{ fontSize: 10, color: "#52525b" }}>{c.anio}</span>
                 </div>
 
-                {/* 3 perspectives: vendí / cobré / tengo */}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 12, marginBottom: 8 }}>
-                  <div style={{ background: "rgba(16,185,129,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(16,185,129,0.15)" }}>
-                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Vendí (nuevos)</div>
-                    <div style={{ fontWeight: 700, color: "#34d399", fontFamily: "monospace" }}>{fmtS(d.deNuevos ?? d.ganancia ?? 0)}</div>
-                  </div>
-                  {(d.deAnteriores || 0) > 0 && (
-                    <div style={{ background: "rgba(139,92,246,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(139,92,246,0.15)" }}>
-                      <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Cobré (anteriores)</div>
-                      <div style={{ fontWeight: 700, color: "#a78bfa", fontFamily: "monospace" }}>{fmtS(d.deAnteriores)}</div>
-                    </div>
-                  )}
-                  <div style={{ background: "rgba(14,165,233,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(14,165,233,0.15)" }}>
-                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>En caja</div>
-                    <div style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace" }}>{fmtS(d.enCaja || 0)}</div>
-                  </div>
-                  <div style={{ background: "rgba(239,68,68,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(239,68,68,0.15)" }}>
-                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Gastos</div>
-                    <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(d.gastoSemanal || d.gastoMes || 0)}</div>
-                  </div>
-                </div>
-
-                {/* 3 perspectivas de "Libre" — ¿alcanzó la semana? */}
+                {/* 3 perspectivas: cobrado de nuevos / de anteriores / total */}
                 {(() => {
                   const gastos = d.gastoSemanal || d.gastoMes || 0
-                  const libreVendi = (d.deNuevos ?? d.ganancia ?? 0) - gastos
-                  const libreTotal = (d.ganancia || 0) - gastos
-                  const libreCaja = (d.enCaja || 0) - gastos
-                  const showTotal = (d.deAnteriores || 0) > 0
-                  const box = (label, value, hint, mainColor) => (
-                    <div style={{ flex: 1, minWidth: 120, background: value >= 0 ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", borderRadius: 8, padding: "10px 12px", border: `1px solid ${value >= 0 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}` }}>
-                      <div style={{ color: mainColor, fontSize: 9, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
-                      <div style={{ fontWeight: 800, fontFamily: "monospace", fontSize: 14, color: value >= 0 ? "#34d399" : "#f87171", marginTop: 2 }}>
-                        {value >= 0 ? `+${fmtS(value)}` : fmtS(value)}
+                  const cobradoNuevos = d.enCaja || 0 // enCaja de contratos de esta semana
+                  const deAnteriores = d.deAnteriores || 0
+                  const totalCobrado = cobradoNuevos + deAnteriores
+                  const libreNuevos = cobradoNuevos - gastos
+                  const libreTotal = totalCobrado - gastos
+                  const showAnteriores = deAnteriores > 0
+
+                  const box = (label, value, hint, accent, isLibre) => (
+                    <div style={{ flex: 1, minWidth: 130, background: isLibre ? (value >= 0 ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)") : `${accent}0d`, borderRadius: 8, padding: "10px 12px", border: `1px solid ${isLibre ? (value >= 0 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)") : `${accent}40`}` }}>
+                      <div style={{ color: accent, fontSize: 9, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+                      <div style={{ fontWeight: 800, fontFamily: "monospace", fontSize: 14, color: isLibre ? (value >= 0 ? "#34d399" : "#f87171") : accent, marginTop: 2 }}>
+                        {isLibre ? (value >= 0 ? `+${fmtS(value)}` : fmtS(value)) : fmtS(value)}
                       </div>
-                      <div style={{ fontSize: 8, color: "#52525b", marginTop: 2 }}>{hint}</div>
+                      {hint && <div style={{ fontSize: 8, color: "#52525b", marginTop: 2 }}>{hint}</div>}
                     </div>
                   )
+
                   return (
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                      {box("Libre (ventas)", libreVendi, "vendí - gastos", "#34d399")}
-                      {showTotal && box("Libre (cobrado)", libreTotal, "vendí + cobré anteriores - gastos", "#a78bfa")}
-                      {box("Libre (en caja)", libreCaja, "solo lo que tengo - gastos", "#38bdf8")}
-                    </div>
+                    <>
+                      {/* Montos cobrados */}
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+                        {box("Cobrado de nuevos", cobradoNuevos, "contratos de esta semana", "#34d399", false)}
+                        {showAnteriores && box("De anteriores", deAnteriores, "cobros de semanas pasadas", "#a78bfa", false)}
+                        {showAnteriores && box("Total cobrado", totalCobrado, "nuevos + anteriores", "#38bdf8", false)}
+                        {box("Gastos", gastos, "lo que costó operar", "#f87171", false)}
+                      </div>
+                      {/* Libres — ¿alcanza? */}
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                        {box("Libre solo nuevos", libreNuevos, "cobrado de nuevos - gastos", "#34d399", true)}
+                        {showAnteriores && box("Libre total", libreTotal, "total cobrado - gastos", "#38bdf8", true)}
+                      </div>
+                    </>
                   )
                 })()}
 
