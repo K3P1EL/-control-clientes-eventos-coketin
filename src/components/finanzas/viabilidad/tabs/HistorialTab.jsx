@@ -122,37 +122,50 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
 
                 {/* 3 perspectives: vendí / cobré / tengo */}
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 12, marginBottom: 8 }}>
-                  {/* ¿Cuánto vendí? */}
                   <div style={{ background: "rgba(16,185,129,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(16,185,129,0.15)" }}>
                     <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Vendí (nuevos)</div>
                     <div style={{ fontWeight: 700, color: "#34d399", fontFamily: "monospace" }}>{fmtS(d.deNuevos ?? d.ganancia ?? 0)}</div>
                   </div>
-                  {/* ¿Cuánto cobré de antes? */}
                   {(d.deAnteriores || 0) > 0 && (
                     <div style={{ background: "rgba(139,92,246,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(139,92,246,0.15)" }}>
                       <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Cobré (anteriores)</div>
                       <div style={{ fontWeight: 700, color: "#a78bfa", fontFamily: "monospace" }}>{fmtS(d.deAnteriores)}</div>
                     </div>
                   )}
-                  {/* ¿Cuánto tengo? */}
                   <div style={{ background: "rgba(14,165,233,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(14,165,233,0.15)" }}>
                     <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>En caja</div>
                     <div style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace" }}>{fmtS(d.enCaja || 0)}</div>
                   </div>
-                  {/* Gastos */}
                   <div style={{ background: "rgba(239,68,68,0.06)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(239,68,68,0.15)" }}>
                     <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Gastos</div>
                     <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(d.gastoSemanal || d.gastoMes || 0)}</div>
                   </div>
-                  {/* Viabilidad */}
-                  <div style={{ background: (d.libre || 0) >= 0 ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", border: `1px solid ${(d.libre || 0) >= 0 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}` }}>
-                    <div style={{ color: "#71717a", fontSize: 9, textTransform: "uppercase" }}>Libre</div>
-                    <div style={{ fontWeight: 800, fontFamily: "monospace", fontSize: 14, color: (d.libre || 0) >= 0 ? "#34d399" : "#f87171" }}>
-                      {(d.libre || 0) >= 0 ? `+${fmtS(d.libre)}` : fmtS(d.libre || 0)}
-                    </div>
-                    <div style={{ fontSize: 8, color: "#52525b" }}>en caja - gastos</div>
-                  </div>
                 </div>
+
+                {/* 3 perspectivas de "Libre" — ¿alcanzó la semana? */}
+                {(() => {
+                  const gastos = d.gastoSemanal || d.gastoMes || 0
+                  const libreVendi = (d.deNuevos ?? d.ganancia ?? 0) - gastos
+                  const libreTotal = (d.ganancia || 0) - gastos
+                  const libreCaja = (d.enCaja || 0) - gastos
+                  const showTotal = (d.deAnteriores || 0) > 0
+                  const box = (label, value, hint, mainColor) => (
+                    <div style={{ flex: 1, minWidth: 120, background: value >= 0 ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", borderRadius: 8, padding: "10px 12px", border: `1px solid ${value >= 0 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}` }}>
+                      <div style={{ color: mainColor, fontSize: 9, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+                      <div style={{ fontWeight: 800, fontFamily: "monospace", fontSize: 14, color: value >= 0 ? "#34d399" : "#f87171", marginTop: 2 }}>
+                        {value >= 0 ? `+${fmtS(value)}` : fmtS(value)}
+                      </div>
+                      <div style={{ fontSize: 8, color: "#52525b", marginTop: 2 }}>{hint}</div>
+                    </div>
+                  )
+                  return (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                      {box("Libre (ventas)", libreVendi, "vendí - gastos", "#34d399")}
+                      {showTotal && box("Libre (cobrado)", libreTotal, "vendí + cobré anteriores - gastos", "#a78bfa")}
+                      {box("Libre (en caja)", libreCaja, "solo lo que tengo - gastos", "#38bdf8")}
+                    </div>
+                  )
+                })()}
 
                 {/* Apoyo line — shows subsidy impact */}
                 {(d.apoyo || 0) > 0 && (() => {
