@@ -19,17 +19,18 @@ export default function FullPlataView({ activeContracts }) {
       const entries = []
       ;(c.adelantos || []).forEach(a => {
         if (a.noTrack || !a.monto || a.enCaja) return
-        if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Adelanto", modal: a.modalidad })
+        if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Adelanto", modal: a.modalidad, fecha: a.fecha })
       })
       ;(c.cobros || []).forEach(a => {
         if (a.noTrack || !a.monto || a.enCaja) return
-        if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Cobro", modal: a.modalidad })
+        if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Cobro", modal: a.modalidad, fecha: a.fecha })
       })
-      // Client-side pendiente (whatever the client still owes) goes to "Por cobrar"
-      // This is independent of employee-held money — a contract can have both:
-      // money stuck with Loli AND money the client hasn't paid yet.
+      // Client-side pendiente goes to "Por cobrar". Use the latest cobro's fecha (if any)
+      // or the contract's home date as the reference for when the debt started.
       if (calc.pendiente > 0) {
-        entries.push({ persona: "Por cobrar", monto: calc.pendiente, tipo: "Pendiente", modal: "" })
+        const latestCobroFecha = (c.cobros || []).filter(a => a.fecha).slice(-1)[0]?.fecha
+        const homeFecha = (c.adelantos || []).find(a => a.fecha)?.fecha
+        entries.push({ persona: "Por cobrar", monto: calc.pendiente, tipo: "Pendiente", modal: "", fecha: latestCobroFecha || homeFecha || "" })
       }
       entries.forEach(e => {
         const key = e.persona in personas ? e.persona : "Otro"
@@ -88,10 +89,11 @@ export default function FullPlataView({ activeContracts }) {
               <div style={{ padding: "4px 0" }}>
                 {data.contratos.map((ct, i) => (
                   <div key={i} style={{ padding: "8px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: i < data.contratos.length - 1 ? "1px solid rgba(63,63,70,0.15)" : "none" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: "#38bdf8" }}>{ct.contractId}</span>
                       <DarkBadge color={ct.tipo === "Adelanto" ? "green" : ct.tipo === "Cobro" ? "blue" : "yellow"}>{ct.tipo}</DarkBadge>
                       {ct.modal && <span style={{ fontSize: 10, color: "#52525b" }}>{ct.modal}</span>}
+                      {ct.fecha && <span style={{ fontSize: 9, color: "#52525b", fontFamily: "monospace" }}>{(() => { const p = ct.fecha.split("-"); return p.length === 3 ? `${p[2]}-${["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+p[1]-1] || p[1]}` : ct.fecha })()}</span>}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "#f87171" }}>{formatMoney(Math.round(ct.monto))}</span>
                   </div>
