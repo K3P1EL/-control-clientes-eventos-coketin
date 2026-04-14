@@ -21,9 +21,15 @@ export default function MonthlyView({ activeContracts, anios, currentMonthNum, c
   const toggle = (m) => setSelected(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m].sort((a, b) => a - b))
   const selectQuarter = (q) => setSelected(QUARTERS[q])
 
+  // Pass ALL year's contracts so calcSummary can detect "de anteriores"
+  // (cobros from other months that fell in this period)
+  const yearContracts = useMemo(
+    () => activeContracts.filter(c => (c.anio || 2026) === selYear),
+    [activeContracts, selYear]
+  )
   const summaries = selected.map(m => ({
     id: MESES_CORTO[m],
-    summary: calcSummary(activeContracts.filter(c => (c.anio || 2026) === selYear && c.mes === m), { type: "mes", value: m, year: selYear }),
+    summary: calcSummary(yearContracts, { type: "mes", value: m, year: selYear }),
   }))
 
   const monthGridStyle = (m) => {

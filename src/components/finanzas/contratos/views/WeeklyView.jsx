@@ -30,10 +30,16 @@ export default function WeeklyView({ activeContracts, anios, currentWeekNum, cur
 
   const rangeWeeks = []
   for (let i = rangeFrom; i <= rangeTo; i++) rangeWeeks.push(i)
-  const summaries = rangeWeeks.filter(w => yearWeeks.includes(w)).map(w => ({
+  // Pass ALL year's contracts so calcSummary can detect "de anteriores"
+  // (cobros from other weeks that fell in this period)
+  const yearContracts = useMemo(
+    () => activeContracts.filter(c => (c.anio || 2026) === selYear),
+    [activeContracts, selYear]
+  )
+  const summaries = rangeWeeks.map(w => ({
     id: w,
-    summary: calcSummary(activeContracts.filter(c => (c.anio || 2026) === selYear && c.semana === w), { type: "semana", value: w, year: selYear }),
-  }))
+    summary: calcSummary(yearContracts, { type: "semana", value: w, year: selYear }),
+  })).filter(s => s.summary.registros > 0 || s.summary.deAnteriores > 0)
   const allWeekOptions = []
   for (let i = 1; i <= maxWeek; i++) allWeekOptions.push(i)
 
