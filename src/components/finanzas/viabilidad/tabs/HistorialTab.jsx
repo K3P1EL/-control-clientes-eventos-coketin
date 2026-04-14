@@ -128,10 +128,8 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                   const totalCobrado = cobradoNuevos + deAnteriores
                   const libreNuevos = cobradoNuevos - gastos
                   const libreTotal = totalCobrado - gastos
-                  const showAnteriores = deAnteriores > 0
-
-                  const box = (label, value, hint, accent, isLibre) => (
-                    <div style={{ flex: 1, minWidth: 130, background: isLibre ? (value >= 0 ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)") : `${accent}0d`, borderRadius: 8, padding: "10px 12px", border: `1px solid ${isLibre ? (value >= 0 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)") : `${accent}40`}` }}>
+                  const box = (label, value, hint, accent, isLibre, dimmed) => (
+                    <div style={{ flex: 1, minWidth: 130, opacity: dimmed ? 0.5 : 1, background: isLibre ? (value >= 0 ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)") : `${accent}0d`, borderRadius: 8, padding: "10px 12px", border: `1px solid ${isLibre ? (value >= 0 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)") : `${accent}40`}` }}>
                       <div style={{ color: accent, fontSize: 9, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
                       <div style={{ fontWeight: 800, fontFamily: "monospace", fontSize: 14, color: isLibre ? (value >= 0 ? "#34d399" : "#f87171") : accent, marginTop: 2 }}>
                         {isLibre ? (value >= 0 ? `+${fmtS(value)}` : fmtS(value)) : fmtS(value)}
@@ -142,17 +140,17 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
 
                   return (
                     <>
-                      {/* Montos cobrados */}
+                      {/* Montos cobrados — siempre 3 perspectivas + gastos */}
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-                        {box("Cobrado de nuevos", cobradoNuevos, "contratos de esta semana", "#34d399", false)}
-                        {showAnteriores && box("De anteriores", deAnteriores, "cobros de semanas pasadas", "#a78bfa", false)}
-                        {showAnteriores && box("Total cobrado", totalCobrado, "nuevos + anteriores", "#38bdf8", false)}
-                        {box("Gastos", gastos, "lo que costó operar", "#f87171", false)}
+                        {box("Cobrado de nuevos", cobradoNuevos, "contratos de esta semana", "#34d399", false, false)}
+                        {box("De anteriores", deAnteriores, "cobros de semanas pasadas", "#a78bfa", false, deAnteriores === 0)}
+                        {box("Total cobrado", totalCobrado, "nuevos + anteriores", "#38bdf8", false, false)}
+                        {box("Gastos", gastos, "lo que costó operar", "#f87171", false, false)}
                       </div>
                       {/* Libres — ¿alcanza? */}
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                        {box("Libre solo nuevos", libreNuevos, "cobrado de nuevos - gastos", "#34d399", true)}
-                        {showAnteriores && box("Libre total", libreTotal, "total cobrado - gastos", "#38bdf8", true)}
+                        {box("Libre solo nuevos", libreNuevos, "cobrado nuevos - gastos", "#34d399", true, false)}
+                        {box("Libre total", libreTotal, "total cobrado - gastos", "#38bdf8", true, deAnteriores === 0)}
                       </div>
                     </>
                   )
