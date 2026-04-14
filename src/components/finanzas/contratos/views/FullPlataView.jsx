@@ -25,8 +25,10 @@ export default function FullPlataView({ activeContracts }) {
         if (a.noTrack || !a.monto || a.enCaja) return
         if (a.recibio && a.recibio !== "Yo") entries.push({ persona: a.recibio, monto: a.monto, tipo: "Cobro", modal: a.modalidad })
       })
-      if (entries.length === 0 && calc.pendiente > 0) {
-        // No employee has uncollected money — the pendiente is from the client
+      // Client-side pendiente (whatever the client still owes) goes to "Por cobrar"
+      // This is independent of employee-held money — a contract can have both:
+      // money stuck with Loli AND money the client hasn't paid yet.
+      if (calc.pendiente > 0) {
         entries.push({ persona: "Por cobrar", monto: calc.pendiente, tipo: "Pendiente", modal: "" })
       }
       entries.forEach(e => {
