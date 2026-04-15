@@ -13,7 +13,7 @@ import FullPlataView from "./views/FullPlataView"
 // Owns view-mode + filter state. Hands off persistence to useContratos
 // Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
 // so switching between Contratos ↔ Caja keeps the same time window.
-export default function ContratosModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth }) {
+export default function ContratosModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, prodTags = [] }) {
   const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handlePermanentDelete, handleReset, calcSummary } = useContratos()
 
   const [editContract, setEditContract] = useState(undefined)
@@ -136,7 +136,7 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
       )}
 
       {editContract !== undefined && (
-        <ContractModal contract={editContract} onSave={handleSave} onClose={() => setEditContract(undefined)} nextId={nextContractId} />
+        <ContractModal contract={editContract} onSave={handleSave} onClose={() => setEditContract(undefined)} nextId={nextContractId} prodTags={prodTags} />
       )}
       {deleteId && (
         <ConfirmModal message={`¿Seguro que quieres eliminar el contrato ${deleteId}?`} onConfirm={() => { handleDelete(deleteId); setDeleteId(null) }} onCancel={() => setDeleteId(null)} />

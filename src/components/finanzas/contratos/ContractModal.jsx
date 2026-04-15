@@ -53,12 +53,18 @@ function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyl
 }
 
 // Modal to create or edit a contract. `contract` is null/undefined for new.
-export default function ContractModal({ contract, onSave, onClose, nextId }) {
+export default function ContractModal({ contract, onSave, onClose, nextId, prodTags = [] }) {
   const isNew = !contract
   const normalized = contract ? normalizeContract(contract) : null
   const [form, setForm] = useState(normalized || defaultForm(nextId))
+  const [showServicios, setShowServicios] = useState(false)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const calc = calcContract(form)
+  const productos = form.productos || []
+  const toggleProducto = (p) => setForm(prev => {
+    const curr = prev.productos || []
+    return { ...prev, productos: curr.includes(p) ? curr.filter(x => x !== p) : [...curr, p] }
+  })
 
   // Array helpers
   const setAdelanto = (idx, entry) => setForm(p => ({ ...p, adelantos: p.adelantos.map((a, i) => i === idx ? entry : a) }))
@@ -136,6 +142,39 @@ export default function ContractModal({ contract, onSave, onClose, nextId }) {
               </label>
             </div>
           </div>
+          {/* Servicios — colapsable, reutiliza producto_tags */}
+          {prodTags.length > 0 && (
+            <div style={{ background: "rgba(39,39,42,0.4)", borderRadius: 10, border: "1px solid rgba(63,63,70,0.4)", overflow: "hidden" }}>
+              <button type="button" onClick={() => setShowServicios(s => !s)}
+                style={{ width: "100%", padding: "10px 14px", background: "transparent", border: "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#d4d4d8", fontSize: 12, fontWeight: 700 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  🏷️ Servicios
+                  {productos.length > 0 ? (
+                    <span style={{ fontSize: 11, color: "#34d399", fontWeight: 600 }}>
+                      {productos.slice(0, 3).join(" + ")}{productos.length > 3 ? ` + ${productos.length - 3} más` : ""}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 10, color: "#52525b", fontWeight: 500 }}>Ninguno seleccionado</span>
+                  )}
+                </span>
+                <span style={{ color: "#71717a", fontSize: 12 }}>{showServicios ? "▲" : "▼"}</span>
+              </button>
+              {showServicios && (
+                <div style={{ padding: "8px 14px 14px", display: "flex", flexWrap: "wrap", gap: 6, borderTop: "1px solid rgba(63,63,70,0.4)" }}>
+                  {prodTags.map(p => {
+                    const active = productos.includes(p)
+                    return (
+                      <button key={p} type="button" onClick={() => toggleProducto(p)}
+                        style={{ padding: "5px 10px", borderRadius: 16, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${active ? "rgba(16,185,129,0.5)" : "rgba(63,63,70,0.6)"}`, background: active ? "rgba(16,185,129,0.15)" : "rgba(24,24,27,0.6)", color: active ? "#34d399" : "#71717a", transition: "all 0.15s" }}>
+                        {active ? "✓ " : ""}{p}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={groupStyle}><label style={cDark.label}>Notas</label><input style={fs} value={form.notas} onChange={e => set("notas", e.target.value)} placeholder="Notas del evento..." /></div>
 
           {(() => {

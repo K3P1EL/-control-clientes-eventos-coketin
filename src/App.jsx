@@ -872,7 +872,7 @@ export default function App() {
           {tab==="agenda"    && <Agenda clients={clients} user={user} adm={adm} goToClient={goToClient} onUpdateContrato={onUpdateContrato} />}
           {tab==="auditoria" && <Audit regs={regs} photos={photos} />}
           {tab==="dashboard" && <Dash regs={regs} adm={adm} />}
-          {tab==="finanzas" && adm && <Finanzas />}
+          {tab==="finanzas" && adm && <Finanzas prodTags={prodTags} />}
           {tab==="admin" && adm && (
             <Admin
               users={users} tags={tags} locales={locales} prodTags={prodTags}

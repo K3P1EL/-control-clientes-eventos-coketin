@@ -30,7 +30,7 @@ const MODULES = [
   { id: "caja", label: "Caja", icon: "💰" },
 ]
 
-export default function Finanzas() {
+export default function Finanzas({ prodTags = [] }) {
   const [activeModule, setActiveModule] = useState("viabilidad")
 
   const now = peruNow()
@@ -135,6 +135,7 @@ export default function Finanzas() {
           <ContratosModule
             filterSem={filterSem} filterMes={filterMes}
             setQuickAll={setQuickAll} setQuickWeek={setQuickWeek} setQuickMonth={setQuickMonth}
+            prodTags={prodTags}
           />
         )}
         {activeModule === "caja" && (
