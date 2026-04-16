@@ -84,7 +84,14 @@ export function ensureHistorial(record) {
     if (p.desde) eventos.push({ tipo: "reingreso", fecha: p.desde })
     if (p.hasta) eventos.push({ tipo: "baja", fecha: p.hasta })
   })
-  return eventos.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+  eventos.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+  // Limpieza: en el modelo de eventos el estado default es "activo desde
+  // siempre". Un reingreso inicial (sin una baja previa) es un no-op.
+  // Lo sacamos para evitar renglones redundantes en la UI.
+  while (eventos.length > 0 && eventos[0].tipo === "reingreso") {
+    eventos.shift()
+  }
+  return eventos
 }
 
 export function isActiveOnDate(record, date) {
