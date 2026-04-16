@@ -24,6 +24,11 @@ export default function PeriodosEditor({ record, onChange, label = "Períodos" }
   }
   const removePeriod = (idx) => onChange(periodos.filter((_, i) => i !== idx))
   const addEmpty = () => onChange([...periodos, { desde: peruToday(), hasta: null }])
+  const limpiarHistorial = () => {
+    if (confirm("¿Volver a 'activo desde siempre'? Se borrará todo el historial de períodos.")) {
+      onChange([])
+    }
+  }
 
   return (
     <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 mt-3">
@@ -81,10 +86,18 @@ export default function PeriodosEditor({ record, onChange, label = "Períodos" }
         </div>
       )}
 
-      <button onClick={addEmpty}
-        className="mt-3 px-3 py-1 text-[11px] text-zinc-400 hover:text-sky-400 border border-zinc-700 hover:border-sky-500/40 rounded-lg transition-all">
-        + Agregar período manualmente
-      </button>
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <button onClick={addEmpty}
+          className="px-3 py-1 text-[11px] text-zinc-400 hover:text-sky-400 border border-zinc-700 hover:border-sky-500/40 rounded-lg transition-all">
+          + Agregar período manualmente
+        </button>
+        {periodos.length > 0 && (
+          <button onClick={limpiarHistorial}
+            className="px-3 py-1 text-[11px] text-zinc-500 hover:text-red-400 border border-zinc-700 hover:border-red-500/40 rounded-lg transition-all">
+            🔄 Limpiar historial (volver a activo siempre)
+          </button>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { MESES } from "../../../../lib/finanzas/constants"
-import { peruNow } from "../../../../lib/finanzas/helpers"
+import { peruNow, isActiveOnDate } from "../../../../lib/finanzas/helpers"
 
 // Per-worker monthly calendar shown when a worker row is expanded.
 // Click cycles: work day → noVino → tienda → clear. Rest day → trabajo → clear.
@@ -22,6 +22,7 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500/40 inline-block"></span>No vino</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500/40 inline-block"></span>Tienda</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70 inline-block"></span>Extra (desc.)</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-zinc-600/40 inline-block"></span>Inactivo</span>
         </div>
       </div>
       <div className="space-y-1">
@@ -35,9 +36,13 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
                 const isFeriado = effectiveTracker[d.dia] === "Feriado"
                 const isPast = isPastMonth || d.dia <= today
                 const isToday = d.dia === today && !isPastMonth
+                const fecha = new Date(year, month - 1, d.dia)
+                const isInactive = !isActiveOnDate(worker, fecha)
 
                 let bg, borderColor, textColor, label
-                if (isFeriado) {
+                if (isInactive) {
+                  bg = "rgba(39,39,42,0.2)"; borderColor = "rgba(63,63,70,0.25)"; textColor = "#3f3f46"; label = "Inactivo"
+                } else if (isFeriado) {
                   bg = "rgba(168,85,247,0.15)"; borderColor = "rgba(168,85,247,0.35)"; textColor = "#c084fc"; label = "Feriado"
                 } else if (marca === "noVino") {
                   bg = "rgba(239,68,68,0.2)"; borderColor = "rgba(239,68,68,0.5)"; textColor = "#f87171"; label = "No vino"
@@ -53,17 +58,18 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
                   bg = "rgba(39,39,42,0.4)"; borderColor = "rgba(63,63,70,0.4)"; textColor = "#52525b"; label = ""
                 }
 
+                const disabled = isFeriado || isInactive
                 return (
                   <div
                     key={d.dia}
-                    onClick={() => !isFeriado && onDayClick(d.dia, isRest)}
+                    onClick={() => !disabled && onDayClick(d.dia, isRest)}
                     style={{
                       background: bg,
                       border: `1px solid ${borderColor}`,
                       borderRadius: 12,
                       padding: "8px 10px",
-                      cursor: isFeriado ? "not-allowed" : "pointer",
-                      opacity: isFeriado ? 0.4 : 1,
+                      cursor: disabled ? "not-allowed" : "pointer",
+                      opacity: disabled ? 0.35 : 1,
                       transition: "all 0.15s",
                       position: "relative",
                     }}

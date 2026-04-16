@@ -126,8 +126,21 @@ export function darDeBaja(periodos, fecha) {
   const arr = Array.isArray(periodos) ? [...periodos] : []
   if (arr.length === 0) return [{ desde: null, hasta: fecha }]
   const openIdx = arr.findIndex(p => !p.hasta)
-  if (openIdx >= 0) arr[openIdx] = { ...arr[openIdx], hasta: fecha }
-  else arr.push({ desde: null, hasta: fecha })
+  if (openIdx >= 0) {
+    const p = arr[openIdx]
+    // Edge case: el período abierto arrancó hoy (ej: "+Agregar" clickeado
+    // por error). Cerrarlo como [hoy, hoy] es un período de 1 día que
+    // rara vez es lo que el usuario quiere. Lo eliminamos y si no queda
+    // ningún otro período, generamos el canónico "baja desde siempre".
+    if (p.desde === fecha) {
+      arr.splice(openIdx, 1)
+      if (arr.length === 0) return [{ desde: null, hasta: fecha }]
+      return arr
+    }
+    arr[openIdx] = { ...p, hasta: fecha }
+  } else {
+    arr.push({ desde: null, hasta: fecha })
+  }
   return arr
 }
 
