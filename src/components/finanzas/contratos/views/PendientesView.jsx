@@ -77,54 +77,50 @@ export default function PendientesView({ activeContracts, onEdit }) {
           <div style={{ fontSize: 12, color: "#71717a", marginTop: 4 }}>Todo lo activo ya está pagado completo</div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "56px 1fr 110px 100px 90px 80px 100px", gap: 8, padding: "6px 14px", fontSize: 10, color: "#52525b", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <span>Código</span><span>Evento</span><span>Fecha</span><span>Estado</span><span style={{ textAlign: "right" }}>Total</span><span style={{ textAlign: "right" }}>Cobrado</span><span style={{ textAlign: "right" }}>Pendiente</span>
+          </div>
           {pendientes.map(({ contract: c, calc, homeFecha, motivo }) => {
             const dias = diasAtras(homeFecha)
             const alerta = motivo === "pago" && dias !== null && dias > 14
             const fechaLabel = fmtFecha(homeFecha)
             const cobrado = calc.precioFinal - calc.pendiente
             const badgeColor = motivo === "trabajo" ? "blue" : "yellow"
-            const badgeText = motivo === "trabajo" ? "Trabajo pendiente" : motivo === "ambos" ? "Pendiente" : "Pago pendiente"
+            const badgeText = motivo === "trabajo" ? "Trabajo pend." : motivo === "ambos" ? "Pendiente" : "Pago pend."
+            const servicios = (c.productos || []).slice(0, 3).join(" + ") + ((c.productos || []).length > 3 ? ` +${c.productos.length - 3}` : "")
             return (
               <div key={c.id}
                 onClick={() => onEdit && onEdit(c)}
                 style={{
+                  display: "grid",
+                  gridTemplateColumns: "56px 1fr 110px 100px 90px 80px 100px",
+                  gap: 8,
+                  alignItems: "center",
                   background: "rgba(24,24,27,0.8)",
                   borderRadius: 10,
                   border: `1px solid ${alerta ? "rgba(239,68,68,0.35)" : motivo === "trabajo" ? "rgba(56,189,248,0.25)" : "rgba(63,63,70,0.5)"}`,
                   padding: "10px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
                   cursor: onEdit ? "pointer" : "default",
                   transition: "all 0.15s",
-                  flexWrap: "wrap",
                 }}
                 onMouseEnter={e => { if (onEdit) e.currentTarget.style.background = "rgba(63,63,70,0.35)" }}
                 onMouseLeave={e => { e.currentTarget.style.background = "rgba(24,24,27,0.8)" }}
                 title={onEdit ? "Clic para editar el contrato" : ""}
               >
-                <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#38bdf8", minWidth: 48 }}>{c.id}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#e4e4e7", minWidth: 100 }}>{c.cliente || "(sin cliente)"}</span>
-                {(c.productos || []).length > 0 && (
-                  <span style={{ fontSize: 10, color: "#34d399", fontWeight: 600 }}>
-                    {c.productos.slice(0, 3).join(" + ")}{c.productos.length > 3 ? ` +${c.productos.length - 3}` : ""}
-                  </span>
-                )}
-                {fechaLabel && (
-                  <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: alerta ? "#f87171" : "#a1a1aa", fontFamily: "monospace", fontWeight: 600, background: alerta ? "rgba(239,68,68,0.1)" : "transparent", padding: alerta ? "2px 8px" : 0, borderRadius: 6 }}>
-                    📅 {fechaLabel}
-                    {dias !== null && dias > 0 && <span style={{ opacity: 0.7 }}>({dias}d)</span>}
-                  </span>
-                )}
+                <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#38bdf8" }}>{c.id}</span>
+                <div style={{ overflow: "hidden" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#e4e4e7", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.cliente || "(sin cliente)"}</div>
+                  {servicios && <div style={{ fontSize: 10, color: "#34d399", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{servicios}</div>}
+                </div>
+                <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 600, color: alerta ? "#f87171" : "#a1a1aa", background: alerta ? "rgba(239,68,68,0.1)" : "transparent", padding: alerta ? "2px 6px" : 0, borderRadius: 6 }}>
+                  {fechaLabel ? `📅 ${fechaLabel}` : "—"}
+                  {dias !== null && dias > 0 ? ` (${dias}d)` : ""}
+                </span>
                 <DarkBadge color={badgeColor}>{badgeText}</DarkBadge>
-                <span style={{ fontSize: 11, color: "#71717a" }}>
-                  Total <span style={{ color: "#e4e4e7", fontWeight: 600, fontFamily: "monospace" }}>{formatMoney(Math.round(calc.precioFinal))}</span>
-                </span>
-                <span style={{ fontSize: 11, color: "#71717a" }}>
-                  Cobrado <span style={{ color: "#34d399", fontWeight: 600, fontFamily: "monospace" }}>{formatMoney(Math.round(cobrado))}</span>
-                </span>
-                <span style={{ marginLeft: "auto", fontSize: 15, fontWeight: 900, color: motivo === "trabajo" ? "#34d399" : "#fbbf24", fontFamily: "monospace" }}>{calc.pendiente > 0 ? formatMoney(Math.round(calc.pendiente)) : "✅ Pagado"}</span>
+                <span style={{ textAlign: "right", fontSize: 11, color: "#a1a1aa", fontFamily: "monospace", fontWeight: 600 }}>{formatMoney(Math.round(calc.precioFinal))}</span>
+                <span style={{ textAlign: "right", fontSize: 11, color: "#34d399", fontFamily: "monospace", fontWeight: 600 }}>{formatMoney(Math.round(cobrado))}</span>
+                <span style={{ textAlign: "right", fontSize: 14, fontWeight: 900, color: motivo === "trabajo" ? "#34d399" : "#fbbf24", fontFamily: "monospace" }}>{calc.pendiente > 0 ? formatMoney(Math.round(calc.pendiente)) : "✅ Pagado"}</span>
               </div>
             )
           })}
