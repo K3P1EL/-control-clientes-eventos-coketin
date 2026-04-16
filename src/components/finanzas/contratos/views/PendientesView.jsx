@@ -105,7 +105,12 @@ export default function PendientesView({ activeContracts, onEdit }) {
                 title={onEdit ? "Clic para editar el contrato" : ""}
               >
                 <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#38bdf8", minWidth: 48 }}>{c.id}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#e4e4e7", flex: "1 1 140px", minWidth: 120 }}>{c.cliente || "(sin cliente)"}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#e4e4e7", minWidth: 100 }}>{c.cliente || "(sin cliente)"}</span>
+                {(c.productos || []).length > 0 && (
+                  <span style={{ fontSize: 10, color: "#34d399", fontWeight: 600 }}>
+                    {c.productos.slice(0, 3).join(" + ")}{c.productos.length > 3 ? ` +${c.productos.length - 3}` : ""}
+                  </span>
+                )}
                 {fechaLabel && (
                   <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: alerta ? "#f87171" : "#a1a1aa", fontFamily: "monospace", fontWeight: 600, background: alerta ? "rgba(239,68,68,0.1)" : "transparent", padding: alerta ? "2px 8px" : 0, borderRadius: 6 }}>
                     📅 {fechaLabel}
