@@ -3,8 +3,16 @@ import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
 import Select from "../../ui/Select"
-import { fmt, fmtS, peruNow, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { fmt, fmtS, peruNow, getWeekNumberISO, isActiveOnDate } from "../../../../lib/finanzas/helpers"
 import WorkerCalendar from "../components/WorkerCalendar"
+import PeriodosEditor from "../components/PeriodosEditor"
+
+const TONE_BADGE = {
+  emerald: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  sky: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  amber: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  zinc: "bg-zinc-700/30 text-zinc-400 border-zinc-600/40",
+}
 
 function WeeklyPaySummary({ workersCalc, calendarDays, year, month }) {
   const now = peruNow()
@@ -24,6 +32,8 @@ function WeeklyPaySummary({ workersCalc, calendarDays, year, month }) {
       let diasTrabajados = 0
       let diasFaltados = 0
       weekDays.forEach(d => {
+        const fecha = new Date(year, month - 1, d.dia)
+        if (!isActiveOnDate(w, fecha)) return
         const marca = marcas[d.dia] || ""
         const isRest = w.diaDescanso && d.nombre === w.diaDescanso
         if (marca === "noVino") { diasFaltados++; return }
@@ -33,7 +43,7 @@ function WeeklyPaySummary({ workersCalc, calendarDays, year, month }) {
       const pago = diasTrabajados * w.costoDiario
       const pagoCompleto = w.pagoSemanal
       return { name: w.name, diasTrabajados, diasFaltados, costoDiario: w.costoDiario, pago, pagoCompleto }
-    })
+    }).filter(r => r.diasTrabajados > 0 || r.diasFaltados > 0)
 
     const total = rows.reduce((s, r) => s + r.pago, 0)
     const totalPresupuestado = rows.reduce((s, r) => s + r.pagoCompleto, 0)
@@ -100,6 +110,10 @@ export default function PersonalTab({
     setWorkers(prev => { const n = [...prev]; n[idx] = { ...n[idx], [field]: val }; return n })
   }, [setWorkers])
 
+  const updateWorkerPeriodos = useCallback((idx, nuevosPeriodos) => {
+    setWorkers(prev => { const n = [...prev]; n[idx] = { ...n[idx], periodos: nuevosPeriodos }; return n })
+  }, [setWorkers])
+
   const updateWorkerDay = useCallback((workerIdx, dia, isRestDay) => {
     setWorkers(prev => {
       const n = [...prev]
@@ -156,7 +170,7 @@ export default function PersonalTab({
           <tbody>
             {workersCalc.map((w, i) => (
               <React.Fragment key={i}>
-                <tr className="border-t border-zinc-800/60 hover:bg-zinc-800/30 transition-colors">
+                <tr className={`border-t border-zinc-800/60 hover:bg-zinc-800/30 transition-colors ${w.name && !w.isActiveInMonth ? "opacity-40" : ""}`}>
                   <td className="py-2 pr-2">
                     <div className="flex items-center gap-1.5">
                       <button
@@ -168,6 +182,13 @@ export default function PersonalTab({
                       </button>
                       <TextInput value={w.name} onChange={v => updateWorker(i, "name", v)} placeholder="Nombre" />
                     </div>
+                    {w.name && w.status?.label && (
+                      <div className="mt-1 ml-7">
+                        <span className={`inline-block text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${TONE_BADGE[w.status.tone] || TONE_BADGE.zinc}`}>
+                          {w.status.label}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-2"><NumInput value={workers[i].pagoSemanal} onChange={v => updateWorker(i, "pagoSemanal", v)} /></td>
                   <td className="px-2"><NumInput value={workers[i].diasTrabSem} onChange={v => updateWorker(i, "diasTrabSem", v)} min={1} /></td>
@@ -205,6 +226,13 @@ export default function PersonalTab({
                         month={month}
                         onDayClick={(dia, isRest) => updateWorkerDay(i, dia, isRest)}
                       />
+                      <div className="px-5 pb-4">
+                        <PeriodosEditor
+                          record={workers[i]}
+                          onChange={nuevos => updateWorkerPeriodos(i, nuevos)}
+                          label={`Períodos de ${w.name || "trabajador"}`}
+                        />
+                      </div>
                     </td>
                   </tr>
                 )}

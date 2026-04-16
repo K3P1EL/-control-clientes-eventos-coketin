@@ -65,6 +65,79 @@ export function parseLocalDate(d) {
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
+// ── Períodos (altas / bajas / reingresos) ───────────────────────────────
+// Un "record" (worker, servicio, apoyo) puede tener un array `periodos`:
+//   [{ desde: "YYYY-MM-DD" | null, hasta: "YYYY-MM-DD" | null }, ...]
+// `desde: null` = "desde siempre". `hasta: null` = "abierto / sigue activo".
+// Si no hay `periodos` (o está vacío) → se trata como siempre activo
+// (compatibilidad con datos anteriores).
+export function isActiveOnDate(record, date) {
+  const periodos = record?.periodos
+  if (!Array.isArray(periodos) || periodos.length === 0) return true
+  const d = date instanceof Date ? date : parseLocalDate(date)
+  if (!d) return true
+  const ref = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  return periodos.some(p => {
+    const desde = p.desde ? parseLocalDate(p.desde) : null
+    const hasta = p.hasta ? parseLocalDate(p.hasta) : null
+    if (desde && ref < desde) return false
+    if (hasta && ref > hasta) return false
+    return true
+  })
+}
+
+export function getOpenPeriod(record) {
+  const periodos = record?.periodos
+  if (!Array.isArray(periodos)) return null
+  return periodos.find(p => !p.hasta) || null
+}
+
+// Para mostrar un badge de estado en la tabla según el mes visto.
+export function getRecordStatus(record, viewYear, viewMonth) {
+  const periodos = record?.periodos
+  if (!Array.isArray(periodos) || periodos.length === 0) {
+    return { active: true, label: "Activo", tone: "emerald" }
+  }
+  const firstDay = new Date(viewYear, viewMonth - 1, 1)
+  const lastDay = new Date(viewYear, viewMonth - 1, getDaysInMonth(viewYear, viewMonth))
+  const activeStart = isActiveOnDate(record, firstDay)
+  const activeEnd = isActiveOnDate(record, lastDay)
+  const open = getOpenPeriod(record)
+
+  if (activeStart && activeEnd) return { active: true, label: "Activo", tone: "emerald" }
+  if (!activeStart && activeEnd && open?.desde) {
+    return { active: true, label: `Regresó ${fmtFecha(open.desde)}`, tone: "sky" }
+  }
+  if (activeStart && !activeEnd) {
+    const lastClosed = [...periodos].reverse().find(p => p.hasta)
+    return { active: false, label: `Baja ${fmtFecha(lastClosed?.hasta)}`, tone: "amber" }
+  }
+  // Ningún día del mes activo
+  const lastClosed = [...periodos].reverse().find(p => p.hasta)
+  return {
+    active: false,
+    label: lastClosed ? `Inactivo desde ${fmtFecha(lastClosed.hasta)}` : "Inactivo",
+    tone: "zinc",
+  }
+}
+
+// Acciones que agregan / cierran períodos. Devuelven el array nuevo.
+export function darDeBaja(periodos, fecha) {
+  const arr = Array.isArray(periodos) ? [...periodos] : []
+  if (arr.length === 0) return [{ desde: null, hasta: fecha }]
+  const openIdx = arr.findIndex(p => !p.hasta)
+  if (openIdx >= 0) arr[openIdx] = { ...arr[openIdx], hasta: fecha }
+  else arr.push({ desde: null, hasta: fecha })
+  return arr
+}
+
+export function readmitir(periodos, fecha) {
+  const arr = Array.isArray(periodos) ? [...periodos] : []
+  if (arr.some(p => !p.hasta)) return arr // ya hay uno abierto
+  arr.push({ desde: fecha, hasta: null })
+  return arr
+}
+
 // ── Date display ────────────────────────────────────────────────────────
 export function fmtFecha(f) {
   if (!f) return "—"

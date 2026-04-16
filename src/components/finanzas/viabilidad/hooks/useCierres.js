@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
-import { peruNow, getWeekNumberISO, getISOYear, getDaysInMonth, parseLocalDate, calcContract } from "../../../../lib/finanzas/helpers"
+import { peruNow, getWeekNumberISO, getISOYear, getDaysInMonth, parseLocalDate, calcContract, isActiveOnDate } from "../../../../lib/finanzas/helpers"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
@@ -53,7 +53,8 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month
     if (!w.name) return
     const costoDiario = (w.pagoSemanal && w.diasTrabSem > 0) ? w.pagoSemanal / w.diasTrabSem : 0
     const marcas = w.diasMarcados || {}
-    weekDays.forEach(({ dia, nombre }) => {
+    weekDays.forEach(({ dia, month: dm, year: dy, nombre }) => {
+      if (!isActiveOnDate(w, new Date(dy, dm - 1, dia))) return
       const marca = marcas[dia] || ""
       const isRest = w.diaDescanso && nombre === w.diaDescanso
       if (marca === "noVino") return

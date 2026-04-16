@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { getDaysInMonth, getDayName, getWeekNumberCal, getWeekNumberISO, peruNow } from "../../../../lib/finanzas/helpers"
+import { getDaysInMonth, getDayName, getWeekNumberCal, getWeekNumberISO, peruNow, isActiveOnDate, getRecordStatus } from "../../../../lib/finanzas/helpers"
 
 // All the derived numbers for one month live here. Pure useMemo chain —
 // nothing reads from outside its `inputs` object, so adding/removing a
@@ -31,22 +31,31 @@ export function useViabilidadCalc(inputs) {
 
   // Operating-day baseline = calendar days - boss-rest days - holidays/closed
   // + days an employee covered the shop on a normal closed day + cobertura extra.
+  // Un trabajador "encargado" solo resta descansos en los días que estuvo activo
+  // (períodos). Un trabajador inactivo todo el día no cierra la tienda ese día.
   const diasOpBase = useMemo(() => {
     const essentialWorkers = workers.filter(w => w.name && w.negocioDepende && w.diaDescanso)
-    const restDayNames = essentialWorkers.length > 0 ? [...new Set(essentialWorkers.map(w => w.diaDescanso))] : []
-    const diasDescansoEncargado = calendarDays.filter(d => restDayNames.includes(d.nombre)).length
-    const diasFeriadoCerrado = calendarDays.filter(d =>
-      (tracker[d.dia] === "Feriado" || tracker[d.dia] === "Cerrado") && !restDayNames.includes(d.nombre)
-    ).length
+    const diasDescansoEncargado = calendarDays.filter(d => {
+      const fecha = new Date(year, month - 1, d.dia)
+      return essentialWorkers.some(w => w.diaDescanso === d.nombre && isActiveOnDate(w, fecha))
+    }).length
+    const diasFeriadoCerrado = calendarDays.filter(d => {
+      if (tracker[d.dia] !== "Feriado" && tracker[d.dia] !== "Cerrado") return false
+      const fecha = new Date(year, month - 1, d.dia)
+      const esDescansoEncargado = essentialWorkers.some(w => w.diaDescanso === d.nombre && isActiveOnDate(w, fecha))
+      return !esDescansoEncargado
+    }).length
     const diasAbiertosExtra = new Set()
     workers.forEach(w => {
       if (!w.name || !w.diasMarcados) return
       Object.entries(w.diasMarcados).forEach(([dia, marca]) => {
-        if (marca === "tienda") diasAbiertosExtra.add(Number(dia))
+        if (marca !== "tienda") return
+        const fecha = new Date(year, month - 1, Number(dia))
+        if (isActiveOnDate(w, fecha)) diasAbiertosExtra.add(Number(dia))
       })
     })
     return diasCalendario - diasDescansoEncargado - diasFeriadoCerrado + diasAbiertosExtra.size + cobExtraDias
-  }, [workers, calendarDays, diasCalendario, cobExtraDias, tracker])
+  }, [workers, calendarDays, diasCalendario, cobExtraDias, tracker, year, month])
 
   // For days the user hasn't manually marked: assume "Operó" for past days
   // (or "Descanso" if it's the boss's rest day) and leave future days blank.
@@ -64,7 +73,9 @@ export function useViabilidadCalc(inputs) {
         const fecha = new Date(year, month - 1, d.dia)
         const esPasado = fecha < tomorrow
         if (!esPasado) { /* leave blank */ }
-        else if (encargado && d.nombre === encargado.diaDescanso) { result[d.dia] = "Descanso" }
+        else if (encargado && d.nombre === encargado.diaDescanso && isActiveOnDate(encargado, fecha)) {
+          result[d.dia] = "Descanso"
+        }
         else { result[d.dia] = "Operó" }
       }
     })
@@ -77,42 +88,68 @@ export function useViabilidadCalc(inputs) {
   const descansosProyectados = useMemo(() => {
     const encargado = workers.find(w => w.name && w.negocioDepende && w.diaDescanso)
     const diaDesc = encargado ? encargado.diaDescanso : null
-    const descPorDescanso = diaDesc ? calendarDays.filter(d => d.nombre === diaDesc).length : 0
+    const descPorDescanso = diaDesc ? calendarDays.filter(d => {
+      if (d.nombre !== diaDesc) return false
+      return isActiveOnDate(encargado, new Date(year, month - 1, d.dia))
+    }).length : 0
     const feriadosCerrados = calendarDays.filter(d => {
       const t = tracker[d.dia]
       return (t === "Feriado" || t === "Cerrado") && d.nombre !== diaDesc
     }).length
     return { total: descPorDescanso + feriadosCerrados, dia: diaDesc, descPorDescanso, feriadosCerrados }
-  }, [workers, calendarDays, tracker])
+  }, [workers, calendarDays, tracker, year, month])
 
   const resumenDescansos = useMemo(() => {
     return DIAS_SEMANA.slice(1).concat(DIAS_SEMANA.slice(0, 1)).map(dia => {
-      const trabCount = workers.filter(w => w.name && w.diaDescanso === dia).length
-      const vecesEnMes = calendarDays.filter(d => d.nombre === dia).length
-      return { dia, trabajadores: trabCount, vecesMes: vecesEnMes, descansosProyectados: trabCount * vecesEnMes }
+      const diasOfWeekday = calendarDays.filter(d => d.nombre === dia)
+      let trabCount = 0
+      let total = 0
+      workers.forEach(w => {
+        if (!w.name || w.diaDescanso !== dia) return
+        const activos = diasOfWeekday.filter(d => isActiveOnDate(w, new Date(year, month - 1, d.dia)))
+        if (activos.length > 0) trabCount++
+        total += activos.length
+      })
+      return { dia, trabajadores: trabCount, vecesMes: diasOfWeekday.length, descansosProyectados: total }
     })
-  }, [workers, calendarDays])
+  }, [workers, calendarDays, year, month])
 
+  // Por trabajador: se calcula sobre los días en que estuvo en algún período
+  // activo. Si renunció a mitad de mes, sus días proyectados se recortan al
+  // período efectivo. `isActiveInMonth` permite ocultar/marcar trabajadores
+  // que no estuvieron ningún día del mes visto.
   const workersCalc = useMemo(() => {
     return workers.map(w => {
-      if (!w.name) return { ...w, descMes: 0, diasProj: 0, diasReales: 0, costoDiario: 0, costoMesProj: 0, costoMesReal: 0, extrasNo: 0, extrasWork: 0, extrasTienda: 0 }
-      const descMes = w.diaDescanso ? calendarDays.filter(d => d.nombre === w.diaDescanso).length : 0
-      const feriadosNoDescanso = calendarDays.filter(d => effectiveTracker[d.dia] === "Feriado" && d.nombre !== w.diaDescanso).length
-      const diasProj = Math.max(0, diasCalendario - descMes - feriadosNoDescanso)
+      if (!w.name) return { ...w, descMes: 0, diasProj: 0, diasReales: 0, costoDiario: 0, costoMesProj: 0, costoMesReal: 0, extrasNo: 0, extrasWork: 0, extrasTienda: 0, activeDays: 0, isActiveInMonth: false, status: { active: true, label: "", tone: "zinc" } }
+
+      const activeCalendarDays = calendarDays.filter(d => isActiveOnDate(w, new Date(year, month - 1, d.dia)))
+      const activeDayNums = new Set(activeCalendarDays.map(d => d.dia))
+      const isActiveInMonth = activeCalendarDays.length > 0
+
+      const descMes = w.diaDescanso ? activeCalendarDays.filter(d => d.nombre === w.diaDescanso).length : 0
+      const feriadosNoDescanso = activeCalendarDays.filter(d => effectiveTracker[d.dia] === "Feriado" && d.nombre !== w.diaDescanso).length
+      const diasProj = Math.max(0, activeCalendarDays.length - descMes - feriadosNoDescanso)
+
       const marcas = w.diasMarcados || {}
-      const extrasNo = (w.extrasNoTrabajo || 0) + Object.values(marcas).filter(v => v === "noVino").length
-      const extrasWork = (w.extrasTrabajoExtra || 0) + Object.values(marcas).filter(v => v === "trabajo").length
-      const extrasTienda = (w.extrasTrabajoTienda || 0) + Object.values(marcas).filter(v => v === "tienda").length
+      const countMarks = (value) => Object.entries(marcas).filter(([dia, v]) => v === value && activeDayNums.has(Number(dia))).length
+      const extrasNo = (w.extrasNoTrabajo || 0) + countMarks("noVino")
+      const extrasWork = (w.extrasTrabajoExtra || 0) + countMarks("trabajo")
+      const extrasTienda = (w.extrasTrabajoTienda || 0) + countMarks("tienda")
       const diasReales = Math.max(0, diasProj - extrasNo + extrasWork + extrasTienda)
       const costoDiario = (w.pagoSemanal && w.diasTrabSem && w.diasTrabSem > 0) ? w.pagoSemanal / w.diasTrabSem : 0
       const costoMesProj = costoDiario * diasProj
       const costoMesReal = costoDiario * diasReales
-      return { ...w, descMes, diasProj, diasReales, costoDiario, costoMesProj, costoMesReal, extrasNo, extrasWork, extrasTienda }
+
+      const status = getRecordStatus(w, year, month)
+
+      return { ...w, descMes, diasProj, diasReales, costoDiario, costoMesProj, costoMesReal, extrasNo, extrasWork, extrasTienda, activeDays: activeCalendarDays.length, isActiveInMonth, status }
     })
-  }, [workers, calendarDays, diasCalendario, effectiveTracker])
+  }, [workers, calendarDays, effectiveTracker, year, month])
 
   const totalPersonal = useMemo(() => {
-    const active = workersCalc.filter(w => w.name)
+    // Solo sumamos los que tuvieron al menos un día activo este mes.
+    // Un trabajador inactivo todo el mes no debe cargar su pagoSemanal al presupuesto.
+    const active = workersCalc.filter(w => w.name && w.isActiveInMonth)
     return {
       pagoSemanal: active.reduce((s, w) => s + w.pagoSemanal, 0),
       descMes: active.reduce((s, w) => s + w.descMes, 0),
@@ -259,11 +296,14 @@ export function useViabilidadCalc(inputs) {
     if (weekDaysThisMonth.length === 0) return null
 
     // Personal: real cost from attendance (only days in this month have marks)
+    // Solo cuentan los días en que el trabajador estaba en un período activo.
     let personalCost = 0
     workersCalc.forEach(w => {
       if (!w.name) return
       const marcas = w.diasMarcados || {}
       weekDaysThisMonth.forEach(d => {
+        const fecha = new Date(year, month - 1, d.dia)
+        if (!isActiveOnDate(w, fecha)) return
         const marca = marcas[d.dia] || ""
         const isRest = w.diaDescanso && d.nombre === w.diaDescanso
         if (marca === "noVino") return
