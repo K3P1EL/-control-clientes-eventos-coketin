@@ -69,9 +69,10 @@ export function parseLocalDate(d) {
 // Un "record" (worker, servicio, apoyo) lleva un array `historial` con
 // eventos cronológicos, una sola fecha por evento:
 //   [{ tipo: "baja" | "reingreso", fecha: "YYYY-MM-DD" }, ...]
-// Convención:
-//   - baja en fecha X → último día activo = X (desde X+1 está inactivo)
-//   - reingreso en fecha X → primer día activo del nuevo tramo = X
+// Convención: cada evento marca el CAMBIO DE ESTADO a partir de esa
+// fecha INCLUSIVE. O sea:
+//   - baja en fecha X → desde X (inclusive) está inactivo
+//   - reingreso en fecha X → desde X (inclusive) está activo
 // Sin historial → siempre activo (default).
 // Compatibilidad: si el record tiene `periodos` (modelo viejo) se migra
 // automáticamente a eventos al leerlo.
@@ -107,14 +108,9 @@ export function isActiveOnDate(record, date) {
     const evDate = parseLocalDate(ev.fecha)
     if (!evDate) continue
     if (ref < evDate) break // evento futuro, no aplica
-    if (ev.tipo === "baja") {
-      // baja: activo hasta esa fecha inclusive. Después inactivo.
-      if (ref > evDate) active = false
-      // ref === evDate: último día, queda como estaba (activo)
-    } else if (ev.tipo === "reingreso") {
-      // reingreso: desde esa fecha inclusive, activo.
-      active = true
-    }
+    // ref >= evDate: el evento ya ocurrió o es hoy → aplica el cambio de estado.
+    if (ev.tipo === "baja") active = false
+    else if (ev.tipo === "reingreso") active = true
   }
   return active
 }
