@@ -198,6 +198,53 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               ⚠️ Se cobró {formatMoney(calc.exceso)} de más — ganancia real: {formatMoney(calc.ganancia)}
             </div>
           )}
+
+          {/* Cancelación del contrato */}
+          {form.cancelado ? (
+            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#f87171" }}>❌ CONTRATO CANCELADO</div>
+                <div style={{ fontSize: 10, color: "#a1a1aa", marginTop: 2 }}>
+                  {form.cancelInfo?.tipo === "retenido" && `Te quedaste con S/${form.cancelInfo.montoRetenido} (penalidad)`}
+                  {form.cancelInfo?.tipo === "devuelto_todo" && "Devolviste todo al cliente"}
+                  {form.cancelInfo?.tipo === "devuelto_parcial" && `Devolviste S/${form.cancelInfo.montoDevuelto}, retuviste S/${form.cancelInfo.montoRetenido}`}
+                  {" · Caja se maneja manualmente"}
+                </div>
+              </div>
+              <button type="button" onClick={() => set("cancelado", false) || set("cancelInfo", null)}
+                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.4)", background: "rgba(16,185,129,0.1)", color: "#34d399", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+                ↩ Reactivar
+              </button>
+            </div>
+          ) : !isNew && (
+            <button type="button" onClick={() => {
+              const totalPagado = (form.adelantos || []).reduce((s, a) => s + (a.monto || 0), 0) + (form.cobros || []).reduce((s, a) => s + (a.monto || 0), 0)
+              const choice = window.prompt(
+                `¿Cancelar contrato N ${form.id}?\n\n` +
+                `El cliente pagó hasta ahora: S/${totalPagado}\n\n` +
+                `¿Qué pasa con esa plata?\n` +
+                `  1 = Me quedo con todo (penalidad)\n` +
+                `  2 = Devuelvo todo\n` +
+                `  3 = Devuelvo parcial (te pregunto cuánto)\n\n` +
+                `Escribe 1, 2 o 3:`
+              )
+              if (!choice) return
+              let info = null
+              if (choice === "1") info = { tipo: "retenido", montoRetenido: totalPagado, montoDevuelto: 0, fecha: new Date().toISOString().slice(0, 10) }
+              else if (choice === "2") info = { tipo: "devuelto_todo", montoRetenido: 0, montoDevuelto: totalPagado, fecha: new Date().toISOString().slice(0, 10) }
+              else if (choice === "3") {
+                const devStr = window.prompt(`¿Cuánto devolviste al cliente? (max S/${totalPagado})`)
+                const dev = Math.max(0, Math.min(totalPagado, parseFloat(devStr) || 0))
+                info = { tipo: "devuelto_parcial", montoRetenido: totalPagado - dev, montoDevuelto: dev, fecha: new Date().toISOString().slice(0, 10) }
+              }
+              else { alert("Opción inválida"); return }
+              setForm(p => ({ ...p, cancelado: true, cancelInfo: info }))
+              alert("Contrato cancelado. Recuerda registrar en Caja si devolviste plata.")
+            }}
+              style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.05)", color: "#f87171", cursor: "pointer", fontSize: 11, fontWeight: 600, alignSelf: "flex-start" }}>
+              ❌ Cancelar contrato (cliente se arrepintió)
+            </button>
+          )}
         </div>
         <div style={{ padding: "16px 24px", borderTop: "1px solid #3f3f46", display: "flex", gap: 10, justifyContent: "flex-end", position: "sticky", bottom: 0, background: "#18181b", borderRadius: "0 0 18px 18px" }}>
           <button onClick={safeClose} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #3f3f46", background: "#27272a", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#a1a1aa" }}>Cancelar</button>

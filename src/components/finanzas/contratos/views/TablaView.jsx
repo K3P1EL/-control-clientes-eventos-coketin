@@ -108,7 +108,7 @@ export default function TablaView({
                     <td style={cDark.td}>{(c.descuento > 0 || c.gastos > 0) ? <>{c.descuento > 0 && <div style={{ color: "#fbbf24" }}>Desc: -{formatMoney(c.descuento)}</div>}{c.gastos > 0 && <div style={{ color: "#f87171" }}>Gastos: -{formatMoney(c.gastos)}</div>}</> : "—"}</td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#34d399" }}>{formatMoney(calc.ganancia)}{calc.exceso > 0 && <div style={{ fontSize: 9, color: "#34d399", opacity: 0.7 }}>+{formatMoney(calc.exceso)} extra</div>}</td>
                     <td style={cDark.td}>{formatMoney(calc.enCaja)}</td>
-                    <td style={cDark.td}>{calc.pendiente > 0 ? <DarkBadge color="red">{formatMoney(calc.pendiente)}</DarkBadge> : <DarkBadge color="green">Pagado</DarkBadge>}</td>
+                    <td style={cDark.td}>{c.cancelado ? <DarkBadge color="red">❌ Cancelado</DarkBadge> : calc.pendiente > 0 ? <DarkBadge color="red">{formatMoney(calc.pendiente)}</DarkBadge> : <DarkBadge color="green">Pagado</DarkBadge>}</td>
                     <td style={cDark.td}>{c.depend ? <DarkBadge color="yellow">SÍ</DarkBadge> : <span style={{ color: "#3f3f46" }}>No</span>}</td>
                     <td style={{ ...cDark.td, fontSize: 11, color: "#71717a", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.notas}</td>
                     <td style={{ ...cDark.td, whiteSpace: "nowrap" }}>

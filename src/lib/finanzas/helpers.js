@@ -145,6 +145,17 @@ export function getContractHomeDate(c) {
 // Single source of truth for the derived numbers of one contract.
 // Supports both old scalar format and new arrays format.
 export function calcContract(c) {
+  // Cancelled contract: only the retained amount counts as ganancia.
+  // Everything else is 0. Caja movements are handled manually by the owner.
+  if (c.cancelado) {
+    const retenido = c.cancelInfo?.montoRetenido || 0
+    return {
+      precioFinal: retenido, porCobrar: 0, pendiente: 0, ganancia: retenido,
+      enCaja: retenido, porRecibir: 0, exceso: 0,
+      estado: "Cancelado",
+    }
+  }
+
   const totalAdel = Array.isArray(c.adelantos)
     ? c.adelantos.reduce((s, a) => s + (a.monto || 0), 0)
     : (c.adelanto || 0)
