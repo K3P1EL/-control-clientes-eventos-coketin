@@ -151,7 +151,15 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
             <div style={groupStyle}><label style={cDark.label}>Código</label><input style={{ ...fs, background: isNew ? "#27272a" : "#1f1f23" }} value={form.id} onChange={e => isNew && set("id", e.target.value)} readOnly={!isNew} /></div>
             <div style={groupStyle}><label style={cDark.label}>Cliente</label><input style={fs} value={form.cliente} onChange={e => set("cliente", e.target.value)} placeholder="Nombre..." /></div>
             <div style={groupStyle}><label style={cDark.label}>Total Contrato</label><DarkMoneyInput style={fs} value={form.total} onChange={v => set("total", v)} /></div>
-            <div style={groupStyle}><label style={cDark.label}>📅 Fecha evento</label><input style={fs} type="date" value={form.fechaEvento || ""} onChange={e => set("fechaEvento", e.target.value)} /></div>
+            <div style={groupStyle}><label style={cDark.label}>📅 Fecha evento</label><input style={fs} type="date" value={form.fechaEvento || ""} onChange={e => {
+              const fecha = e.target.value
+              setForm(p => {
+                const cobros = [...(p.cobros || [])]
+                const emptyIdx = cobros.findIndex(c => !c.fecha || !c.fecha.trim())
+                if (emptyIdx >= 0 && fecha) cobros[emptyIdx] = { ...cobros[emptyIdx], fecha }
+                return { ...p, fechaEvento: fecha, cobros }
+              })
+            }} /></div>
           </div>
 
           {/* ADELANTOS */}
