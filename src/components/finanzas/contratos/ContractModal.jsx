@@ -37,8 +37,8 @@ function quickAddToCaja(cajaEntry) {
 function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyle, cajaLabel }) {
   const upd = (k, v) => onChange({ ...entry, [k]: v })
   const [cajaOpen, setCajaOpen] = useState(false)
-  const [cajaSaved, setCajaSaved] = useState(false)
   const [cajaForm, setCajaForm] = useState(null)
+  const cajaSaved = entry.registradoCaja || false
   if (entry.noTrack) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
@@ -83,7 +83,7 @@ function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyl
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
             <button type="button" onClick={() => setCajaOpen(false)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #3f3f46", background: "transparent", color: "#71717a", cursor: "pointer", fontSize: 10 }}>Cancelar</button>
-            <button type="button" onClick={() => { quickAddToCaja(cajaForm); setCajaSaved(true); setCajaOpen(false) }}
+            <button type="button" onClick={() => { if (!cajaForm.monto || cajaForm.monto <= 0) return; quickAddToCaja(cajaForm); upd("registradoCaja", true); setCajaOpen(false) }}
               style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
               Guardar en Caja
             </button>

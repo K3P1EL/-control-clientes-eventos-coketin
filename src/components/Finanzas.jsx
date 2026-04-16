@@ -46,6 +46,7 @@ export default function Finanzas({ prodTags = [] }) {
   const setQuickMonth = (m) => { setFilterSem(""); setFilterMes(String(m)) }
 
 
+
   // Snapshots for export (lightweight, no CRUD)
   const contractsSnap = useContratosSnapshot()
   const activeContracts = useMemo(() => (contractsSnap || []).filter(c => !c.eliminado), [contractsSnap])
