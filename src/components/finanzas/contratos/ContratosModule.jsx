@@ -9,6 +9,7 @@ import TablaView from "./views/TablaView"
 import WeeklyView from "./views/WeeklyView"
 import MonthlyView from "./views/MonthlyView"
 import FullPlataView from "./views/FullPlataView"
+import PendientesView from "./views/PendientesView"
 
 // Owns view-mode + filter state. Hands off persistence to useContratos
 // Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
@@ -49,6 +50,14 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
 
   if (!loaded) return <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">Cargando...</div>
 
+  // Count of pending contracts (across all periods) for the badge.
+  const pendientesCount = useMemo(() => {
+    return activeContracts.filter(c => {
+      const calc = calcContract(c)
+      return calc.estado === "Pendiente"
+    }).length
+  }, [activeContracts])
+
   const viewBtns = [
     { id: "t-sem", label: filterSem ? `Sem ${filterSem}${+filterSem === currentWeekNum ? " ←" : ""}` : `Sem ${currentWeekNum}`, action: () => { setQuickWeek(currentWeekNum); setView("tabla") }, active: view === "tabla" && !!filterSem },
     { id: "t-mes", label: filterMes && !filterSem ? `${MESES_CORTO[+filterMes]}` : MESES_CORTO[currentMonthNum], action: () => { setQuickMonth(currentMonthNum); setView("tabla") }, active: view === "tabla" && !!filterMes && !filterSem },
@@ -57,6 +66,7 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
     { id: "v-semanal", label: "📅 Comparar semanas", action: () => setView("semanal"), active: view === "semanal" },
     { id: "v-mensual", label: "🗓️ Comparar meses", action: () => setView("mensual"), active: view === "mensual" },
     { id: "v-plata", label: "🔍 Mi Plata", action: () => setView("plata"), active: view === "plata" },
+    { id: "v-pend", label: `⏳ Pendientes${pendientesCount > 0 ? ` (${pendientesCount})` : ""}`, action: () => setView("pendientes"), active: view === "pendientes" },
   ]
 
   return (
@@ -108,6 +118,7 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
         <MonthlyView activeContracts={activeContracts} anios={anios} currentMonthNum={currentMonthNum} currentYear={currentYear} calcSummary={calcSummary} />
       )}
       {view === "plata" && <FullPlataView activeContracts={activeContracts} onEdit={setEditContract} />}
+      {view === "pendientes" && <PendientesView activeContracts={activeContracts} onEdit={setEditContract} />}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <button onClick={() => setEditContract(null)}
