@@ -44,12 +44,15 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
   const filteredSummary = useMemo(() => calcSummary(filtered), [filtered, calcSummary])
   const quickLabel = filterSem ? `Semana ${filterSem}${+filterSem === currentWeekNum ? " (actual)" : ""}` : filterMes ? `${MESES_CORTO[+filterMes]} ${currentYear}` : "Todo"
 
-  // Conteo de contratos pendientes (para badge en el botón). Debe ir ANTES
+  // Conteo de contratos pendientes (pago O trabajo). Debe ir ANTES
   // del early return para respetar las reglas de hooks de React.
   const pendientesCount = useMemo(() => {
+    const now = peruNow()
+    const hoy = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
     return activeContracts.filter(c => {
+      if (c.cancelado) return false
       const calc = calcContract(c)
-      return calc.estado === "Pendiente"
+      return calc.estado === "Pendiente" || (c.fechaEvento && c.fechaEvento >= hoy)
     }).length
   }, [activeContracts])
 

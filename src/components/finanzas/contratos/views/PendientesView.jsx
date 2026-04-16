@@ -8,22 +8,34 @@ import { formatMoney, calcContract, parseLocalDate, peruNow } from "../../../../
 // al más reciente por "home date" (fecha del primer pago, o fecha del
 // evento del contrato) para que saltan a la vista los que más tardan.
 export default function PendientesView({ activeContracts, onEdit }) {
+  const hoy = useMemo(() => {
+    const n = peruNow()
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`
+  }, [])
+
   const pendientes = useMemo(() => {
     return activeContracts
       .map(c => {
+        if (c.cancelado) return null
         const calc = calcContract(c)
-        if (calc.estado !== "Pendiente") return null
+        const pagoPendiente = calc.estado === "Pendiente"
+        const eventoFuturo = c.fechaEvento && c.fechaEvento >= hoy
+        if (!pagoPendiente && !eventoFuturo) return null
         const firstAdel = (c.adelantos || []).find(a => a.fecha)
         const firstCobro = (c.cobros || []).find(a => a.fecha)
-        const homeFecha = firstAdel?.fecha || firstCobro?.fecha || null
-        return { contract: c, calc, homeFecha }
+        const homeFecha = c.fechaEvento || firstAdel?.fecha || firstCobro?.fecha || null
+        const motivo = pagoPendiente && eventoFuturo ? "ambos"
+          : pagoPendiente ? "pago"
+          : "trabajo"
+        return { contract: c, calc, homeFecha, motivo }
       })
       .filter(Boolean)
       .sort((a, b) => (a.homeFecha || "").localeCompare(b.homeFecha || ""))
-  }, [activeContracts])
+  }, [activeContracts, hoy])
 
   const totalPendiente = pendientes.reduce((s, p) => s + p.calc.pendiente, 0)
   const totalGanancia = pendientes.reduce((s, p) => s + p.calc.ganancia, 0)
+  const totalTrabajoPendiente = pendientes.filter(p => p.motivo === "trabajo" || p.motivo === "ambos").length
   const now = peruNow()
 
   const fmtFecha = (f) => {
@@ -51,7 +63,8 @@ export default function PendientesView({ activeContracts, onEdit }) {
         <div style={{ fontSize: 36, fontWeight: 900 }}>{formatMoney(Math.round(totalPendiente))}</div>
         {pendientes.length > 0 && (
           <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-            {pendientes.length} contrato{pendientes.length !== 1 ? "s" : ""} pendiente{pendientes.length !== 1 ? "s" : ""}
+            {pendientes.length} contrato{pendientes.length !== 1 ? "s" : ""}
+            {totalTrabajoPendiente > 0 && <span> · {totalTrabajoPendiente} con trabajo pendiente</span>}
             <span style={{ opacity: 0.6 }}> · Ganancia total: {formatMoney(Math.round(totalGanancia))}</span>
           </div>
         )}
@@ -65,18 +78,20 @@ export default function PendientesView({ activeContracts, onEdit }) {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {pendientes.map(({ contract: c, calc, homeFecha }) => {
+          {pendientes.map(({ contract: c, calc, homeFecha, motivo }) => {
             const dias = diasAtras(homeFecha)
-            const alerta = dias !== null && dias > 14
+            const alerta = motivo === "pago" && dias !== null && dias > 14
             const fechaLabel = fmtFecha(homeFecha)
             const cobrado = calc.precioFinal - calc.pendiente
+            const badgeColor = motivo === "trabajo" ? "blue" : motivo === "ambos" ? "purple" : "yellow"
+            const badgeText = motivo === "trabajo" ? "Trabajo pendiente" : motivo === "ambos" ? "Pago + Trabajo" : "Pago pendiente"
             return (
               <div key={c.id}
                 onClick={() => onEdit && onEdit(c)}
                 style={{
                   background: "rgba(24,24,27,0.8)",
                   borderRadius: 10,
-                  border: `1px solid ${alerta ? "rgba(239,68,68,0.35)" : "rgba(63,63,70,0.5)"}`,
+                  border: `1px solid ${alerta ? "rgba(239,68,68,0.35)" : motivo === "trabajo" ? "rgba(56,189,248,0.25)" : "rgba(63,63,70,0.5)"}`,
                   padding: "10px 14px",
                   display: "flex",
                   alignItems: "center",
@@ -97,14 +112,14 @@ export default function PendientesView({ activeContracts, onEdit }) {
                     {dias !== null && dias > 0 && <span style={{ opacity: 0.7 }}>({dias}d)</span>}
                   </span>
                 )}
-                <DarkBadge color="yellow">Pendiente</DarkBadge>
+                <DarkBadge color={badgeColor}>{badgeText}</DarkBadge>
                 <span style={{ fontSize: 11, color: "#71717a" }}>
                   Total <span style={{ color: "#e4e4e7", fontWeight: 600, fontFamily: "monospace" }}>{formatMoney(Math.round(calc.precioFinal))}</span>
                 </span>
                 <span style={{ fontSize: 11, color: "#71717a" }}>
                   Cobrado <span style={{ color: "#34d399", fontWeight: 600, fontFamily: "monospace" }}>{formatMoney(Math.round(cobrado))}</span>
                 </span>
-                <span style={{ marginLeft: "auto", fontSize: 15, fontWeight: 900, color: "#fbbf24", fontFamily: "monospace" }}>{formatMoney(Math.round(calc.pendiente))}</span>
+                <span style={{ marginLeft: "auto", fontSize: 15, fontWeight: 900, color: motivo === "trabajo" ? "#34d399" : "#fbbf24", fontFamily: "monospace" }}>{calc.pendiente > 0 ? formatMoney(Math.round(calc.pendiente)) : "✅ Pagado"}</span>
               </div>
             )
           })}

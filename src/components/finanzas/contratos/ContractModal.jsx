@@ -14,7 +14,7 @@ const emptyCobro = () => ({ monto: 0, modalidad: "Efectivo", recibio: "Yo", fech
 function defaultForm(nextId) {
   const now = peruNow()
   return {
-    id: nextId, cliente: "", total: 0,
+    id: nextId, cliente: "", total: 0, fechaEvento: "",
     adelantos: [emptyAdel()],
     cobros: [emptyCobro()],
     descuento: 0, notas: "", depend: false,
@@ -147,10 +147,11 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
           <button onClick={safeClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#71717a", padding: "4px 8px" }}>✕</button>
         </div>
         <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
             <div style={groupStyle}><label style={cDark.label}>Código</label><input style={{ ...fs, background: isNew ? "#27272a" : "#1f1f23" }} value={form.id} onChange={e => isNew && set("id", e.target.value)} readOnly={!isNew} /></div>
             <div style={groupStyle}><label style={cDark.label}>Cliente</label><input style={fs} value={form.cliente} onChange={e => set("cliente", e.target.value)} placeholder="Nombre..." /></div>
             <div style={groupStyle}><label style={cDark.label}>Total Contrato</label><DarkMoneyInput style={fs} value={form.total} onChange={v => set("total", v)} /></div>
+            <div style={groupStyle}><label style={cDark.label}>📅 Fecha evento</label><input style={fs} type="date" value={form.fechaEvento || ""} onChange={e => set("fechaEvento", e.target.value)} /></div>
           </div>
 
           {/* ADELANTOS */}
