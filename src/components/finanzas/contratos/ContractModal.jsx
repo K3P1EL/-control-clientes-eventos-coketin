@@ -102,6 +102,8 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
   const [showServicios, setShowServicios] = useState(false)
   const [cancelDialog, setCancelDialog] = useState(null) // null | "choose" | "parcial"
   const [parcialInput, setParcialInput] = useState("")
+  const [gastoCajaOpen, setGastoCajaOpen] = useState(false)
+  const [gastoCajaForm, setGastoCajaForm] = useState(null)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const calc = calcContract(form)
   const productos = form.productos || []
@@ -180,9 +182,9 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
             <div style={groupStyle}>
               <label style={cDark.label}>Gastos</label>
               <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                <DarkMoneyInput style={fs} value={form.gastos} onChange={v => set("gastos", Math.max(0, v))} />
+                <DarkMoneyInput style={fs} value={form.gastos} onChange={v => { set("gastos", Math.max(0, v)); if (v === 0) set("gastosRegistradoCaja", false) }} />
                 {form.gastos > 0 && !form.gastosRegistradoCaja && (
-                  <button type="button" onClick={() => { quickAddToCaja({ fecha: peruToday(), tipo: "egreso", monto: form.gastos, concepto: `${form.id} · Gastos`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }); set("gastosRegistradoCaja", true) }}
+                  <button type="button" onClick={() => { setGastoCajaForm({ fecha: peruToday(), tipo: "egreso", monto: form.gastos, concepto: `${form.id} · Gastos`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }); setGastoCajaOpen(!gastoCajaOpen) }}
                     title="Registrar gasto en Caja" style={{ padding: "2px 6px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>📤</button>
                 )}
                 {form.gastosRegistradoCaja && <span style={{ fontSize: 9, color: "#34d399", fontWeight: 700 }}>✅</span>}
@@ -198,6 +200,24 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               </label>
             </div>
           </div>
+          {gastoCajaOpen && gastoCajaForm && (
+            <div style={{ padding: "10px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#f87171", marginBottom: 8 }}>📤 Registrar gasto en Caja</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", gap: 6 }}>
+                <div><label style={{ fontSize: 9, color: "#71717a" }}>Monto</label><input style={{ ...fs, fontSize: 12 }} type="text" value={gastoCajaForm.monto} onChange={e => setGastoCajaForm(p => ({ ...p, monto: parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0 }))} /></div>
+                <div><label style={{ fontSize: 9, color: "#71717a" }}>Modalidad</label><select style={{ ...fs, fontSize: 12 }} value={gastoCajaForm.modalidad} onChange={e => setGastoCajaForm(p => ({ ...p, modalidad: e.target.value }))}><option>Efectivo</option><option>Yape</option></select></div>
+                <div><label style={{ fontSize: 9, color: "#71717a" }}>Quién</label><input style={{ ...fs, fontSize: 12 }} value={gastoCajaForm.quien} onChange={e => setGastoCajaForm(p => ({ ...p, quien: e.target.value }))} placeholder="Nombre" /></div>
+                <div><label style={{ fontSize: 9, color: "#71717a" }}>Concepto</label><input style={{ ...fs, fontSize: 12 }} value={gastoCajaForm.concepto} onChange={e => setGastoCajaForm(p => ({ ...p, concepto: e.target.value }))} /></div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
+                <button type="button" onClick={() => setGastoCajaOpen(false)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #3f3f46", background: "transparent", color: "#71717a", cursor: "pointer", fontSize: 10 }}>Cancelar</button>
+                <button type="button" onClick={() => { if (gastoCajaForm.monto > 0) { quickAddToCaja(gastoCajaForm); set("gastosRegistradoCaja", true); setGastoCajaOpen(false) } }}
+                  style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: "#ef4444", color: "#fff", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
+                  Guardar egreso en Caja
+                </button>
+              </div>
+            </div>
+          )}
           {/* Servicios — colapsable, reutiliza producto_tags */}
           {prodTags.length > 0 && (
             <div style={{ background: "rgba(39,39,42,0.4)", borderRadius: 10, border: "1px solid rgba(63,63,70,0.4)", overflow: "hidden" }}>
