@@ -164,50 +164,91 @@ export function useViabilidadCalc(inputs) {
     }
   }, [workersCalc])
 
+  // Servicios también soportan historial (internet cortado, pollo estacional,
+  // alquiler que cambió). activeDays = días que estuvieron activos en el mes.
+  // costoMesReal = pagoMensual prorrateado según proporción de días activos.
   const servicesCalc = useMemo(() => {
     return services.map(s => {
-      if (!s.nombre) return { ...s, costoDiario: 0, costoMensual: 0 }
+      if (!s.nombre) return { ...s, costoDiario: 0, costoMensual: 0, costoMesReal: 0, activeDays: 0, isActiveInMonth: false, status: { active: true, label: "", tone: "zinc" } }
+      const activeCalDays = calendarDays.filter(d => isActiveOnDate(s, new Date(year, month - 1, d.dia)))
+      const activeDays = activeCalDays.length
+      const isActiveInMonth = activeDays > 0
       const div = s.divisor || diasOpBase
       const costoDiario = div > 0 ? s.pagoMensual / div : 0
-      return { ...s, costoDiario, costoMensual: s.pagoMensual }
+      const costoMesReal = diasCalendario > 0 ? (s.pagoMensual || 0) * (activeDays / diasCalendario) : 0
+      const status = getRecordStatus(s, year, month)
+      return { ...s, costoDiario, costoMensual: s.pagoMensual, costoMesReal, activeDays, isActiveInMonth, status }
     })
-  }, [services, diasOpBase])
+  }, [services, diasOpBase, calendarDays, year, month, diasCalendario])
 
   const totalServicios = useMemo(() => {
-    const active = servicesCalc.filter(s => s.nombre)
+    const active = servicesCalc.filter(s => s.nombre && s.isActiveInMonth)
     return {
       pagoMensual: active.reduce((s, v) => s + v.pagoMensual, 0),
       costoDiario: active.reduce((s, v) => s + v.costoDiario, 0),
       costoMensual: active.reduce((s, v) => s + v.costoMensual, 0),
+      costoMesReal: active.reduce((s, v) => s + v.costoMesReal, 0),
     }
   }, [servicesCalc])
 
   const apoyosCalc = useMemo(() => {
     return apoyos.map(a => {
-      if (!a.concepto) return { ...a, apoyoDiario: 0 }
+      if (!a.concepto) return { ...a, apoyoDiario: 0, apoyoMesReal: 0, activeDays: 0, isActiveInMonth: false, status: { active: true, label: "", tone: "zinc" } }
+      const activeCalDays = calendarDays.filter(d => isActiveOnDate(a, new Date(year, month - 1, d.dia)))
+      const activeDays = activeCalDays.length
+      const isActiveInMonth = activeDays > 0
       const div = a.divisor || diasCalendario
-      return { ...a, apoyoDiario: div > 0 ? a.montoMensual / div : 0 }
+      const apoyoDiario = div > 0 ? a.montoMensual / div : 0
+      const apoyoMesReal = diasCalendario > 0 ? (a.montoMensual || 0) * (activeDays / diasCalendario) : 0
+      const status = getRecordStatus(a, year, month)
+      return { ...a, apoyoDiario, apoyoMesReal, activeDays, isActiveInMonth, status }
     })
-  }, [apoyos, diasCalendario])
+  }, [apoyos, diasCalendario, calendarDays, year, month])
 
   const totalApoyos = useMemo(() => {
-    const active = apoyosCalc.filter(a => a.concepto)
+    const active = apoyosCalc.filter(a => a.concepto && a.isActiveInMonth)
     return {
       montoMensual: active.reduce((s, a) => s + a.montoMensual, 0),
       apoyoDiario: active.reduce((s, a) => s + a.apoyoDiario, 0),
+      montoMensualReal: active.reduce((s, a) => s + a.apoyoMesReal, 0),
     }
   }, [apoyosCalc])
 
   // ── Top-level summary numbers ────────────────────────────────────────
   const costoCoberturaExtra = cobExtraPagadoAparte ? cobExtraMonto : 0
-  const costoDiarioPersonal = totalPersonal.costoDiario
-  const costoDiarioServicios = totalServicios.costoDiario
+
+  // "Fecha de referencia" para los KPIs diarios: hoy si estamos en el mes
+  // actual, último día del mes si mirás un mes pasado o futuro. Así el KPI
+  // "diario" refleja el estado vigente en ese momento (no hace promedios).
+  const refDate = useMemo(() => {
+    const now = peruNow()
+    const isCurMonth = year === now.getFullYear() && month === (now.getMonth() + 1)
+    return isCurMonth ? now : new Date(year, month - 1, diasCalendario)
+  }, [year, month, diasCalendario])
+
+  const costoDiarioPersonal = useMemo(() => {
+    return workersCalc
+      .filter(w => w.name && isActiveOnDate(w, refDate))
+      .reduce((s, w) => s + w.costoDiario, 0)
+  }, [workersCalc, refDate])
+
+  const costoDiarioServicios = useMemo(() => {
+    return servicesCalc
+      .filter(s => s.nombre && isActiveOnDate(s, refDate))
+      .reduce((s, v) => s + v.costoDiario, 0)
+  }, [servicesCalc, refDate])
+
+  const apoyoDiarioExt = useMemo(() => {
+    return apoyosCalc
+      .filter(a => a.concepto && isActiveOnDate(a, refDate))
+      .reduce((s, a) => s + a.apoyoDiario, 0)
+  }, [apoyosCalc, refDate])
+
   const costoDiarioBruto = costoDiarioPersonal + costoDiarioServicios
-  const apoyoDiarioExt = totalApoyos.apoyoDiario
   const metaMinimaBase = Math.max(0, costoDiarioBruto - apoyoDiarioExt)
   const costoMesProyectado = totalPersonal.costoMesProj + totalServicios.pagoMensual + costoCoberturaExtra
-  const costoMesReal = totalPersonal.costoMesReal + totalServicios.pagoMensual + costoCoberturaExtra
-  const apoyosMensuales = totalApoyos.montoMensual
+  const costoMesReal = totalPersonal.costoMesReal + totalServicios.costoMesReal + costoCoberturaExtra
+  const apoyosMensuales = totalApoyos.montoMensualReal
   const netoMensual = Math.max(0, costoMesReal - apoyosMensuales)
 
   // ── Vista 3A — month cycle (day 1 → day of payment) ─────────────────
@@ -284,15 +325,15 @@ export function useViabilidadCalc(inputs) {
       return w != null && w === currentWeekISO
     })
 
-    // Count FULL week days (including days from adjacent month) for proportioning
-    let fullWeekDays = 0
+    // Fechas completas de la semana (incluyen días del mes anterior/siguiente).
+    // Las usamos para prorratear servicios/apoyos respetando sus historiales.
+    const allWeekDates = []
     for (let offset = -6; offset <= 6; offset++) {
       const d = new Date(year, month - 1, weekDaysThisMonth[0]?.dia || 1)
       d.setDate(d.getDate() + offset)
-      if (getWeekNumberISO(d) === currentWeekISO) fullWeekDays++
+      if (getWeekNumberISO(d) === currentWeekISO) allWeekDates.push(d)
     }
-    if (fullWeekDays === 0) fullWeekDays = weekDaysThisMonth.length || 1
-
+    const fullWeekDays = allWeekDates.length || weekDaysThisMonth.length || 1
     if (weekDaysThisMonth.length === 0) return null
 
     // Personal: real cost from attendance (only days in this month have marks)
@@ -312,17 +353,27 @@ export function useViabilidadCalc(inputs) {
       })
     })
 
-    // Services/apoyo: proportion to FULL week days (not just this month's portion)
+    // Servicios: cada uno aporta costoDiario por cada día que estuvo activo
+    // dentro de la semana completa.
     let servCost = 0
     servicesCalc.forEach(s => {
       if (!s.nombre) return
-      servCost += s.costoDiario * fullWeekDays
+      const activeInWeek = allWeekDates.filter(d => isActiveOnDate(s, d)).length
+      servCost += s.costoDiario * activeInWeek
     })
 
-    const apoyoCost = contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario) * fullWeekDays : 0
+    // Apoyos: mismo trato.
+    let apoyoCost = 0
+    if (contarApoyo === "SI") {
+      apoyosCalc.forEach(a => {
+        if (!a.concepto) return
+        const activeInWeek = allWeekDates.filter(d => isActiveOnDate(a, d)).length
+        apoyoCost += (a.apoyoDiario || 0) * activeInWeek
+      })
+    }
 
     return { personalCost, servCost, apoyoCost, realDays: fullWeekDays }
-  }, [isCurrentMonth, currentWeekISO, calendarDays, workersCalc, servicesCalc, contarApoyo, totalApoyos.montoMensual, diasCalendario, year, month])
+  }, [isCurrentMonth, currentWeekISO, calendarDays, workersCalc, servicesCalc, apoyosCalc, contarApoyo, year, month])
 
   const trabajadoresSemana = totalPersonal.pagoSemanal // presupuestado (flat)
   const trabajadoresSemanaReal = weekCalc ? weekCalc.personalCost : trabajadoresSemana
@@ -333,8 +384,8 @@ export function useViabilidadCalc(inputs) {
   const cajaLibreSemana = cajaSemanaSol - gastoNetoSemanal
 
   const trabRealMes = totalPersonal.costoMesReal
-  const serviciosMes = totalServicios.pagoMensual
-  const apoyoMes = contarApoyo === "SI" ? totalApoyos.montoMensual : 0
+  const serviciosMes = totalServicios.costoMesReal
+  const apoyoMes = contarApoyo === "SI" ? totalApoyos.montoMensualReal : 0
   const gastoRealMes = trabRealMes + serviciosMes - apoyoMes
   const cajaVsGasto3A = cajaAcumMes - gastoRealMes
   const cajaVsDevengado3A = cajaAcumMes - totalDevengado3A

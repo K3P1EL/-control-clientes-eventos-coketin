@@ -63,8 +63,8 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month
     })
   })
 
-  // Services: use custom divisor per service (same as useViabilidadCalc).
-  // Always 7 real days per ISO week.
+  // Services: respetan historial. Cada servicio aporta costoDiario por cada
+  // día de la semana que estuvo activo.
   const realDays = weekDays.length
   const daysInMonth = getDaysInMonth(year, month)
   let servProportion = 0
@@ -72,11 +72,24 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month
     if (!s.nombre) return
     const div = s.divisor || diasOpBase || Math.max(1, daysInMonth - 4)
     const costoDiario = div > 0 ? (s.pagoMensual || 0) / div : 0
-    servProportion += costoDiario * realDays
+    const activeInWeek = weekDays.filter(({ dia, month: dm, year: dy }) =>
+      isActiveOnDate(s, new Date(dy, dm - 1, dia))
+    ).length
+    servProportion += costoDiario * activeInWeek
   })
 
-  const totalApoyoMensual = apoyos.filter(a => a.concepto).reduce((s, a) => s + (a.montoMensual || 0), 0)
-  const apoyoProportion = contarApoyo === "SI" ? (totalApoyoMensual / daysInMonth) * realDays : 0
+  // Apoyos: igual trato, por día activo
+  let apoyoProportion = 0
+  if (contarApoyo === "SI") {
+    apoyos.forEach(a => {
+      if (!a.concepto) return
+      const costoDiario = (a.montoMensual || 0) / daysInMonth
+      const activeInWeek = weekDays.filter(({ dia, month: dm, year: dy }) =>
+        isActiveOnDate(a, new Date(dy, dm - 1, dia))
+      ).length
+      apoyoProportion += costoDiario * activeInWeek
+    })
+  }
 
   const gastoNeto = personalCost + servProportion - apoyoProportion
   return { gastoNeto, personalCost, servProportion, apoyo: apoyoProportion }
