@@ -165,7 +165,8 @@ export default function ViabilidadModule() {
           cajaAcumMes={state.cajaAcumMes} setCajaAcumMes={state.setCajaAcumMes}
           contarApoyo={state.contarApoyo} setContarApoyo={state.setContarApoyo}
           diasOpSemana={state.diasOpSemana} setDiasOpSemana={state.setDiasOpSemana}
-          trabajadoresSemana={calc.trabajadoresSemana}
+          trabajadoresSemana={calc.trabajadoresSemanaReal}
+          trabajadoresSemanaPresup={calc.trabajadoresSemana}
           proporcionServSemana={calc.proporcionServSemana}
           apoyoSemanal={calc.apoyoSemanal}
           gastoNetoSemanal={calc.gastoNetoSemanal}

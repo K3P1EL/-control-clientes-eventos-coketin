@@ -14,7 +14,7 @@ export default function CajaTab({
   cajaAcumMes, setCajaAcumMes,
   contarApoyo, setContarApoyo,
   diasOpSemana, setDiasOpSemana,
-  trabajadoresSemana, proporcionServSemana, apoyoSemanal, gastoNetoSemanal, cajaLibreSemana,
+  trabajadoresSemana, trabajadoresSemanaPresup, proporcionServSemana, apoyoSemanal, gastoNetoSemanal, cajaLibreSemana,
   trabRealMes, serviciosMes, apoyoMes, gastoRealMes,
   totalDevengado3A, totalDevengado3B,
   cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,
@@ -70,7 +70,13 @@ export default function CajaTab({
       <Card title="Análisis semanal — ¿Alcanza?" icon="📆" accent="amber">
         <div className="space-y-3">
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60">
-            <span className="text-sm text-zinc-400">Trabajadores semana</span><span className="font-mono text-zinc-200">{fmt(trabajadoresSemana)}</span>
+            <span className="text-sm text-zinc-400">Trabajadores semana</span>
+            <span className="font-mono text-zinc-200 text-right">
+              {fmt(trabajadoresSemana)}
+              {trabajadoresSemanaPresup != null && Math.abs(trabajadoresSemanaPresup - trabajadoresSemana) > 0.01 && (
+                <span className="block text-[10px] text-zinc-500 font-normal">Presupuesto: {fmt(trabajadoresSemanaPresup)}</span>
+              )}
+            </span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60">
             <span className="text-sm text-zinc-400">Proporción servicios semana</span><span className="font-mono text-zinc-200">{fmt(proporcionServSemana)}</span>
