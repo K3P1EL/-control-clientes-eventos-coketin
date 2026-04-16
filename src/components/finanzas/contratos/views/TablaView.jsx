@@ -84,7 +84,7 @@ export default function TablaView({
               ) : filtered.map(c => {
                 const calc = calcContract(c)
                 return (
-                  <tr key={c.id} style={{ borderBottom: "1px solid rgba(63,63,70,0.3)" }}
+                  <tr key={c.id} style={{ borderBottom: "1px solid rgba(63,63,70,0.3)", opacity: c.cancelado ? 0.55 : 1 }}
                     onMouseEnter={e => e.currentTarget.style.background = "rgba(39,39,42,0.4)"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <td style={cDark.td}><span style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace", fontSize: 12 }}>{c.id}</span></td>
@@ -102,9 +102,9 @@ export default function TablaView({
                         )
                       })()}
                     </td>
-                    <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7" }}>{formatMoney(c.total)}</td>
-                    <td style={cDark.td}>{(c.adelantos || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.adelantos || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
-                    <td style={cDark.td}>{(c.cobros || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.cobros || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
+                    <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7", textDecoration: c.cancelado ? "line-through" : "none" }}>{formatMoney(c.total)}</td>
+                    <td style={{ ...cDark.td, textDecoration: c.cancelado ? "line-through" : "none" }}>{(c.adelantos || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.adelantos || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
+                    <td style={{ ...cDark.td, textDecoration: c.cancelado ? "line-through" : "none" }}>{(c.cobros || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.cobros || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
                     <td style={cDark.td}>{(c.descuento > 0 || c.gastos > 0) ? <>{c.descuento > 0 && <div style={{ color: "#fbbf24" }}>Desc: -{formatMoney(c.descuento)}</div>}{c.gastos > 0 && <div style={{ color: "#f87171" }}>Gastos: -{formatMoney(c.gastos)}</div>}</> : "—"}</td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#34d399" }}>{formatMoney(calc.ganancia)}{calc.exceso > 0 && <div style={{ fontSize: 9, color: "#34d399", opacity: 0.7 }}>+{formatMoney(calc.exceso)} extra</div>}</td>
                     <td style={cDark.td}>{formatMoney(calc.enCaja)}</td>
