@@ -17,7 +17,13 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
   const handleReingreso = () => onChange(registrarReingreso(historial, peruToday()))
 
   const updateFecha = (idx, fecha) => {
-    const next = historial.map((ev, i) => i === idx ? { ...ev, fecha: fecha || ev.fecha } : ev)
+    if (!fecha) return
+    // Validar orden cronológico contra vecinos (la vista está sorted).
+    const prev = sorted[idx - 1]?.fecha
+    const nxt = sorted[idx + 1]?.fecha
+    if (prev && fecha < prev) return
+    if (nxt && fecha > nxt) return
+    const next = historial.map((ev, i) => i === idx ? { ...ev, fecha } : ev)
     next.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
     onChange(next)
   }
@@ -29,7 +35,10 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
   const agregarEvento = () => {
     const ultimo = sorted[sorted.length - 1]
     const nextTipo = ultimo?.tipo === "baja" ? "reingreso" : "baja"
-    const next = [...historial, { tipo: nextTipo, fecha: peruToday() }]
+    // Default = hoy, pero nunca antes del último evento (garantiza orden).
+    const hoy = peruToday()
+    const fecha = ultimo?.fecha && hoy < ultimo.fecha ? ultimo.fecha : hoy
+    const next = [...historial, { tipo: nextTipo, fecha }]
     next.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
     onChange(next)
   }
@@ -75,6 +84,8 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
             const text = isBaja ? "Dejó de trabajar el" : "Volvió a trabajar el"
             const color = isBaja ? "text-amber-400" : "text-emerald-400"
             const bg = isBaja ? "bg-amber-500/5 border-amber-500/20" : "bg-emerald-500/5 border-emerald-500/20"
+            const minDate = sorted[i - 1]?.fecha || undefined
+            const maxDate = sorted[i + 1]?.fecha || undefined
             return (
               <div key={i} className={`flex items-center gap-2 text-xs rounded-lg px-3 py-2 border ${bg}`}>
                 <button onClick={() => toggleTipo(i)}
@@ -82,6 +93,7 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
                   title="Click para cambiar entre baja / reingreso">{icon}</button>
                 <span className={`${color} font-medium`}>{text}</span>
                 <input type="date" value={ev.fecha || ""}
+                  min={minDate} max={maxDate}
                   onChange={e => updateFecha(i, e.target.value)}
                   className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-sky-500/60" />
                 <button onClick={() => removeEvento(i)}
