@@ -20,7 +20,7 @@ function defaultForm(nextId) {
 }
 
 // Reusable payment row (adelanto or cobro)
-function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyle }) {
+function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyle, onSendToCaja }) {
   const upd = (k, v) => onChange({ ...entry, [k]: v })
   if (entry.noTrack) {
     return (
@@ -43,6 +43,13 @@ function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyl
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#a1a1aa", cursor: "pointer" }}>
           <input type="checkbox" checked={entry.enCaja} onChange={e => upd("enCaja", e.target.checked)} /> ¿En caja?
         </label>
+        {entry.enCaja && entry.monto > 0 && onSendToCaja && (
+          <button type="button" onClick={() => onSendToCaja(entry)}
+            title="Registrar este pago en Caja"
+            style={{ padding: "2px 8px", borderRadius: 6, border: "1px solid rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.1)", color: "#38bdf8", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
+            📥 Caja
+          </button>
+        )}
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#52525b", cursor: "pointer" }}>
           <input type="checkbox" checked={false} onChange={() => upd("noTrack", true)} /> No trackear
         </label>
@@ -53,7 +60,7 @@ function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyl
 }
 
 // Modal to create or edit a contract. `contract` is null/undefined for new.
-export default function ContractModal({ contract, onSave, onClose, nextId, prodTags = [] }) {
+export default function ContractModal({ contract, onSave, onClose, nextId, prodTags = [], sendToCaja }) {
   const isNew = !contract
   const normalized = contract ? normalizeContract(contract) : null
   const [form, setForm] = useState(normalized || defaultForm(nextId))
@@ -116,7 +123,8 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               <button onClick={addAdelanto} style={{ fontSize: 11, fontWeight: 700, color: "#34d399", cursor: "pointer", background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 8, padding: "3px 10px" }}>+</button>
             </div>
             {form.adelantos.map((a, i) => (
-              <PaymentRow key={i} entry={a} onChange={e => setAdelanto(i, e)} onRemove={() => removeAdelanto(i)} canRemove={form.adelantos.length > 1} color="#34d399" fs={fs} groupStyle={groupStyle} />
+              <PaymentRow key={i} entry={a} onChange={e => setAdelanto(i, e)} onRemove={() => removeAdelanto(i)} canRemove={form.adelantos.length > 1} color="#34d399" fs={fs} groupStyle={groupStyle}
+                onSendToCaja={sendToCaja ? (pay) => sendToCaja({ fecha: pay.fecha, tipo: "ingreso", monto: pay.monto, concepto: `${form.id} · Adelanto`, quien: pay.recibio === "Yo" ? "" : pay.recibio, modalidad: pay.modalidad, delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }) : null} />
             ))}
           </div>
 
@@ -127,13 +135,23 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               <button onClick={addCobro} style={{ fontSize: 11, fontWeight: 700, color: "#38bdf8", cursor: "pointer", background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)", borderRadius: 8, padding: "3px 10px" }}>+</button>
             </div>
             {form.cobros.map((a, i) => (
-              <PaymentRow key={i} entry={a} onChange={e => setCobro(i, e)} onRemove={() => removeCobro(i)} canRemove={form.cobros.length > 1} color="#38bdf8" fs={fs} groupStyle={groupStyle} />
+              <PaymentRow key={i} entry={a} onChange={e => setCobro(i, e)} onRemove={() => removeCobro(i)} canRemove={form.cobros.length > 1} color="#38bdf8" fs={fs} groupStyle={groupStyle}
+                onSendToCaja={sendToCaja ? (pay) => sendToCaja({ fecha: pay.fecha, tipo: "ingreso", monto: pay.monto, concepto: `${form.id} · Cobro`, quien: pay.recibio === "Yo" ? "" : pay.recibio, modalidad: pay.modalidad, delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }) : null} />
             ))}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: 12 }}>
             <div style={groupStyle}><label style={cDark.label}>Descuento</label><DarkMoneyInput style={fs} value={form.descuento} onChange={v => set("descuento", Math.max(0, v))} /></div>
-            <div style={groupStyle}><label style={cDark.label}>Gastos</label><DarkMoneyInput style={fs} value={form.gastos} onChange={v => set("gastos", Math.max(0, v))} /></div>
+            <div style={groupStyle}>
+              <label style={cDark.label}>Gastos</label>
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                <DarkMoneyInput style={fs} value={form.gastos} onChange={v => set("gastos", Math.max(0, v))} />
+                {sendToCaja && form.gastos > 0 && (
+                  <button type="button" onClick={() => sendToCaja({ fecha: peruToday(), tipo: "egreso", monto: form.gastos, concepto: `${form.id} · Gastos`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" })}
+                    title="Registrar gasto en Caja" style={{ padding: "2px 6px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>📤</button>
+                )}
+              </div>
+            </div>
             <div style={groupStyle}><label style={cDark.label}>Año</label><DarkMoneyInput style={fs} value={form.anio} onChange={v => set("anio", Math.min(2099, Math.max(2020, v || peruNow().getFullYear())))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Semana</label><DarkMoneyInput style={fs} value={form.semana} onChange={v => set("semana", Math.min(53, Math.max(1, v || 1)))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Mes</label><DarkMoneyInput style={fs} value={form.mes} onChange={v => set("mes", Math.min(12, Math.max(1, v || 1)))} /></div>
@@ -213,10 +231,18 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
                   {" · Caja se maneja manualmente"}
                 </div>
               </div>
-              <button type="button" onClick={() => set("cancelado", false) || set("cancelInfo", null)}
-                style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.4)", background: "rgba(16,185,129,0.1)", color: "#34d399", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
-                ↩ Reactivar
-              </button>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {sendToCaja && form.cancelInfo?.montoDevuelto > 0 && (
+                  <button type="button" onClick={() => sendToCaja({ fecha: form.cancelInfo.fecha || peruToday(), tipo: "egreso", monto: form.cancelInfo.montoDevuelto, concepto: `${form.id} · Devolución cancelación`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" })}
+                    style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+                    📤 Registrar devolución S/{form.cancelInfo.montoDevuelto} en Caja
+                  </button>
+                )}
+                <button type="button" onClick={() => set("cancelado", false) || set("cancelInfo", null)}
+                  style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.4)", background: "rgba(16,185,129,0.1)", color: "#34d399", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+                  ↩ Reactivar
+                </button>
+              </div>
             </div>
           ) : !isNew && (
             <button type="button" onClick={() => { setParcialInput(""); setCancelDialog("choose") }}
