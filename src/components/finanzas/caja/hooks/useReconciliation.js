@@ -37,6 +37,7 @@ export function useReconciliation(contracts, entries, period) {
     let contratosCount = 0
     contracts.forEach(c => {
       if (c.eliminado) return
+      if (c.cancelado) return // cancelled contracts don't count for reconciliation
       let contributed = false
 
       // Adelantos: each entry has its own date

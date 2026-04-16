@@ -169,7 +169,7 @@ export function useCierres(calc, state) {
       for (const { week: w, isoYear: wYear } of weeks) {
         let deNuevos = 0, deAnteriores = 0, enCaja = 0, hasContracts = false
         contracts.forEach(ct => {
-          if (ct.eliminado) return
+          if (ct.eliminado || ct.cancelado) return
           const isHome = (ct.anio || currentYear) === wYear && ct.semana === w
           if (isHome) {
             hasContracts = true
@@ -240,7 +240,7 @@ export function useCierres(calc, state) {
 
         let deNuevosM = 0, deAnterioresM = 0, enCaja = 0, hasContracts = false
         contracts.forEach(ct => {
-          if (ct.eliminado) return
+          if (ct.eliminado || ct.cancelado) return
           const isHome = (ct.anio || mYear) === mYear && ct.mes === mNum
           if (isHome) {
             hasContracts = true
