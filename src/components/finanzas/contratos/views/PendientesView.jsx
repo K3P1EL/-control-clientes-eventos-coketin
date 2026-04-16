@@ -64,46 +64,47 @@ export default function PendientesView({ activeContracts, onEdit }) {
           <div style={{ fontSize: 12, color: "#71717a", marginTop: 4 }}>Todo lo activo ya está pagado completo</div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {pendientes.map(({ contract: c, calc, homeFecha }) => {
             const dias = diasAtras(homeFecha)
             const alerta = dias !== null && dias > 14
             const fechaLabel = fmtFecha(homeFecha)
+            const cobrado = calc.precioFinal - calc.pendiente
             return (
               <div key={c.id}
                 onClick={() => onEdit && onEdit(c)}
                 style={{
-                  ...cDark.card,
+                  background: "rgba(24,24,27,0.8)",
+                  borderRadius: 10,
+                  border: `1px solid ${alerta ? "rgba(239,68,68,0.35)" : "rgba(63,63,70,0.5)"}`,
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
                   cursor: onEdit ? "pointer" : "default",
-                  border: alerta ? "1px solid rgba(239,68,68,0.35)" : cDark.card.border,
                   transition: "all 0.15s",
+                  flexWrap: "wrap",
                 }}
-                onMouseEnter={e => { if (onEdit) e.currentTarget.style.background = "rgba(63,63,70,0.25)" }}
-                onMouseLeave={e => { e.currentTarget.style.background = cDark.card.background }}
+                onMouseEnter={e => { if (onEdit) e.currentTarget.style.background = "rgba(63,63,70,0.35)" }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(24,24,27,0.8)" }}
                 title={onEdit ? "Clic para editar el contrato" : ""}
               >
-                <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(63,63,70,0.3)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#38bdf8" }}>{c.id}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#e4e4e7" }}>{c.cliente || "(sin cliente)"}</span>
-                  </div>
-                  <span style={{ fontSize: 16, fontWeight: 900, color: "#fbbf24" }}>{formatMoney(Math.round(calc.pendiente))}</span>
-                </div>
-                <div style={{ padding: "10px 16px", display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 11, color: "#a1a1aa" }}>
-                  {fechaLabel && (
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, color: alerta ? "#f87171" : "#a1a1aa", fontFamily: "monospace", fontWeight: 600, background: alerta ? "rgba(239,68,68,0.1)" : "transparent", padding: alerta ? "2px 8px" : 0, borderRadius: 6 }}>
-                      📅 {fechaLabel}
-                      {dias !== null && dias > 0 && <span style={{ opacity: 0.7 }}>({dias}d)</span>}
-                    </span>
-                  )}
-                  <DarkBadge color="yellow">Pendiente</DarkBadge>
-                  <span style={{ color: "#71717a" }}>
-                    Total: <span style={{ color: "#e4e4e7", fontWeight: 600 }}>{formatMoney(Math.round(calc.precioFinal))}</span>
+                <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#38bdf8", minWidth: 48 }}>{c.id}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#e4e4e7", flex: "1 1 140px", minWidth: 120 }}>{c.cliente || "(sin cliente)"}</span>
+                {fechaLabel && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: alerta ? "#f87171" : "#a1a1aa", fontFamily: "monospace", fontWeight: 600, background: alerta ? "rgba(239,68,68,0.1)" : "transparent", padding: alerta ? "2px 8px" : 0, borderRadius: 6 }}>
+                    📅 {fechaLabel}
+                    {dias !== null && dias > 0 && <span style={{ opacity: 0.7 }}>({dias}d)</span>}
                   </span>
-                  <span style={{ color: "#71717a" }}>
-                    Ya cobrado: <span style={{ color: "#34d399", fontWeight: 600 }}>{formatMoney(Math.round(calc.precioFinal - calc.pendiente))}</span>
-                  </span>
-                </div>
+                )}
+                <DarkBadge color="yellow">Pendiente</DarkBadge>
+                <span style={{ fontSize: 11, color: "#71717a" }}>
+                  Total <span style={{ color: "#e4e4e7", fontWeight: 600, fontFamily: "monospace" }}>{formatMoney(Math.round(calc.precioFinal))}</span>
+                </span>
+                <span style={{ fontSize: 11, color: "#71717a" }}>
+                  Cobrado <span style={{ color: "#34d399", fontWeight: 600, fontFamily: "monospace" }}>{formatMoney(Math.round(cobrado))}</span>
+                </span>
+                <span style={{ marginLeft: "auto", fontSize: 15, fontWeight: 900, color: "#fbbf24", fontFamily: "monospace" }}>{formatMoney(Math.round(calc.pendiente))}</span>
               </div>
             )
           })}
