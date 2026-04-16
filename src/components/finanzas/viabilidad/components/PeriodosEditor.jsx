@@ -21,7 +21,18 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
     next.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
     onChange(next)
   }
+  const toggleTipo = (idx) => {
+    const next = historial.map((ev, i) => i === idx ? { ...ev, tipo: ev.tipo === "baja" ? "reingreso" : "baja" } : ev)
+    onChange(next)
+  }
   const removeEvento = (idx) => onChange(historial.filter((_, i) => i !== idx))
+  const agregarEvento = () => {
+    const ultimo = sorted[sorted.length - 1]
+    const nextTipo = ultimo?.tipo === "baja" ? "reingreso" : "baja"
+    const next = [...historial, { tipo: nextTipo, fecha: peruToday() }]
+    next.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+    onChange(next)
+  }
   const limpiarHistorial = () => {
     if (confirm("¿Borrar todo el historial y volver a 'activo desde siempre'?")) {
       onChange([])
@@ -66,7 +77,9 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
             const bg = isBaja ? "bg-amber-500/5 border-amber-500/20" : "bg-emerald-500/5 border-emerald-500/20"
             return (
               <div key={i} className={`flex items-center gap-2 text-xs rounded-lg px-3 py-2 border ${bg}`}>
-                <span className={`font-bold ${color} w-4`}>{icon}</span>
+                <button onClick={() => toggleTipo(i)}
+                  className={`font-bold ${color} w-4 hover:scale-125 transition-transform`}
+                  title="Click para cambiar entre baja / reingreso">{icon}</button>
                 <span className={`${color} font-medium`}>{text}</span>
                 <input type="date" value={ev.fecha || ""}
                   onChange={e => updateFecha(i, e.target.value)}
@@ -80,14 +93,18 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
         </div>
       )}
 
-      {sorted.length > 0 && (
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <button onClick={agregarEvento}
+          className="px-3 py-1 text-[11px] text-sky-400 hover:text-sky-300 border border-sky-500/30 hover:border-sky-500/60 bg-sky-500/5 hover:bg-sky-500/10 rounded-lg transition-all font-semibold">
+          + Agregar evento
+        </button>
+        {sorted.length > 0 && (
           <button onClick={limpiarHistorial}
             className="px-3 py-1 text-[11px] text-zinc-500 hover:text-red-400 border border-zinc-700 hover:border-red-500/40 rounded-lg transition-all">
             🔄 Limpiar historial (volver a activo siempre)
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
