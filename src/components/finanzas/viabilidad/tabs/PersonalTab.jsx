@@ -110,8 +110,8 @@ export default function PersonalTab({
     setWorkers(prev => { const n = [...prev]; n[idx] = { ...n[idx], [field]: val }; return n })
   }, [setWorkers])
 
-  const updateWorkerPeriodos = useCallback((idx, nuevosPeriodos) => {
-    setWorkers(prev => { const n = [...prev]; n[idx] = { ...n[idx], periodos: nuevosPeriodos }; return n })
+  const updateWorkerHistorial = useCallback((idx, nuevoHistorial) => {
+    setWorkers(prev => { const n = [...prev]; n[idx] = { ...n[idx], historial: nuevoHistorial, periodos: undefined }; return n })
   }, [setWorkers])
 
   const updateWorkerDay = useCallback((workerIdx, dia, isRestDay) => {
@@ -229,8 +229,8 @@ export default function PersonalTab({
                       <div className="px-5 pb-4">
                         <PeriodosEditor
                           record={workers[i]}
-                          onChange={nuevos => updateWorkerPeriodos(i, nuevos)}
-                          label={`Períodos de ${w.name || "trabajador"}`}
+                          onChange={nuevo => updateWorkerHistorial(i, nuevo)}
+                          label={`Historial laboral de ${w.name || "trabajador"}`}
                         />
                       </div>
                     </td>

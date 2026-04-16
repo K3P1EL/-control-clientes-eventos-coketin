@@ -65,90 +65,121 @@ export function parseLocalDate(d) {
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
-// ── Períodos (altas / bajas / reingresos) ───────────────────────────────
-// Un "record" (worker, servicio, apoyo) puede tener un array `periodos`:
-//   [{ desde: "YYYY-MM-DD" | null, hasta: "YYYY-MM-DD" | null }, ...]
-// `desde: null` = "desde siempre". `hasta: null` = "abierto / sigue activo".
-// Si no hay `periodos` (o está vacío) → se trata como siempre activo
-// (compatibilidad con datos anteriores).
-export function isActiveOnDate(record, date) {
+// ── Historial laboral (altas / bajas / reingresos) ──────────────────────
+// Un "record" (worker, servicio, apoyo) lleva un array `historial` con
+// eventos cronológicos, una sola fecha por evento:
+//   [{ tipo: "baja" | "reingreso", fecha: "YYYY-MM-DD" }, ...]
+// Convención:
+//   - baja en fecha X → último día activo = X (desde X+1 está inactivo)
+//   - reingreso en fecha X → primer día activo del nuevo tramo = X
+// Sin historial → siempre activo (default).
+// Compatibilidad: si el record tiene `periodos` (modelo viejo) se migra
+// automáticamente a eventos al leerlo.
+export function ensureHistorial(record) {
+  if (Array.isArray(record?.historial)) return record.historial
   const periodos = record?.periodos
-  if (!Array.isArray(periodos) || periodos.length === 0) return true
+  if (!Array.isArray(periodos) || periodos.length === 0) return []
+  const eventos = []
+  periodos.forEach(p => {
+    if (p.desde) eventos.push({ tipo: "reingreso", fecha: p.desde })
+    if (p.hasta) eventos.push({ tipo: "baja", fecha: p.hasta })
+  })
+  return eventos.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+}
+
+export function isActiveOnDate(record, date) {
+  const historial = ensureHistorial(record)
+  if (historial.length === 0) return true
   const d = date instanceof Date ? date : parseLocalDate(date)
   if (!d) return true
   const ref = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  return periodos.some(p => {
-    const desde = p.desde ? parseLocalDate(p.desde) : null
-    const hasta = p.hasta ? parseLocalDate(p.hasta) : null
-    if (desde && ref < desde) return false
-    if (hasta && ref > hasta) return false
-    return true
-  })
-}
 
-export function getOpenPeriod(record) {
-  const periodos = record?.periodos
-  if (!Array.isArray(periodos)) return null
-  return periodos.find(p => !p.hasta) || null
-}
-
-// Para mostrar un badge de estado en la tabla según el mes visto.
-export function getRecordStatus(record, viewYear, viewMonth) {
-  const periodos = record?.periodos
-  if (!Array.isArray(periodos) || periodos.length === 0) {
-    return { active: true, label: "Activo", tone: "emerald" }
+  let active = true
+  const sorted = [...historial].sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+  for (const ev of sorted) {
+    const evDate = parseLocalDate(ev.fecha)
+    if (!evDate) continue
+    if (ref < evDate) break // evento futuro, no aplica
+    if (ev.tipo === "baja") {
+      // baja: activo hasta esa fecha inclusive. Después inactivo.
+      if (ref > evDate) active = false
+      // ref === evDate: último día, queda como estaba (activo)
+    } else if (ev.tipo === "reingreso") {
+      // reingreso: desde esa fecha inclusive, activo.
+      active = true
+    }
   }
+  return active
+}
+
+// Devuelve el último evento (más reciente) del historial, o null.
+export function getUltimoEvento(record) {
+  const historial = ensureHistorial(record)
+  if (historial.length === 0) return null
+  const sorted = [...historial].sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+  return sorted[sorted.length - 1]
+}
+
+// Estado actual: si el record está activo HOY o no, basado en su historial.
+export function isActiveNow(record) {
+  return isActiveOnDate(record, peruNow())
+}
+
+// Badge de estado según el mes visto (para la tabla).
+export function getRecordStatus(record, viewYear, viewMonth) {
+  const historial = ensureHistorial(record)
+  if (historial.length === 0) return { active: true, label: "Activo", tone: "emerald" }
+
   const firstDay = new Date(viewYear, viewMonth - 1, 1)
   const lastDay = new Date(viewYear, viewMonth - 1, getDaysInMonth(viewYear, viewMonth))
-  const activeStart = isActiveOnDate(record, firstDay)
-  const activeEnd = isActiveOnDate(record, lastDay)
-  const open = getOpenPeriod(record)
+  const startActive = isActiveOnDate(record, firstDay)
+  const endActive = isActiveOnDate(record, lastDay)
 
-  if (activeStart && activeEnd) return { active: true, label: "Activo", tone: "emerald" }
-  if (!activeStart && activeEnd && open?.desde) {
-    return { active: true, label: `Regresó ${fmtFecha(open.desde)}`, tone: "sky" }
+  const sorted = [...historial].sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+  const eventsInMonth = sorted.filter(ev => {
+    const d = parseLocalDate(ev.fecha)
+    return d && d.getFullYear() === viewYear && (d.getMonth() + 1) === viewMonth
+  })
+
+  if (startActive && endActive) {
+    // Pudo haber entrado y salido dentro del mes, pero al final del mes sigue activo.
+    const reingresoEnMes = eventsInMonth.find(ev => ev.tipo === "reingreso")
+    if (reingresoEnMes && !startActive) return { active: true, label: `Volvió ${fmtFecha(reingresoEnMes.fecha)}`, tone: "sky" }
+    return { active: true, label: "Activo", tone: "emerald" }
   }
-  if (activeStart && !activeEnd) {
-    const lastClosed = [...periodos].reverse().find(p => p.hasta)
-    return { active: false, label: `Baja ${fmtFecha(lastClosed?.hasta)}`, tone: "amber" }
+  if (startActive && !endActive) {
+    const bajaEnMes = [...eventsInMonth].reverse().find(ev => ev.tipo === "baja")
+    return { active: false, label: `Dejó ${fmtFecha(bajaEnMes?.fecha)}`, tone: "amber" }
+  }
+  if (!startActive && endActive) {
+    const reingresoEnMes = [...eventsInMonth].reverse().find(ev => ev.tipo === "reingreso")
+    return { active: true, label: `Volvió ${fmtFecha(reingresoEnMes?.fecha)}`, tone: "sky" }
   }
   // Ningún día del mes activo
-  const lastClosed = [...periodos].reverse().find(p => p.hasta)
+  const lastBaja = [...sorted].reverse().find(ev => ev.tipo === "baja")
   return {
     active: false,
-    label: lastClosed ? `Inactivo desde ${fmtFecha(lastClosed.hasta)}` : "Inactivo",
+    label: lastBaja ? `Inactivo desde ${fmtFecha(lastBaja.fecha)}` : "Inactivo",
     tone: "zinc",
   }
 }
 
-// Acciones que agregan / cierran períodos. Devuelven el array nuevo.
-export function darDeBaja(periodos, fecha) {
-  const arr = Array.isArray(periodos) ? [...periodos] : []
-  if (arr.length === 0) return [{ desde: null, hasta: fecha }]
-  const openIdx = arr.findIndex(p => !p.hasta)
-  if (openIdx >= 0) {
-    const p = arr[openIdx]
-    // Edge case: el período abierto arrancó hoy (ej: "+Agregar" clickeado
-    // por error). Cerrarlo como [hoy, hoy] es un período de 1 día que
-    // rara vez es lo que el usuario quiere. Lo eliminamos y si no queda
-    // ningún otro período, generamos el canónico "baja desde siempre".
-    if (p.desde === fecha) {
-      arr.splice(openIdx, 1)
-      if (arr.length === 0) return [{ desde: null, hasta: fecha }]
-      return arr
-    }
-    arr[openIdx] = { ...p, hasta: fecha }
-  } else {
-    arr.push({ desde: null, hasta: fecha })
-  }
-  return arr
+// Acciones sobre el historial. Devuelven el array nuevo.
+// Idempotentes: si ya existe un evento del mismo tipo en esa fecha, no duplican.
+export function registrarBaja(historial, fecha) {
+  const arr = Array.isArray(historial) ? [...historial] : []
+  const ya = arr.some(ev => ev.tipo === "baja" && ev.fecha === fecha)
+  if (ya) return arr
+  arr.push({ tipo: "baja", fecha })
+  return arr.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
 }
 
-export function readmitir(periodos, fecha) {
-  const arr = Array.isArray(periodos) ? [...periodos] : []
-  if (arr.some(p => !p.hasta)) return arr // ya hay uno abierto
-  arr.push({ desde: fecha, hasta: null })
-  return arr
+export function registrarReingreso(historial, fecha) {
+  const arr = Array.isArray(historial) ? [...historial] : []
+  const ya = arr.some(ev => ev.tipo === "reingreso" && ev.fecha === fecha)
+  if (ya) return arr
+  arr.push({ tipo: "reingreso", fecha })
+  return arr.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
 }
 
 // ── Date display ────────────────────────────────────────────────────────
