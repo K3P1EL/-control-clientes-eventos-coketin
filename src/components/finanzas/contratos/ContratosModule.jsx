@@ -44,19 +44,20 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
   const filteredSummary = useMemo(() => calcSummary(filtered), [filtered, calcSummary])
   const quickLabel = filterSem ? `Semana ${filterSem}${+filterSem === currentWeekNum ? " (actual)" : ""}` : filterMes ? `${MESES_CORTO[+filterMes]} ${currentYear}` : "Todo"
 
-  // setQuickAll/setQuickWeek/setQuickMonth come from props (shared with Caja).
-  // Wrap setQuickAll to also clear local-only filters (estado, search).
-  const clearAll = () => { setQuickAll(); setFilterEstado(""); setSearch("") }
-
-  if (!loaded) return <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">Cargando...</div>
-
-  // Count of pending contracts (across all periods) for the badge.
+  // Conteo de contratos pendientes (para badge en el botón). Debe ir ANTES
+  // del early return para respetar las reglas de hooks de React.
   const pendientesCount = useMemo(() => {
     return activeContracts.filter(c => {
       const calc = calcContract(c)
       return calc.estado === "Pendiente"
     }).length
   }, [activeContracts])
+
+  // setQuickAll/setQuickWeek/setQuickMonth come from props (shared with Caja).
+  // Wrap setQuickAll to also clear local-only filters (estado, search).
+  const clearAll = () => { setQuickAll(); setFilterEstado(""); setSearch("") }
+
+  if (!loaded) return <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">Cargando...</div>
 
   const viewBtns = [
     { id: "t-sem", label: filterSem ? `Sem ${filterSem}${+filterSem === currentWeekNum ? " ←" : ""}` : `Sem ${currentWeekNum}`, action: () => { setQuickWeek(currentWeekNum); setView("tabla") }, active: view === "tabla" && !!filterSem },
