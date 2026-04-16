@@ -58,6 +58,8 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
   const normalized = contract ? normalizeContract(contract) : null
   const [form, setForm] = useState(normalized || defaultForm(nextId))
   const [showServicios, setShowServicios] = useState(false)
+  const [cancelDialog, setCancelDialog] = useState(null) // null | "choose" | "parcial"
+  const [parcialInput, setParcialInput] = useState("")
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const calc = calcContract(form)
   const productos = form.productos || []
@@ -217,30 +219,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               </button>
             </div>
           ) : !isNew && (
-            <button type="button" onClick={() => {
-              const totalPagado = (form.adelantos || []).reduce((s, a) => s + (a.monto || 0), 0) + (form.cobros || []).reduce((s, a) => s + (a.monto || 0), 0)
-              const choice = window.prompt(
-                `¿Cancelar contrato N ${form.id}?\n\n` +
-                `El cliente pagó hasta ahora: S/${totalPagado}\n\n` +
-                `¿Qué pasa con esa plata?\n` +
-                `  1 = Me quedo con todo (penalidad)\n` +
-                `  2 = Devuelvo todo\n` +
-                `  3 = Devuelvo parcial (te pregunto cuánto)\n\n` +
-                `Escribe 1, 2 o 3:`
-              )
-              if (!choice) return
-              let info = null
-              if (choice === "1") info = { tipo: "retenido", montoRetenido: totalPagado, montoDevuelto: 0, fecha: new Date().toISOString().slice(0, 10) }
-              else if (choice === "2") info = { tipo: "devuelto_todo", montoRetenido: 0, montoDevuelto: totalPagado, fecha: new Date().toISOString().slice(0, 10) }
-              else if (choice === "3") {
-                const devStr = window.prompt(`¿Cuánto devolviste al cliente? (max S/${totalPagado})`)
-                const dev = Math.max(0, Math.min(totalPagado, parseFloat(devStr) || 0))
-                info = { tipo: "devuelto_parcial", montoRetenido: totalPagado - dev, montoDevuelto: dev, fecha: new Date().toISOString().slice(0, 10) }
-              }
-              else { alert("Opción inválida"); return }
-              setForm(p => ({ ...p, cancelado: true, cancelInfo: info }))
-              alert("Contrato cancelado. Recuerda registrar en Caja si devolviste plata.")
-            }}
+            <button type="button" onClick={() => { setParcialInput(""); setCancelDialog("choose") }}
               style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.05)", color: "#f87171", cursor: "pointer", fontSize: 11, fontWeight: 600, alignSelf: "flex-start" }}>
               ❌ Cancelar contrato (cliente se arrepintió)
             </button>
@@ -258,6 +237,77 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
             {isNew ? "Crear Contrato" : "Guardar Cambios"}
           </button>
         </div>
+
+        {/* Diálogo de cancelación */}
+        {cancelDialog && (() => {
+          const totalPagado = (form.adelantos || []).reduce((s, a) => s + (a.monto || 0), 0) + (form.cobros || []).reduce((s, a) => s + (a.monto || 0), 0)
+          const applyCancel = (info) => {
+            setForm(p => ({ ...p, cancelado: true, cancelInfo: info }))
+            setCancelDialog(null)
+          }
+          return (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setCancelDialog(null)}>
+              <div onClick={e => e.stopPropagation()}
+                style={{ background: "#18181b", borderRadius: 14, border: "1px solid rgba(239,68,68,0.4)", padding: 24, maxWidth: 440, width: "100%", boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#f87171", marginBottom: 4 }}>❌ Cancelar contrato N {form.id}</div>
+                <div style={{ fontSize: 12, color: "#a1a1aa", marginBottom: 18 }}>El cliente pagó hasta ahora: <strong style={{ color: "#34d399" }}>S/ {totalPagado}</strong></div>
+
+                {cancelDialog === "choose" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ fontSize: 12, color: "#d4d4d8", marginBottom: 4 }}>¿Qué pasa con esa plata?</div>
+                    <button type="button" onClick={() => applyCancel({ tipo: "retenido", montoRetenido: totalPagado, montoDevuelto: 0, fecha: new Date().toISOString().slice(0, 10) })}
+                      style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.08)", color: "#34d399", cursor: "pointer", fontSize: 13, fontWeight: 700, textAlign: "left" }}>
+                      💰 Me quedo con todo <span style={{ fontSize: 11, color: "#71717a", fontWeight: 500 }}>(penalidad · ganancia S/{totalPagado})</span>
+                    </button>
+                    <button type="button" onClick={() => applyCancel({ tipo: "devuelto_todo", montoRetenido: 0, montoDevuelto: totalPagado, fecha: new Date().toISOString().slice(0, 10) })}
+                      style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 700, textAlign: "left" }}>
+                      ↩ Devuelvo todo <span style={{ fontSize: 11, color: "#71717a", fontWeight: 500 }}>(registra egreso en Caja)</span>
+                    </button>
+                    <button type="button" onClick={() => setCancelDialog("parcial")}
+                      style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(251,191,36,0.3)", background: "rgba(251,191,36,0.08)", color: "#fbbf24", cursor: "pointer", fontSize: 13, fontWeight: 700, textAlign: "left" }}>
+                      ⚖️ Devuelvo parcial <span style={{ fontSize: 11, color: "#71717a", fontWeight: 500 }}>(te pregunto cuánto)</span>
+                    </button>
+                  </div>
+                )}
+
+                {cancelDialog === "parcial" && (
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#a1a1aa", marginBottom: 6 }}>¿Cuánto le devolviste al cliente? (máx S/{totalPagado})</label>
+                    <input type="text" inputMode="decimal" value={parcialInput} autoFocus
+                      onChange={e => setParcialInput(e.target.value.replace(/[^0-9.]/g, ""))}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          const dev = Math.max(0, Math.min(totalPagado, parseFloat(parcialInput) || 0))
+                          applyCancel({ tipo: "devuelto_parcial", montoRetenido: totalPagado - dev, montoDevuelto: dev, fecha: new Date().toISOString().slice(0, 10) })
+                        }
+                      }}
+                      placeholder="0"
+                      style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #3f3f46", background: "#27272a", color: "#e4e4e7", fontSize: 14, fontWeight: 700, outline: "none", marginBottom: 14 }} />
+                    {parcialInput && (
+                      <div style={{ fontSize: 11, color: "#a1a1aa", marginBottom: 14, background: "rgba(39,39,42,0.6)", padding: "8px 12px", borderRadius: 8 }}>
+                        Devolverás <strong style={{ color: "#f87171" }}>S/{Math.min(totalPagado, parseFloat(parcialInput) || 0)}</strong> · Te quedas con <strong style={{ color: "#34d399" }}>S/{totalPagado - Math.min(totalPagado, parseFloat(parcialInput) || 0)}</strong>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                      <button type="button" onClick={() => setCancelDialog("choose")}
+                        style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #3f3f46", background: "transparent", color: "#a1a1aa", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>← Atrás</button>
+                      <button type="button" onClick={() => {
+                        const dev = Math.max(0, Math.min(totalPagado, parseFloat(parcialInput) || 0))
+                        applyCancel({ tipo: "devuelto_parcial", montoRetenido: totalPagado - dev, montoDevuelto: dev, fecha: new Date().toISOString().slice(0, 10) })
+                      }}
+                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Confirmar</button>
+                    </div>
+                  </div>
+                )}
+
+                <button type="button" onClick={() => setCancelDialog(null)}
+                  style={{ marginTop: 12, width: "100%", padding: "8px", borderRadius: 8, border: "none", background: "transparent", color: "#71717a", cursor: "pointer", fontSize: 11 }}>
+                  Cerrar sin cancelar
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
