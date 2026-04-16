@@ -83,8 +83,8 @@ export default function PendientesView({ activeContracts, onEdit }) {
             const alerta = motivo === "pago" && dias !== null && dias > 14
             const fechaLabel = fmtFecha(homeFecha)
             const cobrado = calc.precioFinal - calc.pendiente
-            const badgeColor = motivo === "trabajo" ? "blue" : motivo === "ambos" ? "purple" : "yellow"
-            const badgeText = motivo === "trabajo" ? "Trabajo pendiente" : motivo === "ambos" ? "Pago + Trabajo" : "Pago pendiente"
+            const badgeColor = motivo === "trabajo" ? "blue" : "yellow"
+            const badgeText = motivo === "trabajo" ? "Trabajo pendiente" : motivo === "ambos" ? "Pendiente" : "Pago pendiente"
             return (
               <div key={c.id}
                 onClick={() => onEdit && onEdit(c)}
