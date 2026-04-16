@@ -1,4 +1,11 @@
-import { peruToday, registrarBaja, registrarReingreso, fmtFecha, ensureHistorial, isActiveNow } from "../../../../lib/finanzas/helpers"
+import { peruToday, registrarBaja, registrarReingreso, fmtFecha, ensureHistorial, isActiveNow, parseLocalDate } from "../../../../lib/finanzas/helpers"
+
+function shiftDay(dateStr, offsetDays) {
+  const d = parseLocalDate(dateStr)
+  if (!d) return null
+  d.setDate(d.getDate() + offsetDays)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
 
 // Editor genérico de historial laboral (altas / bajas / reingresos).
 // Modelo: lista cronológica de eventos con UNA sola fecha cada uno.
@@ -18,11 +25,19 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
 
   const updateFecha = (idx, fecha) => {
     if (!fecha) return
-    // Validar orden cronológico contra vecinos (la vista está sorted).
+    // Validar orden cronológico estricto contra vecinos (la vista está sorted).
+    // No se permite misma fecha que el evento anterior o siguiente — sería
+    // ambiguo (no podés "dejar" y "volver" el mismo día).
     const prev = sorted[idx - 1]?.fecha
     const nxt = sorted[idx + 1]?.fecha
-    if (prev && fecha < prev) return
-    if (nxt && fecha > nxt) return
+    if (prev && fecha <= prev) {
+      alert(`No se puede elegir esa fecha. Debe ser posterior al ${fmtFecha(prev)}.`)
+      return
+    }
+    if (nxt && fecha >= nxt) {
+      alert(`No se puede elegir esa fecha. Debe ser anterior al ${fmtFecha(nxt)}.`)
+      return
+    }
     const next = historial.map((ev, i) => i === idx ? { ...ev, fecha } : ev)
     next.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
     onChange(next)
@@ -35,9 +50,14 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
   const agregarEvento = () => {
     const ultimo = sorted[sorted.length - 1]
     const nextTipo = ultimo?.tipo === "baja" ? "reingreso" : "baja"
-    // Default = hoy, pero nunca antes del último evento (garantiza orden).
+    // Default = hoy. Si el último evento fue hoy o futuro, saltamos al día
+    // siguiente para garantizar orden estricto (dos eventos no pueden
+    // caer en la misma fecha).
     const hoy = peruToday()
-    const fecha = ultimo?.fecha && hoy < ultimo.fecha ? ultimo.fecha : hoy
+    let fecha = hoy
+    if (ultimo?.fecha && hoy <= ultimo.fecha) {
+      fecha = shiftDay(ultimo.fecha, 1)
+    }
     const next = [...historial, { tipo: nextTipo, fecha }]
     next.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
     onChange(next)
@@ -84,8 +104,10 @@ export default function PeriodosEditor({ record, onChange, label = "Historial la
             const text = isBaja ? "Dejó de trabajar el" : "Volvió a trabajar el"
             const color = isBaja ? "text-amber-400" : "text-emerald-400"
             const bg = isBaja ? "bg-amber-500/5 border-amber-500/20" : "bg-emerald-500/5 border-emerald-500/20"
-            const minDate = sorted[i - 1]?.fecha || undefined
-            const maxDate = sorted[i + 1]?.fecha || undefined
+            const prevFecha = sorted[i - 1]?.fecha
+            const nextFecha = sorted[i + 1]?.fecha
+            const minDate = prevFecha ? shiftDay(prevFecha, 1) : undefined
+            const maxDate = nextFecha ? shiftDay(nextFecha, -1) : undefined
             return (
               <div key={i} className={`flex items-center gap-2 text-xs rounded-lg px-3 py-2 border ${bg}`}>
                 <button onClick={() => toggleTipo(i)}
