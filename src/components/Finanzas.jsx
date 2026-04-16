@@ -45,9 +45,6 @@ export default function Finanzas({ prodTags = [] }) {
   const setQuickWeek = (w) => { setFilterMes(""); setFilterSem(String(w)) }
   const setQuickMonth = (m) => { setFilterSem(""); setFilterMes(String(m)) }
 
-  // Shared state for "Registrar en Caja" shortcut from Contratos
-  const [pendingCajaEntry, setPendingCajaEntry] = useState(null)
-  const sendToCaja = (entry) => { setPendingCajaEntry(entry); setActiveModule("caja") }
 
   // Snapshots for export (lightweight, no CRUD)
   const contractsSnap = useContratosSnapshot()
@@ -139,14 +136,13 @@ export default function Finanzas({ prodTags = [] }) {
           <ContratosModule
             filterSem={filterSem} filterMes={filterMes}
             setQuickAll={setQuickAll} setQuickWeek={setQuickWeek} setQuickMonth={setQuickMonth}
-            prodTags={prodTags} sendToCaja={sendToCaja}
+            prodTags={prodTags}
           />
         )}
         {activeModule === "caja" && (
           <CajaModule
             filterSem={filterSem} filterMes={filterMes}
             setQuickAll={setQuickAll} setQuickWeek={setQuickWeek} setQuickMonth={setQuickMonth}
-            pendingEntry={pendingCajaEntry} clearPendingEntry={() => setPendingCajaEntry(null)}
           />
         )}
       </div>

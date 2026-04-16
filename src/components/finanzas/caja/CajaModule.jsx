@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import DarkStatCard from "../ui/DarkStatCard"
 import { formatMoney, peruToday, peruNow, getWeekNumberISO } from "../../../lib/finanzas/helpers"
 import { MESES, MESES_CORTO } from "../../../lib/finanzas/constants"
@@ -16,7 +16,7 @@ const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: 
 
 // Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
 // so switching between Contratos ↔ Caja keeps the same time window.
-export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, pendingEntry, clearPendingEntry }) {
+export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth }) {
   const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset } = useCajaEntries()
 
   const currentWeekNum = getWeekNumberISO(peruNow())
@@ -26,15 +26,6 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
 
-  // Receive pre-filled entry from Contratos "📥 Caja" button
-  useEffect(() => {
-    if (pendingEntry) {
-      setForm({ ...EMPTY_FORM, ...pendingEntry })
-      setEditId(null)
-      setShowForm(true)
-      if (clearPendingEntry) clearPendingEntry()
-    }
-  }, [pendingEntry, clearPendingEntry])
   const [trashOpen, setTrashOpen] = useState(false)
   const [sortBy, setSortBy] = useState("num")
   const [sortDir, setSortDir] = useState("desc")

@@ -3,6 +3,9 @@ import { cDark } from "../ui/darkStyles"
 import DarkMoneyInput from "../ui/DarkMoneyInput"
 import { PERSONAS, MODALS } from "../../../lib/finanzas/constants"
 import { peruNow, peruToday, getWeekNumberISO, formatMoney, calcContract, normalizeContract } from "../../../lib/finanzas/helpers"
+import { getJSON, setJSON } from "../../../lib/storage"
+import { STORAGE_KEYS } from "../../../lib/finanzas/constants"
+import { saveCaja } from "../../../services/finanzas"
 
 // Factory functions — evaluate peruToday() fresh each call so long-running sessions get today's date
 const emptyAdel = () => ({ monto: 0, modalidad: "Efectivo", recibio: "Yo", fecha: peruToday(), enCaja: true, noTrack: false })
@@ -19,9 +22,23 @@ function defaultForm(nextId) {
   }
 }
 
+// Quick-add to Caja directly from contract modal (writes to localStorage + Supabase)
+function quickAddToCaja(cajaEntry) {
+  const current = getJSON(STORAGE_KEYS.CAJA) || []
+  const nextNum = current.length > 0 ? Math.max(...current.map(e => e.num || 0)) + 1 : 1
+  const entry = { ...cajaEntry, id: Date.now(), num: nextNum, concepto: cajaEntry.concepto || "Sin concepto" }
+  const updated = [entry, ...current]
+  setJSON(STORAGE_KEYS.CAJA, updated)
+  saveCaja(updated).catch(() => {})
+  return entry
+}
+
 // Reusable payment row (adelanto or cobro)
-function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyle, onSendToCaja }) {
+function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyle, cajaLabel }) {
   const upd = (k, v) => onChange({ ...entry, [k]: v })
+  const [cajaOpen, setCajaOpen] = useState(false)
+  const [cajaSaved, setCajaSaved] = useState(false)
+  const [cajaForm, setCajaForm] = useState(null)
   if (entry.noTrack) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
@@ -43,24 +60,42 @@ function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyl
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#a1a1aa", cursor: "pointer" }}>
           <input type="checkbox" checked={entry.enCaja} onChange={e => upd("enCaja", e.target.checked)} /> ¿En caja?
         </label>
-        {entry.enCaja && entry.monto > 0 && onSendToCaja && (
-          <button type="button" onClick={() => onSendToCaja(entry)}
-            title="Registrar este pago en Caja"
+        {entry.enCaja && entry.monto > 0 && cajaLabel && !cajaSaved && (
+          <button type="button" onClick={() => { setCajaForm({ fecha: entry.fecha || peruToday(), tipo: "ingreso", monto: entry.monto, concepto: cajaLabel, quien: entry.recibio === "Yo" ? "" : (entry.recibio || ""), modalidad: entry.modalidad || "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }); setCajaOpen(!cajaOpen) }}
             style={{ padding: "2px 8px", borderRadius: 6, border: "1px solid rgba(14,165,233,0.3)", background: "rgba(14,165,233,0.1)", color: "#38bdf8", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
             📥 Caja
           </button>
         )}
+        {cajaSaved && <span style={{ fontSize: 10, color: "#34d399", fontWeight: 700 }}>✅ Registrado en Caja</span>}
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#52525b", cursor: "pointer" }}>
           <input type="checkbox" checked={false} onChange={() => upd("noTrack", true)} /> No trackear
         </label>
         {canRemove && <button onClick={onRemove} style={{ fontSize: 14, color: "#52525b", cursor: "pointer", background: "none", border: "none", marginLeft: "auto" }} title="Quitar">×</button>}
       </div>
+      {cajaOpen && cajaForm && (
+        <div style={{ marginTop: 6, padding: "10px 12px", background: "rgba(14,165,233,0.06)", borderRadius: 8, border: "1px solid rgba(14,165,233,0.2)" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#38bdf8", marginBottom: 8 }}>📥 Registrar en Caja</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", gap: 6 }}>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Monto</label><input style={{ ...fs, fontSize: 12 }} type="text" value={cajaForm.monto} onChange={e => setCajaForm(p => ({ ...p, monto: parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0 }))} /></div>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Modalidad</label><select style={{ ...fs, fontSize: 12 }} value={cajaForm.modalidad} onChange={e => setCajaForm(p => ({ ...p, modalidad: e.target.value }))}><option>Efectivo</option><option>Yape</option></select></div>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Quién</label><input style={{ ...fs, fontSize: 12 }} value={cajaForm.quien} onChange={e => setCajaForm(p => ({ ...p, quien: e.target.value }))} placeholder="Nombre" /></div>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Concepto</label><input style={{ ...fs, fontSize: 12 }} value={cajaForm.concepto} onChange={e => setCajaForm(p => ({ ...p, concepto: e.target.value }))} /></div>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
+            <button type="button" onClick={() => setCajaOpen(false)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #3f3f46", background: "transparent", color: "#71717a", cursor: "pointer", fontSize: 10 }}>Cancelar</button>
+            <button type="button" onClick={() => { quickAddToCaja(cajaForm); setCajaSaved(true); setCajaOpen(false) }}
+              style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
+              Guardar en Caja
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // Modal to create or edit a contract. `contract` is null/undefined for new.
-export default function ContractModal({ contract, onSave, onClose, nextId, prodTags = [], sendToCaja }) {
+export default function ContractModal({ contract, onSave, onClose, nextId, prodTags = [] }) {
   const isNew = !contract
   const normalized = contract ? normalizeContract(contract) : null
   const [form, setForm] = useState(normalized || defaultForm(nextId))
@@ -124,7 +159,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
             </div>
             {form.adelantos.map((a, i) => (
               <PaymentRow key={i} entry={a} onChange={e => setAdelanto(i, e)} onRemove={() => removeAdelanto(i)} canRemove={form.adelantos.length > 1} color="#34d399" fs={fs} groupStyle={groupStyle}
-                onSendToCaja={sendToCaja ? (pay) => sendToCaja({ fecha: pay.fecha, tipo: "ingreso", monto: pay.monto, concepto: `${form.id} · Adelanto`, quien: pay.recibio === "Yo" ? "" : pay.recibio, modalidad: pay.modalidad, delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }) : null} />
+                cajaLabel={`${form.id} · Adelanto`} />
             ))}
           </div>
 
@@ -136,7 +171,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
             </div>
             {form.cobros.map((a, i) => (
               <PaymentRow key={i} entry={a} onChange={e => setCobro(i, e)} onRemove={() => removeCobro(i)} canRemove={form.cobros.length > 1} color="#38bdf8" fs={fs} groupStyle={groupStyle}
-                onSendToCaja={sendToCaja ? (pay) => sendToCaja({ fecha: pay.fecha, tipo: "ingreso", monto: pay.monto, concepto: `${form.id} · Cobro`, quien: pay.recibio === "Yo" ? "" : pay.recibio, modalidad: pay.modalidad, delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }) : null} />
+                cajaLabel={`${form.id} · Cobro`} />
             ))}
           </div>
 
@@ -146,8 +181,8 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               <label style={cDark.label}>Gastos</label>
               <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                 <DarkMoneyInput style={fs} value={form.gastos} onChange={v => set("gastos", Math.max(0, v))} />
-                {sendToCaja && form.gastos > 0 && (
-                  <button type="button" onClick={() => sendToCaja({ fecha: peruToday(), tipo: "egreso", monto: form.gastos, concepto: `${form.id} · Gastos`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" })}
+                {form.gastos > 0 && (
+                  <button type="button" onClick={() => { quickAddToCaja({ fecha: peruToday(), tipo: "egreso", monto: form.gastos, concepto: `${form.id} · Gastos`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }); alert("✅ Gasto registrado en Caja") }}
                     title="Registrar gasto en Caja" style={{ padding: "2px 6px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>📤</button>
                 )}
               </div>
@@ -232,8 +267,8 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {sendToCaja && form.cancelInfo?.montoDevuelto > 0 && (
-                  <button type="button" onClick={() => sendToCaja({ fecha: form.cancelInfo.fecha || peruToday(), tipo: "egreso", monto: form.cancelInfo.montoDevuelto, concepto: `${form.id} · Devolución cancelación`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" })}
+                {form.cancelInfo?.montoDevuelto > 0 && (
+                  <button type="button" onClick={() => { quickAddToCaja({ fecha: form.cancelInfo.fecha || peruToday(), tipo: "egreso", monto: form.cancelInfo.montoDevuelto, concepto: `${form.id} · Devolución cancelación`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }); alert("✅ Devolución registrada en Caja") }}
                     style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
                     📤 Registrar devolución S/{form.cancelInfo.montoDevuelto} en Caja
                   </button>
