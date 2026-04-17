@@ -106,11 +106,10 @@ function GastoRow({ entry, onChange, onRemove, canRemove, fs, groupStyle, contra
 
   return (
     <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: canRemove ? "1px solid rgba(239,68,68,0.15)" : "none" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr 1fr", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: 8 }}>
         <div style={groupStyle}><label style={cDark.label}>Monto</label><DarkMoneyInput style={fs} value={entry.monto} onChange={v => upd("monto", Math.max(0, v))} /></div>
         <div style={groupStyle}><label style={cDark.label}>Concepto</label><input style={fs} value={entry.concepto || ""} onChange={e => upd("concepto", e.target.value)} placeholder="DJ, Payaso, Transporte..." /></div>
         <div style={groupStyle}><label style={cDark.label}>Fecha</label><input style={fs} type="date" value={entry.fecha || ""} onChange={e => upd("fecha", e.target.value)} /></div>
-        <div style={groupStyle}><label style={cDark.label}>Modalidad</label><select style={fs} value={entry.modalidad || "Efectivo"} onChange={e => upd("modalidad", e.target.value)}>{MODALS.map(m => <option key={m}>{m}</option>)}</select></div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
         {entry.monto > 0 && !cajaSaved && (
