@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { cDark } from "../../ui/darkStyles"
 import DarkBadge from "../../ui/DarkBadge"
 import DarkStatCard from "../../ui/DarkStatCard"
-import { formatMoney, calcContract, parseLocalDate, getContractHomeDate } from "../../../../lib/finanzas/helpers"
+import { formatMoney, calcContract, parseLocalDate, getContractHomeDate, getGastosTotal } from "../../../../lib/finanzas/helpers"
 
 const MESES_CORTOS = ["", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
@@ -136,7 +136,21 @@ export default function TablaView({
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#e4e4e7", textDecoration: c.cancelado ? "line-through" : "none" }}>{formatMoney(c.total)}</td>
                     <td style={{ ...cDark.td, textDecoration: c.cancelado ? "line-through" : "none" }}>{(c.adelantos || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.adelantos || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
                     <td style={{ ...cDark.td, textDecoration: c.cancelado ? "line-through" : "none" }}>{(c.cobros || []).every(a => a.noTrack) ? <DarkBadge color="neutral">No track.</DarkBadge> : <>{(c.cobros || []).filter(a => !a.noTrack).map((a, i) => <div key={i}>{formatMoney(a.monto)}{a.monto > 0 && a.modalidad ? <span style={{ fontSize: 10, color: "#52525b" }}> {a.modalidad} · {a.recibio || "—"}</span> : null}</div>)}</>}</td>
-                    <td style={cDark.td}>{(c.descuento > 0 || c.gastos > 0) ? <>{c.descuento > 0 && <div style={{ color: "#fbbf24" }}>Desc: -{formatMoney(c.descuento)}</div>}{c.gastos > 0 && <div style={{ color: "#f87171" }}>Gastos: -{formatMoney(c.gastos)}</div>}</> : "—"}</td>
+                    <td style={cDark.td}>{(() => {
+                      const totalGastos = getGastosTotal(c)
+                      const gastosArr = Array.isArray(c.gastos) ? c.gastos.filter(g => g && g.monto > 0) : []
+                      if (c.descuento > 0 || totalGastos > 0) return (
+                        <>
+                          {c.descuento > 0 && <div style={{ color: "#fbbf24" }}>Desc: -{formatMoney(c.descuento)}</div>}
+                          {totalGastos > 0 && (
+                            <div style={{ color: "#f87171" }} title={gastosArr.map(g => `${g.concepto || "Gasto"}: ${formatMoney(g.monto)}`).join("\n")}>
+                              Gastos: -{formatMoney(totalGastos)}{gastosArr.length > 1 ? <span style={{ fontSize: 9, color: "#71717a", marginLeft: 4 }}>({gastosArr.length})</span> : null}
+                            </div>
+                          )}
+                        </>
+                      )
+                      return "—"
+                    })()}</td>
                     <td style={{ ...cDark.td, fontWeight: 700, color: "#34d399" }}>{formatMoney(calc.ganancia)}{calc.exceso > 0 && <div style={{ fontSize: 9, color: "#34d399", opacity: 0.7 }}>+{formatMoney(calc.exceso)} extra</div>}</td>
                     <td style={cDark.td}>{formatMoney(calc.enCaja)}</td>
                     <td style={cDark.td}>{c.cancelado ? <DarkBadge color="red">❌ Cancelado</DarkBadge> : calc.pendiente > 0 ? <DarkBadge color="red">{formatMoney(calc.pendiente)}</DarkBadge> : <DarkBadge color="green">Pagado</DarkBadge>}</td>

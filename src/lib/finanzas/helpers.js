@@ -211,30 +211,57 @@ export function formatMoney(n) {
   return `S/ ${Number(n).toLocaleString("es-PE")}`
 }
 
+// Normalize gastos: si viene como número lo convertimos a array de 1 item.
+// Si ya es array, se deja; si es falsy, vuelve array vacío.
+function normalizeGastos(c) {
+  if (Array.isArray(c.gastos)) return c.gastos
+  if (typeof c.gastos === "number" && c.gastos > 0) {
+    return [{
+      monto: c.gastos,
+      concepto: "",
+      fecha: getContractHomeDate(c) || "",
+      modalidad: "Efectivo",
+      registradoCaja: !!c.gastosRegistradoCaja,
+    }]
+  }
+  return []
+}
+
 // ── Contract normalization ───────────────────────────────────────────────
 // Migrates old single-adelanto/cobro contracts to the new arrays format.
-// Safe to call multiple times — already-migrated contracts pass through.
+// También migra gastos scalar → array. Safe para llamar múltiples veces.
 export function normalizeContract(c) {
-  if (Array.isArray(c.adelantos) && Array.isArray(c.cobros)) return c
+  // Fast path: ya está todo normalizado
+  if (Array.isArray(c.adelantos) && Array.isArray(c.cobros) && Array.isArray(c.gastos)) return c
 
-  const adelantos = []
-  if (c.noTrackAdel) {
-    adelantos.push({ monto: 0, modalidad: "", recibio: "", fecha: "", enCaja: false, noTrack: true })
-  } else if ((c.adelanto || 0) > 0 || (c.fechaAdel && c.fechaAdel.trim())) {
-    adelantos.push({ monto: c.adelanto || 0, modalidad: c.modalAdel || "", recibio: c.recibioAdel || "", fecha: c.fechaAdel || "", enCaja: c.enCajaAdel || false, noTrack: false })
+  let adelantos = c.adelantos
+  let cobros = c.cobros
+
+  if (!Array.isArray(adelantos)) {
+    adelantos = []
+    if (c.noTrackAdel) {
+      adelantos.push({ monto: 0, modalidad: "", recibio: "", fecha: "", enCaja: false, noTrack: true })
+    } else if ((c.adelanto || 0) > 0 || (c.fechaAdel && c.fechaAdel.trim())) {
+      adelantos.push({ monto: c.adelanto || 0, modalidad: c.modalAdel || "", recibio: c.recibioAdel || "", fecha: c.fechaAdel || "", enCaja: c.enCajaAdel || false, noTrack: false })
+    }
   }
 
-  const cobros = []
-  if (c.noTrackCobro) {
-    cobros.push({ monto: 0, modalidad: "", recibio: "", fecha: "", enCaja: false, noTrack: true })
-  } else if ((c.cobro || 0) > 0 || (c.fechaCobro && c.fechaCobro.trim())) {
-    cobros.push({ monto: c.cobro || 0, modalidad: c.modalCobro || "", recibio: c.recibioCobro || "", fecha: c.fechaCobro || "", enCaja: c.enCajaCobro || false, noTrack: false })
+  if (!Array.isArray(cobros)) {
+    cobros = []
+    if (c.noTrackCobro) {
+      cobros.push({ monto: 0, modalidad: "", recibio: "", fecha: "", enCaja: false, noTrack: true })
+    } else if ((c.cobro || 0) > 0 || (c.fechaCobro && c.fechaCobro.trim())) {
+      cobros.push({ monto: c.cobro || 0, modalidad: c.modalCobro || "", recibio: c.recibioCobro || "", fecha: c.fechaCobro || "", enCaja: c.enCajaCobro || false, noTrack: false })
+    }
   }
+
+  const gastos = normalizeGastos(c)
 
   const { adelanto, modalAdel, recibioAdel, fechaAdel, enCajaAdel, noTrackAdel,
           cobro, modalCobro, recibioCobro, fechaCobro, enCajaCobro, noTrackCobro,
+          gastosRegistradoCaja, // consumido al migrar al array
           ...rest } = c
-  return { ...rest, adelantos, cobros }
+  return { ...rest, adelantos, cobros, gastos }
 }
 
 // Fill empty dates on payments with the contract's home date so they
@@ -259,6 +286,16 @@ export function getContractHomeDate(c) {
   if (firstAdel) return firstAdel.fecha
   const firstCobro = (c.cobros || []).find(a => !a.noTrack && a.fecha && a.fecha.trim())
   return firstCobro?.fecha || null
+}
+
+// Suma todos los gastos del contrato. Soporta el formato viejo (scalar)
+// y el nuevo (array de { monto, concepto, fecha, modalidad, registradoCaja }).
+// Usar SIEMPRE esta función en lugar de `c.gastos || 0` para que el cambio
+// de shape no rompa cálculos.
+export function getGastosTotal(c) {
+  if (!c) return 0
+  if (Array.isArray(c.gastos)) return c.gastos.reduce((s, g) => s + (g?.monto || 0), 0)
+  return c.gastos || 0
 }
 
 // ── Contract math ────────────────────────────────────────────────────────
@@ -286,7 +323,7 @@ export function calcContract(c) {
   // descuento = rebaja al cliente (reduce lo que paga)
   // gastos = costos para cumplir el contrato (reduce tu ganancia, no lo que el cliente paga)
   const precioFinal = (c.total || 0) - (c.descuento || 0)
-  const gastos = c.gastos || 0
+  const gastos = getGastosTotal(c)
   const totalPagado = totalAdel + totalCobro
   const excedente = Math.max(0, totalPagado - precioFinal)
   const ganancia = precioFinal - gastos + excedente

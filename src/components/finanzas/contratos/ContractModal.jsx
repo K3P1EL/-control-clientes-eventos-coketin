@@ -10,6 +10,7 @@ import { saveCaja } from "../../../services/finanzas"
 // Factory functions — evaluate peruToday() fresh each call so long-running sessions get today's date
 const emptyAdel = () => ({ monto: 0, modalidad: "Efectivo", recibio: "Yo", fecha: peruToday(), enCaja: true, noTrack: false })
 const emptyCobro = () => ({ monto: 0, modalidad: "Efectivo", recibio: "Yo", fecha: "", enCaja: false, noTrack: false })
+const emptyGasto = () => ({ monto: 0, concepto: "", fecha: peruToday(), modalidad: "Efectivo", registradoCaja: false })
 
 function defaultForm(nextId) {
   const now = peruNow()
@@ -17,6 +18,7 @@ function defaultForm(nextId) {
     id: nextId, cliente: "", total: 0, fechaEvento: "",
     adelantos: [emptyAdel()],
     cobros: [emptyCobro()],
+    gastos: [],
     descuento: 0, notas: "", depend: false,
     semana: getWeekNumberISO(now), mes: now.getMonth() + 1, anio: now.getFullYear(), eliminado: false,
   }
@@ -94,6 +96,54 @@ function PaymentRow({ entry, onChange, onRemove, canRemove, color, fs, groupStyl
   )
 }
 
+// Gasto row — similar a PaymentRow pero con campo concepto y egreso en Caja.
+function GastoRow({ entry, onChange, onRemove, canRemove, fs, groupStyle, contratoId }) {
+  const upd = (k, v) => onChange({ ...entry, [k]: v })
+  const [cajaOpen, setCajaOpen] = useState(false)
+  const [cajaForm, setCajaForm] = useState(null)
+  const cajaSaved = entry.registradoCaja || false
+  const cajaConcepto = entry.concepto ? `${contratoId} · Gasto · ${entry.concepto}` : `${contratoId} · Gasto`
+
+  return (
+    <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: canRemove ? "1px solid rgba(239,68,68,0.15)" : "none" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr 1fr", gap: 8 }}>
+        <div style={groupStyle}><label style={cDark.label}>Monto</label><DarkMoneyInput style={fs} value={entry.monto} onChange={v => upd("monto", Math.max(0, v))} /></div>
+        <div style={groupStyle}><label style={cDark.label}>Concepto</label><input style={fs} value={entry.concepto || ""} onChange={e => upd("concepto", e.target.value)} placeholder="DJ, Payaso, Transporte..." /></div>
+        <div style={groupStyle}><label style={cDark.label}>Fecha</label><input style={fs} type="date" value={entry.fecha || ""} onChange={e => upd("fecha", e.target.value)} /></div>
+        <div style={groupStyle}><label style={cDark.label}>Modalidad</label><select style={fs} value={entry.modalidad || "Efectivo"} onChange={e => upd("modalidad", e.target.value)}>{MODALS.map(m => <option key={m}>{m}</option>)}</select></div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+        {entry.monto > 0 && !cajaSaved && (
+          <button type="button" onClick={() => { setCajaForm({ fecha: entry.fecha || peruToday(), tipo: "egreso", monto: entry.monto, concepto: cajaConcepto, quien: "", modalidad: entry.modalidad || "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }); setCajaOpen(!cajaOpen) }}
+            style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
+            📤 Registrar en Caja
+          </button>
+        )}
+        {cajaSaved && <span style={{ fontSize: 10, color: "#34d399", fontWeight: 700 }}>✅ Registrado en Caja</span>}
+        {canRemove && <button type="button" onClick={onRemove} style={{ fontSize: 14, color: "#52525b", cursor: "pointer", background: "none", border: "none", marginLeft: "auto" }} title="Quitar">×</button>}
+      </div>
+      {cajaOpen && cajaForm && (
+        <div style={{ marginTop: 6, padding: "10px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#f87171", marginBottom: 8 }}>📤 Registrar gasto en Caja</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", gap: 6 }}>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Monto</label><input style={{ ...fs, fontSize: 12 }} type="text" value={cajaForm.monto} onChange={e => setCajaForm(p => ({ ...p, monto: parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0 }))} /></div>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Modalidad</label><select style={{ ...fs, fontSize: 12 }} value={cajaForm.modalidad} onChange={e => setCajaForm(p => ({ ...p, modalidad: e.target.value }))}><option>Efectivo</option><option>Yape</option></select></div>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Quién</label><input style={{ ...fs, fontSize: 12 }} value={cajaForm.quien} onChange={e => setCajaForm(p => ({ ...p, quien: e.target.value }))} placeholder="Nombre" /></div>
+            <div><label style={{ fontSize: 9, color: "#71717a" }}>Concepto</label><input style={{ ...fs, fontSize: 12 }} value={cajaForm.concepto} onChange={e => setCajaForm(p => ({ ...p, concepto: e.target.value }))} /></div>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
+            <button type="button" onClick={() => setCajaOpen(false)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #3f3f46", background: "transparent", color: "#71717a", cursor: "pointer", fontSize: 10 }}>Cancelar</button>
+            <button type="button" onClick={() => { if (cajaForm.monto > 0) { quickAddToCaja(cajaForm); upd("registradoCaja", true); setCajaOpen(false) } }}
+              style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: "#ef4444", color: "#fff", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
+              Guardar egreso en Caja
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Modal to create or edit a contract. `contract` is null/undefined for new.
 export default function ContractModal({ contract, onSave, onClose, nextId, prodTags = [] }) {
   const isNew = !contract
@@ -102,8 +152,6 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
   const [showServicios, setShowServicios] = useState(false)
   const [cancelDialog, setCancelDialog] = useState(null) // null | "choose" | "parcial"
   const [parcialInput, setParcialInput] = useState("")
-  const [gastoCajaOpen, setGastoCajaOpen] = useState(false)
-  const [gastoCajaForm, setGastoCajaForm] = useState(null)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const calc = calcContract(form)
   const productos = form.productos || []
@@ -120,6 +168,10 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
   const setCobro = (idx, entry) => setForm(p => ({ ...p, cobros: p.cobros.map((a, i) => i === idx ? entry : a) }))
   const addCobro = () => setForm(p => ({ ...p, cobros: [...p.cobros, emptyCobro()] }))
   const removeCobro = (idx) => setForm(p => ({ ...p, cobros: p.cobros.filter((_, i) => i !== idx) }))
+
+  const setGasto = (idx, entry) => setForm(p => ({ ...p, gastos: (p.gastos || []).map((g, i) => i === idx ? entry : g) }))
+  const addGasto = () => setForm(p => ({ ...p, gastos: [...(p.gastos || []), emptyGasto()] }))
+  const removeGasto = (idx) => setForm(p => ({ ...p, gastos: (p.gastos || []).filter((_, i) => i !== idx) }))
 
   const initial = useMemo(() => JSON.stringify(normalized || defaultForm(nextId)), [normalized, nextId])
   const isDirty = JSON.stringify(form) !== initial
@@ -186,19 +238,23 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: 12 }}>
-            <div style={groupStyle}><label style={cDark.label}>Descuento</label><DarkMoneyInput style={fs} value={form.descuento} onChange={v => set("descuento", Math.max(0, v))} /></div>
-            <div style={groupStyle}>
-              <label style={cDark.label}>Gastos</label>
-              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                <DarkMoneyInput style={fs} value={form.gastos} onChange={v => { set("gastos", Math.max(0, v)); if (v === 0) set("gastosRegistradoCaja", false) }} />
-                {form.gastos > 0 && !form.gastosRegistradoCaja && (
-                  <button type="button" onClick={() => { setGastoCajaForm({ fecha: peruToday(), tipo: "egreso", monto: form.gastos, concepto: `${form.id} · Gastos`, quien: "", modalidad: "Efectivo", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }); setGastoCajaOpen(!gastoCajaOpen) }}
-                    title="Registrar gasto en Caja" style={{ padding: "2px 6px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>📤</button>
-                )}
-                {form.gastosRegistradoCaja && <span style={{ fontSize: 9, color: "#34d399", fontWeight: 700 }}>✅</span>}
-              </div>
+          {/* GASTOS */}
+          <div style={{ background: "rgba(239,68,68,0.05)", borderRadius: 12, padding: 14, border: "1px solid rgba(239,68,68,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#f87171" }}>💸 GASTO{(form.gastos || []).length === 1 ? "" : "S"} ({(form.gastos || []).length})</div>
+              <button type="button" onClick={addGasto} style={{ fontSize: 11, fontWeight: 700, color: "#f87171", cursor: "pointer", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "3px 10px" }}>+</button>
             </div>
+            {(form.gastos || []).length === 0 ? (
+              <div style={{ fontSize: 11, color: "#71717a", fontStyle: "italic", padding: "4px 0" }}>Sin gastos · click en <strong style={{ color: "#f87171" }}>+</strong> para agregar (DJ, payaso, transporte, etc.)</div>
+            ) : (
+              (form.gastos || []).map((g, i) => (
+                <GastoRow key={i} entry={g} onChange={e => setGasto(i, e)} onRemove={() => removeGasto(i)} canRemove={(form.gastos || []).length >= 1} fs={fs} groupStyle={groupStyle} contratoId={form.id} />
+              ))
+            )}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 12 }}>
+            <div style={groupStyle}><label style={cDark.label}>Descuento</label><DarkMoneyInput style={fs} value={form.descuento} onChange={v => set("descuento", Math.max(0, v))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Año</label><DarkMoneyInput style={fs} value={form.anio} onChange={v => set("anio", Math.min(2099, Math.max(2020, v || peruNow().getFullYear())))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Semana</label><DarkMoneyInput style={fs} value={form.semana} onChange={v => set("semana", Math.min(53, Math.max(1, v || 1)))} /></div>
             <div style={groupStyle}><label style={cDark.label}>Mes</label><DarkMoneyInput style={fs} value={form.mes} onChange={v => set("mes", Math.min(12, Math.max(1, v || 1)))} /></div>
@@ -209,24 +265,6 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               </label>
             </div>
           </div>
-          {gastoCajaOpen && gastoCajaForm && (
-            <div style={{ padding: "10px 12px", background: "rgba(239,68,68,0.06)", borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#f87171", marginBottom: 8 }}>📤 Registrar gasto en Caja</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 2fr", gap: 6 }}>
-                <div><label style={{ fontSize: 9, color: "#71717a" }}>Monto</label><input style={{ ...fs, fontSize: 12 }} type="text" value={gastoCajaForm.monto} onChange={e => setGastoCajaForm(p => ({ ...p, monto: parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0 }))} /></div>
-                <div><label style={{ fontSize: 9, color: "#71717a" }}>Modalidad</label><select style={{ ...fs, fontSize: 12 }} value={gastoCajaForm.modalidad} onChange={e => setGastoCajaForm(p => ({ ...p, modalidad: e.target.value }))}><option>Efectivo</option><option>Yape</option></select></div>
-                <div><label style={{ fontSize: 9, color: "#71717a" }}>Quién</label><input style={{ ...fs, fontSize: 12 }} value={gastoCajaForm.quien} onChange={e => setGastoCajaForm(p => ({ ...p, quien: e.target.value }))} placeholder="Nombre" /></div>
-                <div><label style={{ fontSize: 9, color: "#71717a" }}>Concepto</label><input style={{ ...fs, fontSize: 12 }} value={gastoCajaForm.concepto} onChange={e => setGastoCajaForm(p => ({ ...p, concepto: e.target.value }))} /></div>
-              </div>
-              <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setGastoCajaOpen(false)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #3f3f46", background: "transparent", color: "#71717a", cursor: "pointer", fontSize: 10 }}>Cancelar</button>
-                <button type="button" onClick={() => { if (gastoCajaForm.monto > 0) { quickAddToCaja(gastoCajaForm); set("gastosRegistradoCaja", true); setGastoCajaOpen(false) } }}
-                  style={{ padding: "4px 12px", borderRadius: 6, border: "none", background: "#ef4444", color: "#fff", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
-                  Guardar egreso en Caja
-                </button>
-              </div>
-            </div>
-          )}
           {/* Servicios — colapsable, reutiliza producto_tags */}
           {prodTags.length > 0 && (
             <div style={{ background: "rgba(39,39,42,0.4)", borderRadius: 10, border: "1px solid rgba(63,63,70,0.4)", overflow: "hidden" }}>
@@ -323,7 +361,13 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
               // Clean phantom entries: remove 0-monto non-noTrack entries if there are others
               const cleanAdel = form.adelantos.filter(a => a.noTrack || a.monto > 0)
               const cleanCobros = form.cobros.filter(a => a.noTrack || a.monto > 0)
-              onSave({ ...form, adelantos: cleanAdel.length ? cleanAdel : form.adelantos, cobros: cleanCobros.length ? cleanCobros : form.cobros })
+              const cleanGastos = (form.gastos || []).filter(g => g && g.monto > 0)
+              onSave({
+                ...form,
+                adelantos: cleanAdel.length ? cleanAdel : form.adelantos,
+                cobros: cleanCobros.length ? cleanCobros : form.cobros,
+                gastos: cleanGastos,
+              })
               onClose()
             }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 2px 8px rgba(14,165,233,0.3)" }}>
             {isNew ? "Crear Contrato" : "Guardar Cambios"}

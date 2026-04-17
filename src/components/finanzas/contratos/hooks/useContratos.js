@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { calcContract, normalizeContract, fillMissingPaymentDates, getContractHomeDate, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { calcContract, normalizeContract, fillMissingPaymentDates, getContractHomeDate, parseLocalDate, getWeekNumberISO, getGastosTotal } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadContratos, saveContratos, deleteContratos } from "../../../../services/finanzas"
 import { remove as removeLocal } from "../../../../lib/storage"
@@ -71,9 +71,9 @@ export function useContratos({ preloadedData } = {}) {
       ? saved.map(c => {
           const norm = fillMissingPaymentDates(normalizeContract(c))
           // Migrate: old "descuento" was used for gastos (costs), not price discounts.
-          // Move to "gastos" if the new field doesn't exist yet.
-          if (norm.descuento > 0 && !norm.gastos) {
-            norm.gastos = norm.descuento
+          // Se mueve descuento al array de gastos (1 entrada) si gastos sigue vacío.
+          if (norm.descuento > 0 && Array.isArray(norm.gastos) && norm.gastos.length === 0) {
+            norm.gastos = [{ monto: norm.descuento, concepto: "", fecha: "", modalidad: "Efectivo", registradoCaja: false }]
             norm.descuento = 0
           }
           if (!norm.anio) {
@@ -178,7 +178,7 @@ export function useContratos({ preloadedData } = {}) {
       const porPersona = { Loli: 0, Mama: 0, Jose: 0, Otro: 0, "Por cobrar": 0 }
       list.forEach(c => {
         const calc = calcContract(c)
-        ganancia += calc.ganancia; descuentos += (c.descuento || 0) + (c.gastos || 0); enCaja += calc.enCaja; pendiente += calc.pendiente
+        ganancia += calc.ganancia; descuentos += (c.descuento || 0) + getGastosTotal(c); enCaja += calc.enCaja; pendiente += calc.pendiente
         ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         // Uncollected money held by employees (enCaja=false, recibio != Yo)
@@ -221,7 +221,7 @@ export function useContratos({ preloadedData } = {}) {
       if (isHome) {
         registros++
         const calc = calcContract(c)
-        deNuevos += calc.ganancia; descuentos += (c.descuento || 0) + (c.gastos || 0); pendiente += calc.pendiente
+        deNuevos += calc.ganancia; descuentos += (c.descuento || 0) + getGastosTotal(c); pendiente += calc.pendiente
         enCajaTotal += calc.enCaja
         ;(c.adelantos || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })
         ;(c.cobros || []).forEach(a => { if (!a.noTrack) addIngreso(a.modalidad, a.monto, ing) })

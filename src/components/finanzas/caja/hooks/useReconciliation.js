@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
+import { parseLocalDate, getWeekNumberISO, getGastosTotal } from "../../../../lib/finanzas/helpers"
 
 // Computes the cross-module reconciliation between Contratos and Caja.
 //
@@ -61,14 +61,30 @@ export function useReconciliation(contracts, entries, period) {
 
       // Gastos: costs to fulfill the contract (reduces what's in caja).
       // Descuento reduces the client price but doesn't take money out of caja.
-      const totalGastos = (c.gastos || 0)
-      if (totalGastos > 0) {
+      // Con array de gastos, cada uno puede tener su propia fecha: se aplican
+      // los que caen en el período. Fallback a home date si un gasto no la tiene.
+      if (Array.isArray(c.gastos)) {
         const lastCobro = (c.cobros || []).filter(a => a.fecha).slice(-1)[0]
         const firstAdel = (c.adelantos || []).filter(a => a.fecha)[0]
-        const gastosDate = lastCobro?.fecha || firstAdel?.fecha || ""
-        if (dateInPeriod(gastosDate)) {
-          esperado -= totalGastos
-          contributed = true
+        const homeDate = lastCobro?.fecha || firstAdel?.fecha || ""
+        c.gastos.forEach(g => {
+          if (!g || !(g.monto > 0)) return
+          const gDate = g.fecha || homeDate
+          if (dateInPeriod(gDate)) {
+            esperado -= g.monto
+            contributed = true
+          }
+        })
+      } else {
+        const totalGastos = getGastosTotal(c)
+        if (totalGastos > 0) {
+          const lastCobro = (c.cobros || []).filter(a => a.fecha).slice(-1)[0]
+          const firstAdel = (c.adelantos || []).filter(a => a.fecha)[0]
+          const gastosDate = lastCobro?.fecha || firstAdel?.fecha || ""
+          if (dateInPeriod(gastosDate)) {
+            esperado -= totalGastos
+            contributed = true
+          }
         }
       }
 
