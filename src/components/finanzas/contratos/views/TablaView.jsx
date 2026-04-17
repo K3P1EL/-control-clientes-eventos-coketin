@@ -28,6 +28,7 @@ export default function TablaView({
   filterEstado, setFilterEstado, search, setSearch, setQuickAll,
   sortBy, sortDir, toggleSort,
   onEdit, onDelete, onPermanentDelete,
+  readOnly = false,
 }) {
   const [showAll, setShowAll] = useState(true)
 
@@ -96,14 +97,15 @@ export default function TablaView({
                 >
                   # {sortBy === "num" ? (sortDir === "asc" ? "▲" : "▼") : ""}
                 </th>
-                {["Código", "Cliente", "Fecha", "Total", "Adelanto", "Cobro", "Desc.", "Ganancia", "En Caja", "Estado", "Dep.", "Notas", ""].map(h =>
+                {["Código", "Cliente", "Fecha", "Total", "Adelanto", "Cobro", "Desc.", "Ganancia", "En Caja", "Estado", "Dep.", "Notas"].map(h =>
                   <th key={h} style={cDark.th}>{h}</th>
                 )}
+                {!readOnly && <th style={cDark.th}></th>}
               </tr>
             </thead>
             <tbody>
               {shown.length === 0 ? (
-                <tr><td colSpan={14} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros<br/><span style={{ fontSize: 11 }}>Probá limpiar los filtros con el botón ✕</span></td></tr>
+                <tr><td colSpan={readOnly ? 13 : 14} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros<br/><span style={{ fontSize: 11 }}>Probá limpiar los filtros con el botón ✕</span></td></tr>
               ) : shown.map(c => {
                 const calc = calcContract(c)
                 return (
@@ -140,26 +142,28 @@ export default function TablaView({
                     <td style={cDark.td}>{c.cancelado ? <DarkBadge color="red">❌ Cancelado</DarkBadge> : calc.pendiente > 0 ? <DarkBadge color="red">{formatMoney(calc.pendiente)}</DarkBadge> : <DarkBadge color="green">Pagado</DarkBadge>}</td>
                     <td style={cDark.td}>{c.depend ? <DarkBadge color="yellow">SÍ</DarkBadge> : <span style={{ color: "#3f3f46" }}>No</span>}</td>
                     <td style={{ ...cDark.td, fontSize: 11, color: "#71717a", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.notas}</td>
-                    <td style={{ ...cDark.td, whiteSpace: "nowrap" }}>
-                      <button onClick={() => onEdit(c)} style={cDark.iconBtn} title="Editar">✏️</button>
-                      <button onClick={() => onDelete(c.id)} style={cDark.iconBtn} title="Mover a papelera">🗑️</button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`¿Borrar ${c.id} definitivamente?\n\nNo pasa por la papelera. No se puede deshacer.`)) {
-                            onPermanentDelete(c.id)
-                          }
-                        }}
-                        title="Borrar permanente (sin pasar por papelera)"
-                        style={{
-                          background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.45)",
-                          borderRadius: 4, cursor: "pointer", padding: "2px 5px",
-                          color: "#f87171", fontSize: 11, fontWeight: 700, marginLeft: 2,
-                          display: "inline-flex", alignItems: "center", gap: 2,
-                        }}
-                      >
-                        🗑️<span style={{ fontSize: 9 }}>×</span>
-                      </button>
-                    </td>
+                    {!readOnly && (
+                      <td style={{ ...cDark.td, whiteSpace: "nowrap" }}>
+                        <button onClick={() => onEdit(c)} style={cDark.iconBtn} title="Editar">✏️</button>
+                        <button onClick={() => onDelete(c.id)} style={cDark.iconBtn} title="Mover a papelera">🗑️</button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`¿Borrar ${c.id} definitivamente?\n\nNo pasa por la papelera. No se puede deshacer.`)) {
+                              onPermanentDelete(c.id)
+                            }
+                          }}
+                          title="Borrar permanente (sin pasar por papelera)"
+                          style={{
+                            background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.45)",
+                            borderRadius: 4, cursor: "pointer", padding: "2px 5px",
+                            color: "#f87171", fontSize: 11, fontWeight: 700, marginLeft: 2,
+                            display: "inline-flex", alignItems: "center", gap: 2,
+                          }}
+                        >
+                          🗑️<span style={{ fontSize: 9 }}>×</span>
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 )
               })}

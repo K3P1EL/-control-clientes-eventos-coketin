@@ -41,6 +41,7 @@ export function useSupabaseSync({
   data,
   loaded,
   delay = 600,
+  disabled = false,
 }) {
   const initialized = useRef(false)
   const timer = useRef(null)
@@ -51,6 +52,7 @@ export function useSupabaseSync({
   // Critical: applyLoaded MUST be called exactly once on every code
   // path so the parent's `loaded` flag flips and we leave "Cargando".
   useEffect(() => {
+    if (disabled) return
     if (initialized.current) return
     initialized.current = true
 
@@ -113,6 +115,7 @@ export function useSupabaseSync({
 
   // ── Debounced save on every change ──────────────────────────────
   useEffect(() => {
+    if (disabled) return
     if (!loaded) return
     // Always mirror to localStorage immediately — that way a hard crash
     // never loses the latest typed value.
@@ -137,6 +140,7 @@ export function useSupabaseSync({
 
   // ── Flush on tab hide / unload ──────────────────────────────────
   useEffect(() => {
+    if (disabled) return
     if (!loaded) return
     const flush = () => {
       setJSON(localKey, latest.current)

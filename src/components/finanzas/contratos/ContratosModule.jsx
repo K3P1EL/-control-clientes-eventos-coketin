@@ -14,8 +14,8 @@ import PendientesView from "./views/PendientesView"
 // Owns view-mode + filter state. Hands off persistence to useContratos
 // Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
 // so switching between Contratos ↔ Caja keeps the same time window.
-export default function ContratosModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, prodTags = [] }) {
-  const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handlePermanentDelete, handleReset, calcSummary } = useContratos()
+export default function ContratosModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, prodTags = [], readOnly = false, preloadedData }) {
+  const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handlePermanentDelete, handleReset, calcSummary } = useContratos({ preloadedData })
 
   const [editContract, setEditContract] = useState(undefined)
   const [deleteId, setDeleteId] = useState(null)
@@ -132,8 +132,9 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
           search={search} setSearch={setSearch}
           setQuickAll={clearAll}
           sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort}
-          onEdit={setEditContract} onDelete={setDeleteId}
-          onPermanentDelete={handlePermanentDelete}
+          onEdit={readOnly ? undefined : setEditContract} onDelete={readOnly ? undefined : setDeleteId}
+          onPermanentDelete={readOnly ? undefined : handlePermanentDelete}
+          readOnly={readOnly}
         />
       )}
       {view === "semanal" && (
@@ -142,27 +143,29 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
       {view === "mensual" && (
         <MonthlyView activeContracts={activeContracts} anios={anios} currentMonthNum={currentMonthNum} currentYear={currentYear} calcSummary={calcSummary} />
       )}
-      {view === "plata" && <FullPlataView activeContracts={activeContracts} onEdit={setEditContract} />}
-      {view === "pendientes" && <PendientesView activeContracts={activeContracts} onEdit={setEditContract} />}
+      {view === "plata" && <FullPlataView activeContracts={activeContracts} onEdit={readOnly ? undefined : setEditContract} />}
+      {view === "pendientes" && <PendientesView activeContracts={activeContracts} onEdit={readOnly ? undefined : setEditContract} />}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <button onClick={() => setEditContract(null)}
-          style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 2px 8px rgba(14,165,233,0.3)" }}>
-          + Nuevo Contrato
-        </button>
-        {(() => {
-          const eliminados = contracts.filter(c => c.eliminado)
-          if (eliminados.length === 0) return null
-          return (
-            <button onClick={() => setTrashOpen(true)}
-              style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-              🗑️ Papelera ({eliminados.length})
-            </button>
-          )
-        })()}
-      </div>
+      {!readOnly && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+          <button onClick={() => setEditContract(null)}
+            style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 2px 8px rgba(14,165,233,0.3)" }}>
+            + Nuevo Contrato
+          </button>
+          {(() => {
+            const eliminados = contracts.filter(c => c.eliminado)
+            if (eliminados.length === 0) return null
+            return (
+              <button onClick={() => setTrashOpen(true)}
+                style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                🗑️ Papelera ({eliminados.length})
+              </button>
+            )
+          })()}
+        </div>
+      )}
 
-      {trashOpen && (
+      {!readOnly && trashOpen && (
         <TrashModal
           eliminados={contracts.filter(c => c.eliminado)}
           onRestore={handleRestore}
@@ -171,10 +174,10 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
         />
       )}
 
-      {editContract !== undefined && (
+      {!readOnly && editContract !== undefined && (
         <ContractModal contract={editContract} onSave={handleSave} onClose={() => setEditContract(undefined)} nextId={nextContractId} prodTags={prodTags} />
       )}
-      {deleteId && (
+      {!readOnly && deleteId && (
         <ConfirmModal message={`¿Seguro que quieres eliminar el contrato ${deleteId}?`} onConfirm={() => { handleDelete(deleteId); setDeleteId(null) }} onCancel={() => setDeleteId(null)} />
       )}
     </div>

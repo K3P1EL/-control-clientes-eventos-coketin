@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { peruToday } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
@@ -30,7 +30,12 @@ const INITIAL_ENTRIES = [
 // Owns the cash-entries list, persistence, and CRUD handlers.
 // Auto-numbers any entry that doesn't yet have a `num` field on first
 // load (so old data still gets stable display numbers).
-export function useCajaEntries() {
+//
+// preloadedData: cuando se pasa (modo vista pública), skipea Supabase
+// y usa esa data como seed. Los handlers CRUD siguen existiendo pero
+// los cambios no se persisten en ningún lado.
+export function useCajaEntries({ preloadedData } = {}) {
+  const isPreloaded = preloadedData !== undefined
   const [entries, setEntries] = useState([])
   const [loaded, setLoaded] = useState(false)
 
@@ -54,6 +59,12 @@ export function useCajaEntries() {
     setLoaded(true)
   }, [])
 
+  // En modo preloaded, aplicamos los datos una vez al montar.
+  useEffect(() => {
+    if (isPreloaded && !loaded) applyLoaded(preloadedData)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPreloaded])
+
   useSupabaseSync({
     localKey: STORAGE_KEYS.CAJA,
     loader: loadCaja,
@@ -61,6 +72,7 @@ export function useCajaEntries() {
     applyLoaded,
     data: entries,
     loaded,
+    disabled: isPreloaded,
   })
 
   const addEntry = useCallback((form, editId) => {

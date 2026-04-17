@@ -16,8 +16,10 @@ const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: 
 
 // Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
 // so switching between Contratos ↔ Caja keeps the same time window.
-export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth }) {
-  const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset } = useCajaEntries()
+// readOnly: modo vista pública — oculta form/edit/delete. preloadedData:
+// array de entries para saltarse Supabase (usado con token de vista).
+export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, readOnly = false, preloadedData }) {
+  const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset } = useCajaEntries({ preloadedData })
 
   const currentWeekNum = getWeekNumberISO(peruNow())
   const currentMonthNum = peruNow().getMonth() + 1
@@ -211,14 +213,14 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
       ) : (
         <>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            <button onClick={openNewForm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>+ Nuevo movimiento</button>
+            {!readOnly && <button onClick={openNewForm} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>+ Nuevo movimiento</button>}
             <div style={{ display: "inline-flex", borderRadius: 8, background: "#09090b", padding: 2, border: "1px solid #3f3f46" }}>
               <button onClick={() => setShowAll(true)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, background: showAll ? "#0ea5e9" : "transparent", color: showAll ? "#fff" : "#71717a", transition: "all .2s" }}>Todo</button>
               <button onClick={() => setShowAll(false)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, background: !showAll ? "#0ea5e9" : "transparent", color: !showAll ? "#fff" : "#71717a", transition: "all .2s" }}>Últimos 7</button>
             </div>
           </div>
 
-          {showForm && (
+          {!readOnly && showForm && (
             <EntryForm form={form} setForm={setForm} editId={editId} onSubmit={onSubmitForm} onCancel={() => { setShowForm(false); setEditId(null) }} />
           )}
 
@@ -229,9 +231,10 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
             totalIngresos={totalIngresos} totalEgresos={totalEgresos} balance={balance}
             traspasoTotal={desglose.traspYaEf + desglose.traspEfYa}
             onEdit={onEditEntry} onRemove={removeEntry} onPermanentDelete={permanentDelete}
+            readOnly={readOnly}
           />
 
-          {deletedEntries.length > 0 && (
+          {!readOnly && deletedEntries.length > 0 && (
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button onClick={() => setTrashOpen(true)}
                 style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#f87171", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
@@ -240,7 +243,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
             </div>
           )}
 
-          {trashOpen && (
+          {!readOnly && trashOpen && (
             <CajaTrashModal
               eliminados={deletedEntries}
               onRestore={restoreEntry}

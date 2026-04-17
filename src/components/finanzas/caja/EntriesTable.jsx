@@ -12,6 +12,7 @@ export default function EntriesTable({
   filtered, sortBy, sortDir, toggleSort, editId,
   totalIngresos, totalEgresos, balance, traspasoTotal,
   onEdit, onRemove, onPermanentDelete,
+  readOnly = false,
 }) {
   return (
     <div style={cDark.card}>
@@ -21,12 +22,13 @@ export default function EntriesTable({
             <tr>
               <th style={{ ...thS, width: 40, cursor: "pointer", color: sortBy === "num" ? "#38bdf8" : "#a1a1aa" }} onClick={() => toggleSort("num")}># {sortBy === "num" ? (sortDir === "asc" ? "▲" : "▼") : ""}</th>
               <th style={{ ...thS, cursor: "pointer", color: sortBy === "fecha" ? "#38bdf8" : "#a1a1aa" }} onClick={() => toggleSort("fecha")}>Fecha {sortBy === "fecha" ? (sortDir === "asc" ? "▲" : "▼") : ""}</th>
-              {["Tipo", "Monto", "Modalidad", "Origen", "Fuente", "Cat.", "Concepto", "Quién entregó", ""].map(h => <th key={h} style={thS}>{h}</th>)}
+              {["Tipo", "Monto", "Modalidad", "Origen", "Fuente", "Cat.", "Concepto", "Quién entregó"].map(h => <th key={h} style={thS}>{h}</th>)}
+              {!readOnly && <th style={thS}></th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={12} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay movimientos</td></tr>
+              <tr><td colSpan={readOnly ? 10 : 11} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay movimientos</td></tr>
             ) : filtered.map(e => {
               const isEditing = editId === e.id
               return (
@@ -43,27 +45,29 @@ export default function EntriesTable({
                   <td style={{ padding: "10px 14px" }}>{e.categoria === "sueldo" ? <DarkBadge color="yellow">💰 Sueldo</DarkBadge> : e.categoria === "servicio" ? <DarkBadge color="blue">🏢 Servicio</DarkBadge> : null}</td>
                   <td style={{ padding: "10px 14px", color: "#d4d4d8" }}>{e.concepto}</td>
                   <td style={{ padding: "10px 14px", color: "#a1a1aa" }}>{e.quien || "—"}</td>
-                  <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                    {isEditing && <span style={{ fontSize: 9, color: "#38bdf8", fontWeight: 700, marginRight: 4 }}>editando</span>}
-                    <button onClick={() => onEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: isEditing ? "#38bdf8" : "#52525b" }} title="Editar">✏️</button>
-                    <button onClick={() => onRemove(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#52525b" }} title="Mover a papelera">🗑️</button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`¿Borrar movimiento #${e.num || "?"} definitivamente?\n\nNo pasa por la papelera. No se puede deshacer.`)) {
-                          onPermanentDelete(e.id)
-                        }
-                      }}
-                      title="Borrar permanente (sin pasar por papelera)"
-                      style={{
-                        background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.45)",
-                        borderRadius: 4, cursor: "pointer", padding: "2px 5px",
-                        color: "#f87171", fontSize: 11, fontWeight: 700, marginLeft: 2,
-                        display: "inline-flex", alignItems: "center", gap: 2,
-                      }}
-                    >
-                      🗑️<span style={{ fontSize: 9 }}>×</span>
-                    </button>
-                  </td>
+                  {!readOnly && (
+                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                      {isEditing && <span style={{ fontSize: 9, color: "#38bdf8", fontWeight: 700, marginRight: 4 }}>editando</span>}
+                      <button onClick={() => onEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: isEditing ? "#38bdf8" : "#52525b" }} title="Editar">✏️</button>
+                      <button onClick={() => onRemove(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#52525b" }} title="Mover a papelera">🗑️</button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`¿Borrar movimiento #${e.num || "?"} definitivamente?\n\nNo pasa por la papelera. No se puede deshacer.`)) {
+                            onPermanentDelete(e.id)
+                          }
+                        }}
+                        title="Borrar permanente (sin pasar por papelera)"
+                        style={{
+                          background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.45)",
+                          borderRadius: 4, cursor: "pointer", padding: "2px 5px",
+                          color: "#f87171", fontSize: 11, fontWeight: 700, marginLeft: 2,
+                          display: "inline-flex", alignItems: "center", gap: 2,
+                        }}
+                      >
+                        🗑️<span style={{ fontSize: 9 }}>×</span>
+                      </button>
+                    </td>
+                  )}
                 </tr>
               )
             })}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
 import { calcContract, normalizeContract, fillMissingPaymentDates, getContractHomeDate, parseLocalDate, getWeekNumberISO } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
@@ -57,7 +57,10 @@ function nextNumForYear(list, year) {
 
 // Owns the contracts list, persistence, CRUD handlers, and the
 // summary calculator (used by every view).
-export function useContratos() {
+//
+// preloadedData: modo vista pública — skipea Supabase y usa esa data.
+export function useContratos({ preloadedData } = {}) {
+  const isPreloaded = preloadedData !== undefined
   const [contracts, setContracts] = useState([])
   const [loaded, setLoaded] = useState(false)
 
@@ -86,6 +89,12 @@ export function useContratos() {
     setLoaded(true)
   }, [])
 
+  // Preloaded: aplicar una vez al montar, saltarse Supabase.
+  useEffect(() => {
+    if (isPreloaded && !loaded) applyLoaded(preloadedData)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPreloaded])
+
   useSupabaseSync({
     localKey: STORAGE_KEYS.CONTRATOS,
     loader: loadContratos,
@@ -93,6 +102,7 @@ export function useContratos() {
     applyLoaded,
     data: contracts,
     loaded,
+    disabled: isPreloaded,
   })
 
   const activeContracts = useMemo(() => contracts.filter(c => !c.eliminado), [contracts])

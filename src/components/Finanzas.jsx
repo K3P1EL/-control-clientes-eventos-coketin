@@ -2,6 +2,7 @@ import { useState, useMemo } from "react"
 import ViabilidadModule from "./finanzas/viabilidad/ViabilidadModule"
 import ContratosModule from "./finanzas/contratos/ContratosModule"
 import CajaModule from "./finanzas/caja/CajaModule"
+import ShareLinkModal from "./finanzas/ShareLinkModal"
 import { peruNow, getWeekNumberISO, calcContract } from "../lib/finanzas/helpers"
 import { MESES_CORTO } from "../lib/finanzas/constants"
 import { useContratosSnapshot } from "./finanzas/caja/hooks/useContratosSnapshot"
@@ -32,6 +33,7 @@ const MODULES = [
 
 export default function Finanzas({ prodTags = [] }) {
   const [activeModule, setActiveModule] = useState("viabilidad")
+  const [shareOpen, setShareOpen] = useState(false)
 
   const now = peruNow()
   const currentWeekNum = getWeekNumberISO(now)
@@ -116,6 +118,7 @@ export default function Finanzas({ prodTags = [] }) {
                 <button onClick={() => handleExport("semana")} style={{ padding: "6px 12px", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: "#27272a", color: "#34d399", display: "flex", alignItems: "center", gap: 4 }}>📊 Sem {currentWeekNum}</button>
                 <button onClick={() => handleExport("mes")} style={{ padding: "6px 12px", border: "none", borderLeft: "1px solid #3f3f46", cursor: "pointer", fontSize: 11, fontWeight: 700, background: "#27272a", color: "#38bdf8", display: "flex", alignItems: "center", gap: 4 }}>📊 {MESES_CORTO[currentMonthNum]}</button>
               </div>
+              <button onClick={() => setShareOpen(true)} style={{ padding: "6px 12px", borderRadius: 10, border: "1px solid #3f3f46", background: "#27272a", color: "#a78bfa", cursor: "pointer", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>🔗 Compartir</button>
             </div>
             <div className="flex items-center gap-1 bg-zinc-900/80 rounded-xl p-1 border border-zinc-800">
               {MODULES.map(m => (
@@ -131,6 +134,8 @@ export default function Finanzas({ prodTags = [] }) {
             </div>
           </div>
         </header>
+
+        {shareOpen && <ShareLinkModal onClose={() => setShareOpen(false)} />}
 
         {activeModule === "viabilidad" && <ViabilidadModule />}
         {activeModule === "contratos" && (
