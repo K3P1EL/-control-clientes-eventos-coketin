@@ -97,7 +97,6 @@ export default function App() {
   const [navRegId,       setNavRegId]       = useState(null)
   const [navRegDate,     setNavRegDate]     = useState(null)
   const [navAlmClientId, setNavAlmClientId] = useState(null)
-
   const goToClient  = useCallback((id)        => { setStr("return_tab", getStr("app_tab", "")); setNavClientId(id); setTab("fichas") }, [])
   const goToReg     = useCallback((uid, date) => { setStr("return_tab", getStr("app_tab", "")); setNavRegId(uid); setNavRegDate(date||null); setTab("registro") }, [])
   const goToAlmacen = useCallback((id)        => { setStr("return_tab", getStr("app_tab", "")); setNavAlmClientId(id); setTab("almacen") }, [])
