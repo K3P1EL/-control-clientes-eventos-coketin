@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { cDark } from "../../ui/darkStyles"
 import DarkBadge from "../../ui/DarkBadge"
 import DarkStatCard from "../../ui/DarkStatCard"
-import { formatMoney, calcContract, parseLocalDate } from "../../../../lib/finanzas/helpers"
+import { formatMoney, calcContract, parseLocalDate, getContractHomeDate } from "../../../../lib/finanzas/helpers"
 
 const MESES_CORTOS = ["", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
@@ -29,6 +29,8 @@ export default function TablaView({
   sortBy, sortDir, toggleSort,
   onEdit, onDelete, onPermanentDelete,
 }) {
+  const [showAll, setShowAll] = useState(true)
+
   const stats = useMemo(() => {
     let total = 0, ganancia = 0, enCaja = 0, pendiente = 0
     filtered.forEach(c => {
@@ -42,6 +44,15 @@ export default function TablaView({
     const porRecibir = Math.max(0, ganancia - pendiente - enCaja)
     return { total, ganancia, enCaja, pendiente, porRecibir }
   }, [filtered])
+
+  // Últimos 7 por fecha (home date desc). Si showAll está activo, muestra toda la lista.
+  // No altera `stats` — los cards siguen reflejando el filtro completo.
+  const shown = useMemo(() => {
+    if (showAll) return filtered
+    return [...filtered]
+      .sort((a, b) => (getContractHomeDate(b) || "").localeCompare(getContractHomeDate(a) || ""))
+      .slice(0, 7)
+  }, [filtered, showAll])
 
   return (
     <>
@@ -69,6 +80,10 @@ export default function TablaView({
           {(filterSem || filterMes || filterEstado || search) && (
             <button onClick={setQuickAll} style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✕ Limpiar</button>
           )}
+          <div style={{ marginLeft: "auto", display: "inline-flex", borderRadius: 8, background: "#09090b", padding: 2, border: "1px solid #3f3f46" }}>
+            <button onClick={() => setShowAll(true)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, background: showAll ? "#0ea5e9" : "transparent", color: showAll ? "#fff" : "#71717a", transition: "all .2s" }}>Todo</button>
+            <button onClick={() => setShowAll(false)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, background: !showAll ? "#0ea5e9" : "transparent", color: !showAll ? "#fff" : "#71717a", transition: "all .2s" }}>Últimos 7</button>
+          </div>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -87,9 +102,9 @@ export default function TablaView({
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {shown.length === 0 ? (
                 <tr><td colSpan={14} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros<br/><span style={{ fontSize: 11 }}>Probá limpiar los filtros con el botón ✕</span></td></tr>
-              ) : filtered.map(c => {
+              ) : shown.map(c => {
                 const calc = calcContract(c)
                 return (
                   <tr key={c.id} style={{ borderBottom: "1px solid rgba(63,63,70,0.3)", opacity: c.cancelado ? 0.55 : 1 }}
