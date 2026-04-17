@@ -21,55 +21,29 @@ const INITIAL_CONTRACTS = [
   { id: "extra-001", cliente: "Nilton y Agustin", total: 1170, adelanto: 0, modalAdel: "", recibioAdel: "", fechaAdel: "", enCajaAdel: false, noTrackAdel: true, cobro: 1170, modalCobro: "Yape", recibioCobro: "Yo", fechaCobro: "2026-04-02", enCajaCobro: true, noTrackCobro: false, descuento: 620, notas: "Nilton y Agustin", depend: true, semana: 14, mes: 4, anio: 2026, eliminado: false },
 ]
 
-// Backfill per-year sequential `num` para contratos ACTIVOS.
-// Los eliminados no consumen numeración — si se restaura uno, toma el siguiente
-// num disponible en ese momento.
+// Backfill per-year sequential `num` por posición de creación (orden del array).
+// Incluye activos y eliminados — los eliminados retienen su slot así queda el
+// "hueco" visible al filtrar solo activos (N 0055 entre N 0054 y N 0056).
 //
-// Migración: si detecta que un eliminado tiene num (data vieja), limpia ese num
-// y recompacta los activos a 1..N por orden de fecha. Caso contrario es idempotente:
-// respeta los nums existentes y solo rellena los que faltan.
+// Idempotente: si todos los contratos del año ya tienen num, no se toca nada.
+// Si alguno falta (migración de data vieja o contrato recién importado), se
+// renumera TODO el año en orden de creación para que la secuencia sea 1..N
+// sin ambigüedades.
 function backfillNums(list) {
+  const withIdx = list.map((c, origIdx) => ({ c, origIdx }))
   const byYear = {}
-  list.forEach(c => {
-    const y = c.anio || new Date().getFullYear()
-    ;(byYear[y] ||= []).push(c)
+  withIdx.forEach(item => {
+    const y = item.c.anio || new Date().getFullYear()
+    ;(byYear[y] ||= []).push(item)
   })
   const out = new Map()
-  const sortActive = (arr) => [...arr].sort((a, b) => {
-    const aDate = getContractHomeDate(a) || ""
-    const bDate = getContractHomeDate(b) || ""
-    if (aDate !== bDate) return aDate.localeCompare(bDate)
-    return (a.id || "").localeCompare(b.id || "")
-  })
-
   Object.values(byYear).forEach(group => {
-    const eliminatedHasNum = group.some(c => c.eliminado && typeof c.num === "number")
-    const activesSorted = sortActive(group.filter(c => !c.eliminado))
+    const anyMissing = group.some(({ c }) => typeof c.num !== "number")
+    if (!anyMissing) return // respetar estado existente
 
-    if (eliminatedHasNum) {
-      // Migración: limpiar nums de eliminados y recompactar activos a 1..N.
-      group.forEach(c => {
-        if (c.eliminado && typeof c.num === "number") {
-          const clone = { ...c }
-          delete clone.num
-          out.set(c, clone)
-        }
-      })
-      activesSorted.forEach((c, i) => {
-        if (c.num !== i + 1) out.set(c, { ...c, num: i + 1 })
-      })
-      return
-    }
-
-    // Flujo normal: preservar existentes, rellenar huecos para los que faltan num.
-    const used = new Set(group.filter(c => typeof c.num === "number").map(c => c.num))
-    const missing = activesSorted.filter(c => typeof c.num !== "number")
-    let next = 1
-    missing.forEach(c => {
-      while (used.has(next)) next++
-      out.set(c, { ...c, num: next })
-      used.add(next)
-      next++
+    group.sort((a, b) => a.origIdx - b.origIdx)
+    group.forEach(({ c }, i) => {
+      if (c.num !== i + 1) out.set(c, { ...c, num: i + 1 })
     })
   })
   return list.map(c => out.get(c) || c)
