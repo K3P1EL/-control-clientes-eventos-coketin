@@ -21,6 +21,42 @@ const INITIAL_CONTRACTS = [
   { id: "extra-001", cliente: "Nilton y Agustin", total: 1170, adelanto: 0, modalAdel: "", recibioAdel: "", fechaAdel: "", enCajaAdel: false, noTrackAdel: true, cobro: 1170, modalCobro: "Yape", recibioCobro: "Yo", fechaCobro: "2026-04-02", enCajaCobro: true, noTrackCobro: false, descuento: 620, notas: "Nilton y Agustin", depend: true, semana: 14, mes: 4, anio: 2026, eliminado: false },
 ]
 
+// Backfill per-year sequential `num` for any contract missing it.
+// Sort by home date (fallback to id) so the chronological order is preserved.
+// Idempotent: contratos que ya tienen num se respetan; sólo se rellenan los faltantes.
+function backfillNums(list) {
+  const byYear = {}
+  list.forEach(c => {
+    const y = c.anio || new Date().getFullYear()
+    ;(byYear[y] ||= []).push(c)
+  })
+  const out = new Map()
+  Object.values(byYear).forEach(group => {
+    const sorted = [...group].sort((a, b) => {
+      const aDate = getContractHomeDate(a) || ""
+      const bDate = getContractHomeDate(b) || ""
+      if (aDate !== bDate) return aDate.localeCompare(bDate)
+      return (a.id || "").localeCompare(b.id || "")
+    })
+    const used = new Set(sorted.filter(c => typeof c.num === "number").map(c => c.num))
+    let next = 1
+    sorted.forEach(c => {
+      if (typeof c.num === "number") { out.set(c, c); return }
+      while (used.has(next)) next++
+      out.set(c, { ...c, num: next })
+      used.add(next)
+      next++
+    })
+  })
+  return list.map(c => out.get(c) || c)
+}
+
+// Next num disponible para un año dado, entre los contratos actuales.
+function nextNumForYear(list, year) {
+  const nums = list.filter(c => (c.anio || 0) === year && typeof c.num === "number").map(c => c.num)
+  return Math.max(0, ...nums) + 1
+}
+
 // Owns the contracts list, persistence, CRUD handlers, and the
 // summary calculator (used by every view).
 export function useContratos() {
@@ -30,25 +66,25 @@ export function useContratos() {
   // Apply a saved blob (from cloud or local migration). Normalizes legacy
   // contracts that may be missing `anio` / `noTrack*` fields.
   const applyLoaded = useCallback((saved) => {
-    if (Array.isArray(saved) && saved.length > 0) {
-      setContracts(saved.map(c => {
-        const norm = fillMissingPaymentDates(normalizeContract(c))
-        // Migrate: old "descuento" was used for gastos (costs), not price discounts.
-        // Move to "gastos" if the new field doesn't exist yet.
-        if (norm.descuento > 0 && !norm.gastos) {
-          norm.gastos = norm.descuento
-          norm.descuento = 0
-        }
-        if (!norm.anio) {
-          const homeDate = getContractHomeDate(norm)
-          const inferFrom = homeDate ? parseLocalDate(homeDate) : null
-          norm.anio = inferFrom ? inferFrom.getFullYear() : new Date().getFullYear()
-        }
-        return norm
-      }))
-    } else {
-      setContracts(INITIAL_CONTRACTS.map(normalizeContract))
-    }
+    const base = (Array.isArray(saved) && saved.length > 0)
+      ? saved.map(c => {
+          const norm = fillMissingPaymentDates(normalizeContract(c))
+          // Migrate: old "descuento" was used for gastos (costs), not price discounts.
+          // Move to "gastos" if the new field doesn't exist yet.
+          if (norm.descuento > 0 && !norm.gastos) {
+            norm.gastos = norm.descuento
+            norm.descuento = 0
+          }
+          if (!norm.anio) {
+            const homeDate = getContractHomeDate(norm)
+            const inferFrom = homeDate ? parseLocalDate(homeDate) : null
+            norm.anio = inferFrom ? inferFrom.getFullYear() : new Date().getFullYear()
+          }
+          return norm
+        })
+      : INITIAL_CONTRACTS.map(normalizeContract)
+
+    setContracts(backfillNums(base))
     setLoaded(true)
   }, [])
 
@@ -71,7 +107,13 @@ export function useContratos() {
   const handleSave = useCallback((form) => {
     setContracts(prev => {
       const exists = prev.find(c => c.id === form.id)
-      return exists ? prev.map(c => c.id === form.id ? form : c) : [...prev, form]
+      if (exists) {
+        // Al editar, preservar el num que ya tenía (aunque cambie de año).
+        return prev.map(c => c.id === form.id ? { ...form, num: c.num ?? form.num } : c)
+      }
+      // Nuevo contrato: asignar siguiente num disponible para su año.
+      const year = form.anio || new Date().getFullYear()
+      return [...prev, { ...form, num: nextNumForYear(prev, year) }]
     })
   }, [])
 

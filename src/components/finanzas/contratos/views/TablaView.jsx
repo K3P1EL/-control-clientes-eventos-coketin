@@ -26,6 +26,7 @@ function fmtDateShort(raw) {
 export default function TablaView({
   filtered, filteredSummary, filterSem, filterMes, currentWeekNum, quickLabel,
   filterEstado, setFilterEstado, search, setSearch, setQuickAll,
+  sortBy, sortDir, toggleSort,
   onEdit, onDelete, onPermanentDelete,
 }) {
   const stats = useMemo(() => {
@@ -73,6 +74,13 @@ export default function TablaView({
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr>
+                <th
+                  style={{ ...cDark.th, cursor: "pointer", color: sortBy === "num" ? "#38bdf8" : cDark.th.color, width: 50 }}
+                  onClick={() => toggleSort && toggleSort("num")}
+                  title="Ordenar por número (reset por año)"
+                >
+                  # {sortBy === "num" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                </th>
                 {["Código", "Cliente", "Fecha", "Total", "Adelanto", "Cobro", "Desc.", "Ganancia", "En Caja", "Estado", "Dep.", "Notas", ""].map(h =>
                   <th key={h} style={cDark.th}>{h}</th>
                 )}
@@ -80,13 +88,19 @@ export default function TablaView({
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={13} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros<br/><span style={{ fontSize: 11 }}>Probá limpiar los filtros con el botón ✕</span></td></tr>
+                <tr><td colSpan={14} style={{ padding: 40, textAlign: "center", color: "#52525b" }}>No hay contratos con estos filtros<br/><span style={{ fontSize: 11 }}>Probá limpiar los filtros con el botón ✕</span></td></tr>
               ) : filtered.map(c => {
                 const calc = calcContract(c)
                 return (
                   <tr key={c.id} style={{ borderBottom: "1px solid rgba(63,63,70,0.3)", opacity: c.cancelado ? 0.55 : 1 }}
                     onMouseEnter={e => e.currentTarget.style.background = "rgba(39,39,42,0.4)"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <td style={{ ...cDark.td, color: "#71717a", fontFamily: "monospace", fontSize: 11, fontWeight: 700 }}>
+                      {typeof c.num === "number" ? c.num : "—"}
+                      {c.anio && typeof c.num === "number" && (
+                        <div style={{ fontSize: 9, color: "#3f3f46", fontWeight: 500 }}>{c.anio}</div>
+                      )}
+                    </td>
                     <td style={cDark.td}><span style={{ fontWeight: 700, color: "#38bdf8", fontFamily: "monospace", fontSize: 12 }}>{c.id}</span></td>
                     <td style={cDark.td}>{c.cliente || "—"}</td>
                     <td style={{ ...cDark.td, fontFamily: "monospace", fontSize: 11, whiteSpace: "nowrap", lineHeight: 1.4 }}>

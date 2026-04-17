@@ -27,19 +27,39 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
   const [filterEstado, setFilterEstado] = useState("")
   const [view, setView] = useState("tabla")
   const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState("num")
+  const [sortDir, setSortDir] = useState("desc")
+
+  const toggleSort = (field) => {
+    if (sortBy === field) setSortDir(d => d === "asc" ? "desc" : "asc")
+    else { setSortBy(field); setSortDir("desc") }
+  }
 
   const anios = useMemo(
     () => [...new Set(activeContracts.map(c => c.anio || 2026).filter(Boolean))].sort((a, b) => a - b),
     [activeContracts]
   )
 
-  const filtered = useMemo(() => activeContracts.filter(c => {
-    if (filterSem && c.semana !== +filterSem) return false
-    if (filterMes && c.mes !== +filterMes) return false
-    if (filterEstado) { const calc = calcContract(c); if (filterEstado !== calc.estado) return false }
-    if (search) { const s = search.toLowerCase(); return (c.id + c.cliente + c.notas).toLowerCase().includes(s) }
-    return true
-  }), [activeContracts, filterSem, filterMes, filterEstado, search])
+  const filtered = useMemo(() => {
+    const base = activeContracts.filter(c => {
+      if (filterSem && c.semana !== +filterSem) return false
+      if (filterMes && c.mes !== +filterMes) return false
+      if (filterEstado) { const calc = calcContract(c); if (filterEstado !== calc.estado) return false }
+      if (search) { const s = search.toLowerCase(); return (c.id + c.cliente + c.notas).toLowerCase().includes(s) }
+      return true
+    })
+    // Sort por # agrupa primero por año (anio DESC) y luego por num dentro del año.
+    // Así los del año actual siempre quedan arriba; los años anteriores accesibles scrolleando.
+    if (sortBy === "num") {
+      return [...base].sort((a, b) => {
+        const yearDiff = (b.anio || 0) - (a.anio || 0)
+        if (yearDiff !== 0) return sortDir === "desc" ? yearDiff : -yearDiff
+        const numDiff = (b.num || 0) - (a.num || 0)
+        return sortDir === "desc" ? numDiff : -numDiff
+      })
+    }
+    return base
+  }, [activeContracts, filterSem, filterMes, filterEstado, search, sortBy, sortDir])
 
   const filteredSummary = useMemo(() => calcSummary(filtered), [filtered, calcSummary])
   const quickLabel = filterSem ? `Semana ${filterSem}${+filterSem === currentWeekNum ? " (actual)" : ""}` : filterMes ? `${MESES_CORTO[+filterMes]} ${currentYear}` : "Todo"
@@ -111,6 +131,7 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
           filterEstado={filterEstado} setFilterEstado={setFilterEstado}
           search={search} setSearch={setSearch}
           setQuickAll={clearAll}
+          sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort}
           onEdit={setEditContract} onDelete={setDeleteId}
           onPermanentDelete={handlePermanentDelete}
         />
