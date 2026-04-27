@@ -1,25 +1,39 @@
 import { useMemo } from "react"
-import { isActiveOnDate, getRecordStatus } from "../../../../lib/finanzas/helpers"
+import { isActiveOnDate, getRecordStatus, isDayOperativo, countDiasOperativosMes, getDaysInMonth } from "../../../../lib/finanzas/helpers"
 
 // Cálculos de servicios: total, costo diario vigente, y las vistas de
 // devengado 3A (ciclo mes) y 3B (ciclo proveedor) + próximos vencimientos.
-export function useServiciosCalc({ services, diasOpBase, calendarDays, year, month, diasCalendario, refDate, diaAnalisis, diasOperados }) {
+export function useServiciosCalc({ services, diasOpBase, calendarDays, year, month, diasCalendario, refDate, diaAnalisis, diasOperados, diasDescansoTienda = [] }) {
   // Servicios también soportan historial (internet cortado, pollo estacional,
   // alquiler que cambió). activeDays = días que estuvieron activos en el mes.
   // costoMesReal = pagoMensual prorrateado según proporción de días activos.
   const servicesCalc = useMemo(() => {
     return services.map(s => {
       if (!s.nombre) return { ...s, costoDiario: 0, costoMensual: 0, costoMesReal: 0, activeDays: 0, isActiveInMonth: false, status: { active: true, label: "", tone: "zinc" } }
+      const modo = s.modo || "operativo"
       const activeCalDays = calendarDays.filter(d => isActiveOnDate(s, new Date(year, month - 1, d.dia)))
       const activeDays = activeCalDays.length
       const isActiveInMonth = activeDays > 0
-      const div = s.divisor || diasOpBase
+      // Divisor según modo: operativo usa días op del mes (con override manual),
+      // calendario siempre divide por días del mes (independiente de descansos).
+      const diasOpMes = countDiasOperativosMes(year, month, diasDescansoTienda) || diasOpBase || 1
+      const div = modo === "calendario"
+        ? (diasCalendario || getDaysInMonth(year, month))
+        : (s.divisor || diasOpMes)
       const costoDiario = div > 0 ? s.pagoMensual / div : 0
-      const costoMesReal = diasCalendario > 0 ? (s.pagoMensual || 0) * (activeDays / diasCalendario) : 0
+      // Mes real: prorratea por días activos del mes. En modo operativo solo
+      // cuenta días op activos; en calendario cuenta todos los días activos.
+      let costoMesReal = 0
+      if (modo === "operativo") {
+        const activeOpDays = activeCalDays.filter(d => isDayOperativo(new Date(year, month - 1, d.dia), diasDescansoTienda)).length
+        costoMesReal = costoDiario * activeOpDays
+      } else {
+        costoMesReal = costoDiario * activeDays
+      }
       const status = getRecordStatus(s, year, month)
       return { ...s, costoDiario, costoMensual: s.pagoMensual, costoMesReal, activeDays, isActiveInMonth, status }
     })
-  }, [services, diasOpBase, calendarDays, year, month, diasCalendario])
+  }, [services, diasOpBase, calendarDays, year, month, diasCalendario, diasDescansoTienda])
 
   const totalServicios = useMemo(() => {
     const active = servicesCalc.filter(s => s.nombre && s.isActiveInMonth)

@@ -44,6 +44,7 @@ export function useViabilidadCalc(inputs) {
     proximosVencimientos,
   } = useServiciosCalc({
     services, diasOpBase, calendarDays, year, month, diasCalendario, refDate, diaAnalisis, diasOperados,
+    diasDescansoTienda: tiendaConfig?.diasDescansoSemanal || [],
   })
 
   const { apoyosCalc, totalApoyos, apoyoDiarioExt } = useApoyosCalc({
@@ -74,6 +75,7 @@ export function useViabilidadCalc(inputs) {
     costoDiarioServicios,
     totalDevengado3A, totalDevengado3B,
     diasOperados, metaMinimaBase,
+    tiendaConfig,
   })
 
   return {

@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { getWeekNumberISO, peruNow, isActiveOnDate, getDiaMarca, parseLocalDate } from "../../../../lib/finanzas/helpers"
+import { getWeekNumberISO, peruNow, isActiveOnDate, getDiaMarca, parseLocalDate, isDayOperativo, countDiasOperativosMes, getDaysInMonth } from "../../../../lib/finanzas/helpers"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { useCajaSnapshot } from "./useCajaSnapshot"
 
@@ -14,7 +14,9 @@ export function useCajaCalc({
   costoDiarioServicios,
   totalDevengado3A, totalDevengado3B,
   diasOperados, metaMinimaBase,
+  tiendaConfig,
 }) {
+  const diasDescansoTienda = useMemo(() => tiendaConfig?.diasDescansoSemanal || [], [tiendaConfig])
   const currentWeekISO = getWeekNumberISO(peruNow())
   const now = peruNow()
   const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1)
@@ -77,12 +79,25 @@ export function useCajaCalc({
       })
     })
 
-    // Servicios: cada uno aporta costoDiario por cada día activo de la semana.
+    // Servicios: respetan modo (operativo / calendario).
+    // - operativo: divide entre días op del mes y cuenta solo días op de la semana
+    // - calendario: divide entre días del mes y cuenta todos los días
     let servCost = 0
     servicesCalc.forEach(s => {
       if (!s.nombre) return
-      const activeInWeek = allWeekDates.filter(d => isActiveOnDate(s, d)).length
-      servCost += s.costoDiario * activeInWeek
+      const modo = s.modo || "operativo"
+      allWeekDates.forEach(date => {
+        if (!isActiveOnDate(s, date)) return
+        const dyear = date.getFullYear(), dmonth = date.getMonth() + 1
+        if (modo === "operativo") {
+          if (!isDayOperativo(date, diasDescansoTienda)) return
+          const div = s.divisor || countDiasOperativosMes(dyear, dmonth, diasDescansoTienda) || 1
+          servCost += (s.pagoMensual || 0) / div
+        } else {
+          const div = getDaysInMonth(dyear, dmonth)
+          servCost += (s.pagoMensual || 0) / div
+        }
+      })
     })
 
     // Apoyos: idem.
@@ -96,7 +111,7 @@ export function useCajaCalc({
     }
 
     return { personalCost, personalBudget, servCost, apoyoCost, realDays: allWeekDates.length }
-  }, [isCurrentMonth, currentWeekISO, workersCalc, servicesCalc, apoyosCalc, contarApoyo, year])
+  }, [isCurrentMonth, currentWeekISO, workersCalc, servicesCalc, apoyosCalc, contarApoyo, year, diasDescansoTienda])
 
   // Presupuestado: respeta historial (baja/reingreso) y descansos fijos.
   // Si no estamos en el mes actual cae al pagoSemanal flat para meses pasados.

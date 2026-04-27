@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
-import { peruNow, getWeekNumberISO, getISOYear, getDaysInMonth, parseLocalDate, calcContract, isActiveOnDate, getDiaMarca } from "../../../../lib/finanzas/helpers"
+import { peruNow, getWeekNumberISO, getISOYear, getDaysInMonth, parseLocalDate, calcContract, isActiveOnDate, getDiaMarca, isDayOperativo, countDiasOperativosMes } from "../../../../lib/finanzas/helpers"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
@@ -35,7 +35,7 @@ function getEntryDate(e) {
 // `wYear` y caminamos Mon–Sun. Para servicios/apoyos prorrateados por mes,
 // cada día usa el divisor de SU propio mes (no un mes único compartido),
 // así una semana que cruza fin/inicio de mes se prorratea correcto.
-function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targetWeek, diasOpBase) {
+function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targetWeek, diasOpBase, diasDescansoTienda = []) {
   // Lunes de la semana ISO 1 de wYear: el lunes en/antes del 4-ene.
   const jan4 = new Date(wYear, 0, 4)
   const jan4Dow = (jan4.getDay() + 6) % 7  // Mon=0..Sun=6
@@ -62,18 +62,22 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targ
     })
   })
 
-  // Servicios: cada día usa el divisor del mes en que CAE ese día. Si la
-  // semana cruza dos meses, los días aportan distinto costoDiario.
+  // Servicios: respetan modo (operativo / calendario).
   let servProportion = 0
   services.forEach(s => {
     if (!s.nombre) return
+    const modo = s.modo || "operativo"
     weekDays.forEach(({ dia, month: dm, year: dy }) => {
       const date = new Date(dy, dm - 1, dia)
       if (!isActiveOnDate(s, date)) return
-      const dim = getDaysInMonth(dy, dm)
-      const div = s.divisor || diasOpBase || Math.max(1, dim - 4)
-      const costoDiario = div > 0 ? (s.pagoMensual || 0) / div : 0
-      servProportion += costoDiario
+      if (modo === "operativo") {
+        if (!isDayOperativo(date, diasDescansoTienda)) return
+        const div = s.divisor || countDiasOperativosMes(dy, dm, diasDescansoTienda) || diasOpBase || 1
+        servProportion += (s.pagoMensual || 0) / div
+      } else {
+        const dim = getDaysInMonth(dy, dm)
+        servProportion += (s.pagoMensual || 0) / dim
+      }
     })
   })
 
@@ -232,7 +236,7 @@ export function useCierres(calc, state) {
           gastoSemanal = existing.data.gastoSemanal
           apoyo = existing.data.apoyo ?? 0
         } else if (st) {
-          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, wYear, w, c.diasOpBase)
+          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, wYear, w, c.diasOpBase, st.tiendaConfig?.diasDescansoSemanal || [])
           gastoSemanal = real ? real.gastoNeto : currentGastoSemanal
           apoyo = real ? real.apoyo : currentApoyoSemanal
         } else {

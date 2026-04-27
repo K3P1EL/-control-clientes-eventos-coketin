@@ -65,6 +65,28 @@ export function parseLocalDate(d) {
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
+// ── Días operativos de la tienda ─────────────────────────────────────────
+// Un día es "operativo" si el nombre de su día de la semana NO está en la
+// lista de descansos default de la tienda (tiendaConfig.diasDescansoSemanal).
+// Esto NO mira overrides del tracker — es la operatividad "por patrón".
+export function isDayOperativo(date, diasDescansoTienda) {
+  if (!Array.isArray(diasDescansoTienda) || diasDescansoTienda.length === 0) return true
+  const d = date instanceof Date ? date : parseLocalDate(date)
+  if (!d) return false
+  return !diasDescansoTienda.includes(DIAS_SEMANA[d.getDay()])
+}
+
+// Cuenta cuántos días del mes son operativos (no caen en descanso default).
+export function countDiasOperativosMes(year, month, diasDescansoTienda) {
+  const dim = getDaysInMonth(year, month)
+  let count = 0
+  for (let d = 1; d <= dim; d++) {
+    const date = new Date(year, month - 1, d)
+    if (isDayOperativo(date, diasDescansoTienda)) count++
+  }
+  return count
+}
+
 // ── Marcas de calendario por mes (per-worker) ───────────────────────────
 // `worker.diasMarcados` evolucionó: el shape viejo era plano `{[dia]: marca}`
 // (ambiguo, no distinguía mes), el nuevo es `{[YYYY-MM]: {[dia]: marca}}`

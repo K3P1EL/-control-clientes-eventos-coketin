@@ -1,7 +1,7 @@
 import { useState } from "react"
 import Card from "../../ui/Card"
 import { MESES_CORTO, DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { fmtS, isActiveOnDate, getDiaMarca, getDaysInMonth, parseLocalDate, getWeekNumberISO, getISOYear } from "../../../../lib/finanzas/helpers"
+import { fmtS, isActiveOnDate, getDiaMarca, getDaysInMonth, parseLocalDate, getWeekNumberISO, getISOYear, isDayOperativo, countDiasOperativosMes } from "../../../../lib/finanzas/helpers"
 import { useCajaSnapshot } from "../hooks/useCajaSnapshot"
 
 // Calcula los 7 días reales de una semana ISO (cualquier año), iguales que
@@ -27,7 +27,7 @@ function getDaysOfPeriod(tipo, periodo, anio) {
 // Breakdown detallado del gasto para un período (semana o mes). Lo calcula
 // AL VUELO con la config actual — puede no coincidir con el `gastoSemanal`
 // congelado si cambió algo desde que se cerró. En ese caso usar 🔄 Recalcular.
-function breakdownGasto({ workers, services, apoyos, contarApoyo, cajaEntries, tipo, periodo, anio }) {
+function breakdownGasto({ workers, services, apoyos, contarApoyo, cajaEntries, tipo, periodo, anio, diasDescansoTienda = [] }) {
   const days = getDaysOfPeriod(tipo, periodo, anio)
   const personal = []
   workers.forEach(w => {
@@ -49,15 +49,22 @@ function breakdownGasto({ workers, services, apoyos, contarApoyo, cajaEntries, t
   const serviciosCalc = []
   services.forEach(s => {
     if (!s.nombre) return
+    const modo = s.modo || "operativo"
     let total = 0, dias = 0
     days.forEach(date => {
       if (!isActiveOnDate(s, date)) return
-      const dim = getDaysInMonth(date.getFullYear(), date.getMonth() + 1)
-      const div = s.divisor || dim
-      total += div > 0 ? (s.pagoMensual || 0) / div : 0
+      const dyear = date.getFullYear(), dmonth = date.getMonth() + 1
+      if (modo === "operativo") {
+        if (!isDayOperativo(date, diasDescansoTienda)) return
+        const div = s.divisor || countDiasOperativosMes(dyear, dmonth, diasDescansoTienda) || 1
+        total += (s.pagoMensual || 0) / div
+      } else {
+        const dim = getDaysInMonth(dyear, dmonth)
+        total += (s.pagoMensual || 0) / dim
+      }
       dias++
     })
-    if (dias > 0) serviciosCalc.push({ nombre: s.nombre, dias, pagoMensual: s.pagoMensual || 0, total })
+    if (dias > 0) serviciosCalc.push({ nombre: s.nombre, dias, pagoMensual: s.pagoMensual || 0, total, modo })
   })
 
   const apoyosCalc = []
@@ -316,6 +323,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                     workers: viabState.workers, services: viabState.services, apoyos: viabState.apoyos,
                     contarApoyo: viabState.contarApoyo, cajaEntries: cajaEntries || [],
                     tipo: c.tipo, periodo: c.periodo, anio: c.anio,
+                    diasDescansoTienda: viabState.tiendaConfig?.diasDescansoSemanal || [],
                   }) : null
                   const desfase = bd ? Math.abs(bd.gastoCalculado - gastosCalcCongelado) > 0.5 : false
                   return (
@@ -375,7 +383,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                               {bd.servicios.length === 0 ? <div style={{ paddingLeft: 14, fontSize: 10, color: "#52525b", fontStyle: "italic" }}>Sin servicios activos</div> : (
                                 bd.servicios.map(s => (
                                   <div key={s.nombre} style={{ paddingLeft: 14, fontSize: 10, color: "#94a3b8" }}>
-                                    · {s.nombre} ({fmtS(s.pagoMensual)}/mes): {s.dias}d activos = <strong style={{ color: "#cbd5e1" }}>{fmtS(s.total)}</strong>
+                                    · {s.nombre} ({fmtS(s.pagoMensual)}/mes, {s.modo === "calendario" ? "🗓️" : "🏪"}): {s.dias}d {s.modo === "calendario" ? "" : "op "}= <strong style={{ color: "#cbd5e1" }}>{fmtS(s.total)}</strong>
                                   </div>
                                 ))
                               )}

@@ -24,7 +24,7 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
   }, [setServices])
 
   const addService = useCallback(() => {
-    setServices(prev => [...prev, { nombre: "", pagoMensual: 0, diaPago: "", divisor: diasOpBase, nota: "" }])
+    setServices(prev => [...prev, { nombre: "", pagoMensual: 0, diaPago: "", divisor: diasOpBase, nota: "", modo: "operativo" }])
   }, [setServices, diasOpBase])
 
   // No-destructive remove: si el servicio está activo lo da de baja con
@@ -44,6 +44,7 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
               <th className="text-left py-2 pr-2">Servicio</th>
               <th className="text-right px-2">Pago mensual</th>
               <th className="text-right px-2">Día pago</th>
+              <th className="text-center px-2" title="Cómo se prorratea">Modo</th>
               <th className="text-right px-2">Divisor diario</th>
               <th className="text-right px-2">Costo diario</th>
               <th className="text-right px-2">Mes real</th>
@@ -73,6 +74,21 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
                   </td>
                   <td className="px-2"><NumInput value={services[i].pagoMensual} onChange={v => updateService(i, "pagoMensual", v)} /></td>
                   <td className="px-2"><NumInput value={services[i].diaPago} onChange={v => updateService(i, "diaPago", v)} min={1} /></td>
+                  <td className="px-2 text-center">
+                    <select
+                      value={services[i].modo || "operativo"}
+                      onChange={e => updateService(i, "modo", e.target.value)}
+                      className="bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1 text-[11px] text-zinc-200 focus:outline-none focus:border-violet-500/60 cursor-pointer"
+                      title={
+                        services[i].modo === "calendario"
+                          ? "🗓️ Se cobra todos los días del mes (abras o no)"
+                          : "🏪 Se cobra solo días que la tienda opera"
+                      }
+                    >
+                      <option value="operativo">🏪 Op</option>
+                      <option value="calendario">🗓️ Cal</option>
+                    </select>
+                  </td>
                   <td className="px-2"><NumInput value={services[i].divisor} onChange={v => updateService(i, "divisor", v)} min={1} /></td>
                   <td className="px-2 text-right text-sky-400 font-mono">{fmt(s.costoDiario)}</td>
                   <td className="px-2 text-right text-zinc-200 font-mono font-semibold">{fmt(s.costoMesReal)}</td>
@@ -81,7 +97,7 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
                 </tr>
                 {expanded === i && (
                   <tr>
-                    <td colSpan={8} className="p-0">
+                    <td colSpan={9} className="p-0">
                       <div className="px-5 py-4 bg-zinc-800/40 border-y border-zinc-700/40">
                         <PeriodosEditor
                           record={services[i]}
@@ -99,7 +115,7 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
             <tr className="border-t-2 border-zinc-700 font-semibold text-zinc-200">
               <td className="py-2">Total</td>
               <td className="px-2 text-right font-mono">{fmt(totalServicios.pagoMensual, 0)}</td>
-              <td></td><td></td>
+              <td></td><td></td><td></td>
               <td className="px-2 text-right text-sky-400 font-mono">{fmt(totalServicios.costoDiario)}</td>
               <td className="px-2 text-right font-mono">{fmt(totalServicios.costoMesReal, 0)}</td>
               <td></td><td></td>

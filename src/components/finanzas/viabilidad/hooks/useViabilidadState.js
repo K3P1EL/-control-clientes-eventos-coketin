@@ -18,10 +18,10 @@ const INIT_WORKERS = [
   { name: "jose", pagoSemanal: 185, diasTrabSem: 6, diaDescanso: "Domingo", extrasNoTrabajo: 0, extrasTrabajoExtra: 0, extrasTrabajoTienda: 0, diasMarcados: {}, negocioDepende: false },
 ]
 const INIT_SERVICES = [
-  { nombre: "internet", pagoMensual: 200, diaPago: "", divisor: 25, nota: "" },
-  { nombre: "agua", pagoMensual: 300, diaPago: 21, divisor: 25, nota: "" },
-  { nombre: "luz", pagoMensual: 500, diaPago: 17, divisor: 25, nota: "" },
-  { nombre: "pollo", pagoMensual: 1700, diaPago: 30, divisor: 25, nota: "" },
+  { nombre: "internet", pagoMensual: 200, diaPago: "", divisor: 25, nota: "", modo: "operativo" },
+  { nombre: "agua", pagoMensual: 300, diaPago: 21, divisor: 25, nota: "", modo: "operativo" },
+  { nombre: "luz", pagoMensual: 500, diaPago: 17, divisor: 25, nota: "", modo: "operativo" },
+  { nombre: "pollo", pagoMensual: 1700, diaPago: 30, divisor: 25, nota: "", modo: "operativo" },
 ]
 const INIT_APOYOS = [
   { concepto: "alquiler", montoMensual: 1000, divisor: 30, nota: "" },
@@ -64,7 +64,9 @@ export function useViabilidadState() {
       if (Array.isArray(saved.workers)) setWorkers(saved.workers
         .filter(w => w && typeof w === "object")
         .map(w => ({ ...w, diasMarcados: normalizeDiasMarcados(w.diasMarcados, fbYear, fbMonth) })))
-      if (Array.isArray(saved.services)) setServices(saved.services.filter(s => s && typeof s === "object"))
+      if (Array.isArray(saved.services)) setServices(saved.services
+        .filter(s => s && typeof s === "object")
+        .map(s => ({ ...s, modo: s.modo || "operativo" })))  // default operativo si falta
       if (Array.isArray(saved.apoyos)) setApoyos(saved.apoyos.filter(a => a && typeof a === "object"))
       if (saved.trackerData && typeof saved.trackerData === "object") setTrackerData(saved.trackerData)
       if (typeof saved.diaAnalisis === "number") setDiaAnalisis(saved.diaAnalisis)
