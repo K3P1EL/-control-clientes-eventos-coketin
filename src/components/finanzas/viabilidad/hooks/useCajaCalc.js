@@ -1,11 +1,12 @@
 import { useMemo } from "react"
-import { getWeekNumberISO, peruNow, isActiveOnDate } from "../../../../lib/finanzas/helpers"
+import { getWeekNumberISO, peruNow, isActiveOnDate, getDiaMarca } from "../../../../lib/finanzas/helpers"
+import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 
 // Caja semanal/mensual: suma reales por asistencia (no flat).
 // Personal: reads diasMarcados per worker. Services/apoyo: proportioned
 // to actual week days (not the static diasOpSemana config).
 export function useCajaCalc({
-  year, month, calendarDays, diasCalendario,
+  year, month, diasCalendario,
   workersCalc, servicesCalc, apoyosCalc,
   totalPersonal, totalServicios, totalApoyos,
   cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana,
@@ -20,49 +21,42 @@ export function useCajaCalc({
   const weekCalc = useMemo(() => {
     if (!isCurrentMonth || currentWeekISO == null) return null
 
-    // Days in THIS month that fall in the current ISO week (for worker marks)
-    const weekDaysThisMonth = calendarDays.filter(d => {
-      const date = new Date(year, month - 1, d.dia)
-      const w = getWeekNumberISO(date)
-      return w != null && w === currentWeekISO
-    })
-
-    // Fechas completas de la semana (incluyen días del mes anterior/siguiente).
-    // Las usamos para prorratear servicios/apoyos respetando sus historiales.
+    // Los 7 días reales de la semana ISO actual, anclados al lunes de la
+    // semana 1 del año del mes vigente y avanzando. Esto NO depende del mes
+    // — funciona aunque la semana cruce abril/mayo, dic/ene, etc.
+    const jan4 = new Date(year, 0, 4)
+    const jan4Dow = (jan4.getDay() + 6) % 7  // Mon=0..Sun=6
+    const week1Mon = new Date(jan4)
+    week1Mon.setDate(jan4.getDate() - jan4Dow)
     const allWeekDates = []
-    for (let offset = -6; offset <= 6; offset++) {
-      const d = new Date(year, month - 1, weekDaysThisMonth[0]?.dia || 1)
-      d.setDate(d.getDate() + offset)
-      if (getWeekNumberISO(d) === currentWeekISO) allWeekDates.push(d)
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(week1Mon)
+      d.setDate(week1Mon.getDate() + (currentWeekISO - 1) * 7 + i)
+      allWeekDates.push(d)
     }
-    const fullWeekDays = allWeekDates.length || weekDaysThisMonth.length || 1
-    if (weekDaysThisMonth.length === 0) return null
+    if (allWeekDates.length === 0) return null
 
-    // Personal: real cost from attendance (only days in this month have marks)
-    // Solo cuentan los días en que el trabajador estaba en un período activo.
-    // personalCost = real (con marcas), personalBudget = esperado (sin marcas
-    // pero respetando historial y descansos fijos). El presupuesto se usa
-    // arriba para mostrar "Presupuesto: …" — antes usaba totalPersonal.pagoSemanal
-    // que incluía trabajadores dados de baja a mitad de mes.
+    // Personal: ahora sí usamos los 7 días reales. Las marcas se leen del
+    // mes correspondiente a cada fecha (los `diasMarcados` son por mes).
+    // personalCost = real (con marcas), personalBudget = esperado (respeta
+    // historial y descansos fijos pero no marcas).
     let personalCost = 0
     let personalBudget = 0
     workersCalc.forEach(w => {
       if (!w.name) return
-      const marcas = w.diasMarcados || {}
-      weekDaysThisMonth.forEach(d => {
-        const fecha = new Date(year, month - 1, d.dia)
-        if (!isActiveOnDate(w, fecha)) return
-        const isRest = w.diaDescanso && d.nombre === w.diaDescanso
+      allWeekDates.forEach(date => {
+        if (!isActiveOnDate(w, date)) return
+        const dyName = DIAS_SEMANA[date.getDay()]
+        const isRest = w.diaDescanso && dyName === w.diaDescanso
         if (!isRest) personalBudget += w.costoDiario
-        const marca = marcas[d.dia] || ""
+        const marca = getDiaMarca(w, date.getFullYear(), date.getMonth() + 1, date.getDate())
         if (marca === "noVino") return
         if (isRest && !marca) return
         personalCost += w.costoDiario
       })
     })
 
-    // Servicios: cada uno aporta costoDiario por cada día que estuvo activo
-    // dentro de la semana completa.
+    // Servicios: cada uno aporta costoDiario por cada día activo de la semana.
     let servCost = 0
     servicesCalc.forEach(s => {
       if (!s.nombre) return
@@ -70,7 +64,7 @@ export function useCajaCalc({
       servCost += s.costoDiario * activeInWeek
     })
 
-    // Apoyos: mismo trato.
+    // Apoyos: idem.
     let apoyoCost = 0
     if (contarApoyo === "SI") {
       apoyosCalc.forEach(a => {
@@ -80,8 +74,8 @@ export function useCajaCalc({
       })
     }
 
-    return { personalCost, personalBudget, servCost, apoyoCost, realDays: fullWeekDays }
-  }, [isCurrentMonth, currentWeekISO, calendarDays, workersCalc, servicesCalc, apoyosCalc, contarApoyo, year, month])
+    return { personalCost, personalBudget, servCost, apoyoCost, realDays: allWeekDates.length }
+  }, [isCurrentMonth, currentWeekISO, workersCalc, servicesCalc, apoyosCalc, contarApoyo, year])
 
   // Presupuestado: respeta historial (baja/reingreso) y descansos fijos.
   // Si no estamos en el mes actual cae al pagoSemanal flat para meses pasados.

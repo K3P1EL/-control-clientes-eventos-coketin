@@ -65,7 +65,7 @@ export function useViabilidadCalc(inputs) {
     cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,
     metaDiariaNecesaria, ritmoActual, diffRitmo,
   } = useCajaCalc({
-    year, month, calendarDays, diasCalendario,
+    year, month, diasCalendario,
     workersCalc, servicesCalc, apoyosCalc,
     totalPersonal, totalServicios, totalApoyos,
     cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana,

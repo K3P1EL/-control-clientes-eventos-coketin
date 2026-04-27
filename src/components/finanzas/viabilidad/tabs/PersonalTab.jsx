@@ -3,7 +3,7 @@ import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
 import Select from "../../ui/Select"
-import { fmt, fmtS, peruNow, getWeekNumberISO, isActiveOnDate } from "../../../../lib/finanzas/helpers"
+import { fmt, fmtS, peruNow, getWeekNumberISO, isActiveOnDate, monthKey, getMarcasMes } from "../../../../lib/finanzas/helpers"
 import WorkerCalendar from "../components/WorkerCalendar"
 import PeriodosEditor from "../components/PeriodosEditor"
 
@@ -28,7 +28,7 @@ function WeeklyPaySummary({ workersCalc, calendarDays, year, month }) {
     if (weekDays.length === 0) return null
 
     const rows = workersCalc.filter(w => w.name).map(w => {
-      const marcas = w.diasMarcados || {}
+      const marcas = getMarcasMes(w, year, month)
       let diasTrabajados = 0
       let diasFaltados = 0
       weekDays.forEach(d => {
@@ -118,23 +118,27 @@ export default function PersonalTab({
     setWorkers(prev => {
       const n = [...prev]
       const w = { ...n[workerIdx] }
-      const m = { ...(w.diasMarcados || {}) }
-      const current = m[dia] || ""
+      const dm = { ...(w.diasMarcados || {}) }
+      const mk = monthKey(year, month)
+      const monthMarcas = { ...(dm[mk] || {}) }
+      const current = monthMarcas[dia] || ""
       if (isRestDay) {
         // Rest day: click = "trabajó" (paid extra) → clear
-        if (!current) m[dia] = "trabajo"
-        else delete m[dia]
+        if (!current) monthMarcas[dia] = "trabajo"
+        else delete monthMarcas[dia]
       } else {
         // Work day: click = "noVino" → "tienda" (went to shop instead, same pay) → clear
-        if (!current) m[dia] = "noVino"
-        else if (current === "noVino") m[dia] = "tienda"
-        else delete m[dia]
+        if (!current) monthMarcas[dia] = "noVino"
+        else if (current === "noVino") monthMarcas[dia] = "tienda"
+        else delete monthMarcas[dia]
       }
-      w.diasMarcados = m
+      if (Object.keys(monthMarcas).length === 0) delete dm[mk]
+      else dm[mk] = monthMarcas
+      w.diasMarcados = dm
       n[workerIdx] = w
       return n
     })
-  }, [setWorkers])
+  }, [setWorkers, year, month])
 
   const addWorker = useCallback(() => {
     setWorkers(prev => [...prev, { name: "", pagoSemanal: 0, diasTrabSem: 6, diaDescanso: "", extrasNoTrabajo: 0, extrasTrabajoExtra: 0, extrasTrabajoTienda: 0, diasMarcados: {}, negocioDepende: false }])

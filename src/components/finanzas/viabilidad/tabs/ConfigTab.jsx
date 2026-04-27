@@ -52,7 +52,7 @@ export default function ConfigTab({
         )
       })()}
 
-      <CoberturaExtra workers={workers} workersCalc={workersCalc} calendarDays={calendarDays} effectiveTracker={effectiveTracker} diasOpBase={diasOpBase} cobExtra={cobExtra} setCobExtra={setCobExtra} />
+      <CoberturaExtra workers={workers} workersCalc={workersCalc} calendarDays={calendarDays} effectiveTracker={effectiveTracker} diasOpBase={diasOpBase} cobExtra={cobExtra} setCobExtra={setCobExtra} year={year} month={month} />
 
       <div className="mt-6 bg-zinc-800/40 rounded-xl p-4 border border-zinc-700/50">
         <h3 className="text-sm font-semibold text-zinc-300 mb-2">📖 Cómo usar</h3>

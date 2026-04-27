@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from "react"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
-import { fmtS } from "../../../../lib/finanzas/helpers"
+import { fmtS, getDiaMarca } from "../../../../lib/finanzas/helpers"
 
 // Auto-computed cobertura extra panel. Reads from the Tracker and worker
 // calendars to detect when the shop operated on a normally-closed day.
 // Also allows adding external people (not in planilla) manually.
-export default function CoberturaExtra({ workers, workersCalc, calendarDays, effectiveTracker, diasOpBase, cobExtra, setCobExtra }) {
+export default function CoberturaExtra({ workers, workersCalc, calendarDays, effectiveTracker, diasOpBase, cobExtra, setCobExtra, year, month }) {
   const [open, setOpen] = useState(false)
 
   // Manual fields for external coverage (people not in planilla)
@@ -33,7 +33,7 @@ export default function CoberturaExtra({ workers, workersCalc, calendarDays, eff
       // Find who worked that day from worker calendars
       workersCalc.forEach(w => {
         if (!w.name) return
-        const marca = (w.diasMarcados || {})[d.dia] || ""
+        const marca = getDiaMarca(w, year, month, d.dia)
         const isTheirRest = w.diaDescanso && d.nombre === w.diaDescanso
         if (isTheirRest && (marca === "trabajo" || marca === "tienda")) {
           quienCubrio.set(w.name, (quienCubrio.get(w.name) || 0) + 1)
@@ -50,7 +50,7 @@ export default function CoberturaExtra({ workers, workersCalc, calendarDays, eff
       restDay: restDayName,
       essentialName: essential.name,
     }
-  }, [workers, workersCalc, calendarDays, effectiveTracker])
+  }, [workers, workersCalc, calendarDays, effectiveTracker, year, month])
 
   // Sync auto-detected days into cobExtra.dias so useViabilidadCalc includes them in diasOpBase
   useEffect(() => {

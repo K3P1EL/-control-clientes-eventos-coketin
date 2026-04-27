@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { getDaysInMonth, getDayName, getWeekNumberCal, peruNow, isActiveOnDate } from "../../../../lib/finanzas/helpers"
+import { getDaysInMonth, getDayName, getWeekNumberCal, peruNow, isActiveOnDate, getMarcasMes } from "../../../../lib/finanzas/helpers"
 
 // Calendario + tracker efectivo + resúmenes de descanso.
 // No depende de workersCalc/servicesCalc/apoyosCalc — es el primer eslabón.
@@ -33,8 +33,9 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra }) {
     }).length
     const diasAbiertosExtra = new Set()
     workers.forEach(w => {
-      if (!w.name || !w.diasMarcados) return
-      Object.entries(w.diasMarcados).forEach(([dia, marca]) => {
+      if (!w.name) return
+      const marcas = getMarcasMes(w, year, month)
+      Object.entries(marcas).forEach(([dia, marca]) => {
         if (marca !== "tienda") return
         const fecha = new Date(year, month - 1, Number(dia))
         if (isActiveOnDate(w, fecha)) diasAbiertosExtra.add(Number(dia))

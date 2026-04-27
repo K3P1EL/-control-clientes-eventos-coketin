@@ -65,6 +65,50 @@ export function parseLocalDate(d) {
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
+// ── Marcas de calendario por mes (per-worker) ───────────────────────────
+// `worker.diasMarcados` evolucionó: el shape viejo era plano `{[dia]: marca}`
+// (ambiguo, no distinguía mes), el nuevo es `{[YYYY-MM]: {[dia]: marca}}`
+// (semana ISO puede cruzar meses sin colisionar). Estos helpers leen ambos
+// shapes así no hay que tocar todos los consumers a la vez.
+export function monthKey(year, month) {
+  return `${year}-${String(month).padStart(2, "0")}`
+}
+
+// True si el shape del objeto es el viejo (claves numéricas planas).
+function isFlatMarcas(dm) {
+  if (!dm || typeof dm !== "object") return false
+  const keys = Object.keys(dm)
+  if (keys.length === 0) return false
+  return keys.every(k => /^\d+$/.test(k))
+}
+
+// Marcas del mes vigente para un worker. Si el shape sigue siendo plano,
+// devuelve las marcas tal cual (asumiendo que pertenecen al mes pedido).
+export function getMarcasMes(worker, year, month) {
+  if (!worker || !worker.diasMarcados) return {}
+  const dm = worker.diasMarcados
+  if (isFlatMarcas(dm)) return dm
+  return dm[monthKey(year, month)] || {}
+}
+
+// Marca puntual de un día específico para un worker.
+export function getDiaMarca(worker, year, month, dia) {
+  return getMarcasMes(worker, year, month)[dia] || ""
+}
+
+// Migra worker.diasMarcados al shape por-mes. Si ya está migrado lo deja
+// como está. Si está plano, lo envuelve bajo `{[fallbackKey]: marcasViejas}`
+// para no perder data. fallbackKey debería ser el último mes que el usuario
+// tenía abierto antes de la migración (típicamente state.year/month al cargar).
+export function normalizeDiasMarcados(diasMarcados, fallbackYear, fallbackMonth) {
+  if (!diasMarcados || typeof diasMarcados !== "object") return {}
+  if (Object.keys(diasMarcados).length === 0) return {}
+  if (isFlatMarcas(diasMarcados)) {
+    return { [monthKey(fallbackYear, fallbackMonth)]: diasMarcados }
+  }
+  return diasMarcados
+}
+
 // ── Historial laboral (altas / bajas / reingresos) ──────────────────────
 // Un "record" (worker, servicio, apoyo) lleva un array `historial` con
 // eventos cronológicos, una sola fecha por evento:

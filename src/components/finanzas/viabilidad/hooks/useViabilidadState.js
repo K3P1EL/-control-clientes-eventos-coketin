@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { peruNow } from "../../../../lib/finanzas/helpers"
+import { peruNow, normalizeDiasMarcados } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadViabilidad, saveViabilidad } from "../../../../services/finanzas"
 
@@ -48,9 +48,16 @@ export function useViabilidadState() {
   // every field so a corrupted/legacy blob can't crash the module.
   const applyLoaded = useCallback((saved) => {
     if (saved && typeof saved === "object") {
+      // Resolver el mes "fallback" usado para migrar marcas planas al shape
+      // por-mes: priorizamos el mes guardado (lo último que estaba viendo el
+      // usuario) — si no hay, usamos hoy.
+      const fbYear = typeof saved.year === "number" ? saved.year : peruNow().getFullYear()
+      const fbMonth = typeof saved.month === "number" ? saved.month : (peruNow().getMonth() + 1)
       if (typeof saved.year === "number") setYear(saved.year)
       if (typeof saved.month === "number") setMonth(saved.month)
-      if (Array.isArray(saved.workers)) setWorkers(saved.workers.filter(w => w && typeof w === "object"))
+      if (Array.isArray(saved.workers)) setWorkers(saved.workers
+        .filter(w => w && typeof w === "object")
+        .map(w => ({ ...w, diasMarcados: normalizeDiasMarcados(w.diasMarcados, fbYear, fbMonth) })))
       if (Array.isArray(saved.services)) setServices(saved.services.filter(s => s && typeof s === "object"))
       if (Array.isArray(saved.apoyos)) setApoyos(saved.apoyos.filter(a => a && typeof a === "object"))
       if (saved.trackerData && typeof saved.trackerData === "object") setTrackerData(saved.trackerData)

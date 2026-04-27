@@ -1,5 +1,5 @@
 import { MESES } from "../../../../lib/finanzas/constants"
-import { peruNow, isActiveOnDate } from "../../../../lib/finanzas/helpers"
+import { peruNow, isActiveOnDate, getMarcasMes } from "../../../../lib/finanzas/helpers"
 
 // Per-worker monthly calendar shown when a worker row is expanded.
 // Click cycles: work day → noVino → tienda → clear. Rest day → trabajo → clear.
@@ -32,7 +32,7 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
             <div className="grid grid-cols-7 gap-1.5">
               {calendarDays.filter(d => d.semana === sem).map(d => {
                 const isRest = worker.diaDescanso && d.nombre === worker.diaDescanso
-                const marca = (worker.diasMarcados || {})[d.dia] || ""
+                const marca = getMarcasMes(worker, year, month)[d.dia] || ""
                 const isFeriado = effectiveTracker[d.dia] === "Feriado"
                 const isPast = isPastMonth || d.dia <= today
                 const isToday = d.dia === today && !isPastMonth

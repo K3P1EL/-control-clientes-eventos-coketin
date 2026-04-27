@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { isActiveOnDate, getRecordStatus } from "../../../../lib/finanzas/helpers"
+import { isActiveOnDate, getRecordStatus, getMarcasMes } from "../../../../lib/finanzas/helpers"
 
 // Cálculos por trabajador + total + costo diario vigente en refDate.
 // Se calcula sobre los días en que el trabajador estuvo activo (historial).
@@ -16,7 +16,7 @@ export function usePersonalCalc({ workers, calendarDays, effectiveTracker, year,
       const feriadosNoDescanso = activeCalendarDays.filter(d => effectiveTracker[d.dia] === "Feriado" && d.nombre !== w.diaDescanso).length
       const diasProj = Math.max(0, activeCalendarDays.length - descMes - feriadosNoDescanso)
 
-      const marcas = w.diasMarcados || {}
+      const marcas = getMarcasMes(w, year, month)
       const countMarks = (value) => Object.entries(marcas).filter(([dia, v]) => v === value && activeDayNums.has(Number(dia))).length
       const extrasNo = (w.extrasNoTrabajo || 0) + countMarks("noVino")
       const extrasWork = (w.extrasTrabajoExtra || 0) + countMarks("trabajo")
