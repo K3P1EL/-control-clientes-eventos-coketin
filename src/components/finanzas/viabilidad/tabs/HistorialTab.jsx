@@ -198,14 +198,17 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
       }
     })
 
-    // Gasto hasta hoy: prorratear personal+servicios+apoyos por días op pasados.
-    // Usar el ritmo del calc (gastoNetoSemanal o gastoRealMes) y proporción.
+    // gastoTotal del calc YA incluye hormigaSemanal/hormigaMes (sumado en
+    // useCajaCalc). Para prorratear sin doble-contar, separamos la parte
+    // fija (personal+servicios-apoyo) de las hormigas.
     const gastoTotal = filterTipo === "semana" ? liveGastoSemanal : liveGastoMes
-    const totalDiasOp = diasOpPasados + diasOpRestantes || 1
-    const gastoHastaHoy = gastoTotal * (diasOpPasados / totalDiasOp)
-    const gastoRestante = gastoTotal - gastoHastaHoy
+    const hormigaPeriodoTotal = filterTipo === "semana" ? (calc?.hormigaSemanal || 0) : (calc?.hormigaMes || 0)
+    const gastoFijo = Math.max(0, gastoTotal - hormigaPeriodoTotal)  // personal+servicios-apoyo
 
-    // Hormigas hasta hoy (de Caja)
+    const totalDiasOp = diasOpPasados + diasOpRestantes || 1
+    const gastoFijoHastaHoy = gastoFijo * (diasOpPasados / totalDiasOp)
+
+    // Hormigas hasta hoy (cargadas con fecha ≤ hoy en Caja)
     let hormigaHastaHoy = 0
     cajaEntries.forEach(e => {
       if (e.eliminado || e.delNegocio === false || e.gastoAjeno) return
@@ -218,16 +221,18 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
       if (inP) hormigaHastaHoy += e.monto || 0
     })
 
-    const libreActual = cobradoHastaHoy - gastoHastaHoy - hormigaHastaHoy
-    // Proyección: asumir mismo ritmo de cobro para días op restantes
+    const gastoHastaHoy = gastoFijoHastaHoy + hormigaHastaHoy
+    const libreActual = cobradoHastaHoy - gastoHastaHoy
+    // Proyección: asumir mismo ritmo de cobro para días op restantes.
+    // gastoTotal ya tiene la hormiga cargada hasta ahora (refleja realidad live).
     const ritmoCobro = diasOpPasados > 0 ? cobradoHastaHoy / diasOpPasados : 0
     const cobradoProyectado = cobradoHastaHoy + ritmoCobro * diasOpRestantes
-    const libreProyectado = cobradoProyectado - gastoTotal - hormigaHastaHoy
+    const libreProyectado = cobradoProyectado - gastoTotal
 
     return {
       diasPasados, diasRestantes, diasOpPasados, diasOpRestantes,
-      cobradoHastaHoy, gastoHastaHoy, hormigaHastaHoy, libreActual,
-      cobradoProyectado, gastoRestante, libreProyectado, gastoTotal,
+      cobradoHastaHoy, gastoFijoHastaHoy, hormigaHastaHoy, libreActual,
+      cobradoProyectado, libreProyectado, gastoTotal,
       ritmoCobro,
     }
   })()
@@ -285,7 +290,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "#94a3b8" }}>Gastos prorrateados</span>
-                  <span style={{ fontFamily: "monospace", color: "#f87171" }}>−{fmtS(enProceso.gastoHastaHoy)}</span>
+                  <span style={{ fontFamily: "monospace", color: "#f87171" }}>−{fmtS(enProceso.gastoFijoHastaHoy)}</span>
                 </div>
                 {enProceso.hormigaHastaHoy > 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -312,7 +317,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "#94a3b8" }}>Gasto total esperado</span>
-                  <span style={{ fontFamily: "monospace", color: "#f87171" }}>−{fmtS(enProceso.gastoTotal + enProceso.hormigaHastaHoy)}</span>
+                  <span style={{ fontFamily: "monospace", color: "#f87171" }}>−{fmtS(enProceso.gastoTotal)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 4, borderTop: "1px dashed rgba(63,63,70,0.4)", marginTop: 2 }}>
                   <span style={{ color: "#cbd5e1", fontWeight: 700 }}>Libre proyectado</span>

@@ -110,6 +110,7 @@ export function useReconciliation(contracts, entries, period) {
     entries.forEach(e => {
       if (e.eliminado) return
       if (e.delNegocio === false) return
+      if (e.gastoAjeno) return // simétrico con cierres — no entra en reconciliación
       if (!e.deContrato) return
       if (!dateInPeriod(e.fecha)) return
       const m = e.monto || 0
