@@ -6,6 +6,7 @@ import { fmtS } from "../../../../lib/finanzas/helpers"
 export default function HistorialTab({ cierres, currentWeek, currentMonth, currentYear, calc, recalcularCierre }) {
   const [filterTipo, setFilterTipo] = useState("semana")
   const [viewYear, setViewYear] = useState(currentYear)
+  const [explicaOpen, setExplicaOpen] = useState(null) // id del cierre expandido
 
   // Available years from cierres data
   const availableYears = [...new Set(cierres.map(c => c.anio))].sort((a, b) => b - a)
@@ -118,6 +119,11 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button onClick={() => setExplicaOpen(explicaOpen === c.id ? null : c.id)}
+                      style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(56,189,248,0.4)", background: explicaOpen === c.id ? "rgba(56,189,248,0.2)" : "rgba(56,189,248,0.1)", color: "#38bdf8", cursor: "pointer", fontSize: 10, fontWeight: 700 }}
+                      title="Ver el desglose matemático del cierre">
+                      🔍 Cómo se calculó
+                    </button>
                     {recalcularCierre && c.id && (
                       <button onClick={() => { if (confirm("Recalcular este cierre con la configuración actual? Los datos congelados se actualizarán.")) recalcularCierre(c.id) }}
                         style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(139,92,246,0.4)", background: "rgba(139,92,246,0.1)", color: "#a78bfa", cursor: "pointer", fontSize: 10, fontWeight: 700 }}
@@ -194,6 +200,89 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                 )}
 
                 {c.nota && <div style={{ marginTop: 8, fontSize: 11, color: "#a1a1aa", fontStyle: "italic" }}>📝 {c.nota}</div>}
+
+                {/* Panel "Cómo se calculó" — desglose matemático */}
+                {explicaOpen === c.id && (() => {
+                  const gastosCalc = d.gastoSemanal || d.gastoMes || 0
+                  const hormiga = (c.tipo === "semana" ? d.hormigaSemana : d.hormigaMes) || 0
+                  const gastos = gastosCalc + hormiga
+                  const cobradoNuevos = d.enCaja || 0
+                  const deAnteriores = d.deAnteriores || 0
+                  const totalCobrado = cobradoNuevos + deAnteriores
+                  const apoyo = d.apoyo || 0
+                  const periodoLabel = c.tipo === "semana" ? `Semana ${c.periodo}` : MESES_CORTO[c.periodo]
+                  return (
+                    <div style={{ marginTop: 12, padding: 14, background: "rgba(15,23,42,0.5)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 10, fontSize: 12, lineHeight: 1.65, color: "#cbd5e1" }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#38bdf8", marginBottom: 8 }}>🔍 Desglose del cálculo — {periodoLabel}</div>
+
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ color: "#34d399", fontWeight: 700 }}>📥 Cobrado de nuevos: {fmtS(cobradoNuevos)}</div>
+                        <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                          Suma del campo "enCaja" de cada contrato firmado en {periodoLabel.toLowerCase()}.<br/>
+                          enCaja = (adelantos + cobros marcados ☑ "En caja") − gastos del contrato
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ color: "#a78bfa", fontWeight: 700 }}>📥 De anteriores: {fmtS(deAnteriores)}</div>
+                        <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                          Cobros marcados ☑ "En caja" cuya fecha cae en {periodoLabel.toLowerCase()} pero el contrato es de otro período.
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: 10, paddingTop: 8, borderTop: "1px dashed rgba(63,63,70,0.4)" }}>
+                        <div style={{ color: "#38bdf8", fontWeight: 700 }}>💰 Total cobrado: {fmtS(totalCobrado)}</div>
+                        <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                          {fmtS(cobradoNuevos)} (nuevos) + {fmtS(deAnteriores)} (anteriores) = <strong style={{ color: "#38bdf8" }}>{fmtS(totalCobrado)}</strong>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ color: "#f87171", fontWeight: 700 }}>📤 Gastos: {fmtS(gastos)}</div>
+                        <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                          Gasto calculado: {fmtS(gastosCalc)} (personal con asistencia + servicios prorrateados − apoyo)<br/>
+                          {hormiga > 0 ? <>🐜 Hormiga: {fmtS(hormiga)} (egresos del negocio marcados como hormiga)<br/></> : null}
+                          <strong style={{ color: "#f87171" }}>Total: {fmtS(gastosCalc)}{hormiga > 0 ? ` + ${fmtS(hormiga)} = ${fmtS(gastos)}` : ""}</strong>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: 6, paddingTop: 8, borderTop: "1px dashed rgba(63,63,70,0.4)" }}>
+                        <div style={{ color: "#34d399", fontWeight: 700 }}>✅ Libre solo nuevos: {(cobradoNuevos - gastos) >= 0 ? "+" : ""}{fmtS(cobradoNuevos - gastos)}</div>
+                        <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                          {fmtS(cobradoNuevos)} − {fmtS(gastos)} = <strong style={{ color: (cobradoNuevos - gastos) >= 0 ? "#34d399" : "#f87171" }}>{(cobradoNuevos - gastos) >= 0 ? "+" : ""}{fmtS(cobradoNuevos - gastos)}</strong>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ color: "#38bdf8", fontWeight: 700 }}>✅ Libre total: {(totalCobrado - gastos) >= 0 ? "+" : ""}{fmtS(totalCobrado - gastos)}</div>
+                        <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                          {fmtS(totalCobrado)} − {fmtS(gastos)} = <strong style={{ color: (totalCobrado - gastos) >= 0 ? "#34d399" : "#f87171" }}>{(totalCobrado - gastos) >= 0 ? "+" : ""}{fmtS(totalCobrado - gastos)}</strong>
+                        </div>
+                      </div>
+
+                      {apoyo > 0 && (
+                        <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(63,63,70,0.4)" }}>
+                          <div style={{ color: "#fbbf24", fontWeight: 700 }}>🤝 Apoyo en este período: {fmtS(apoyo)}</div>
+                          <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                            Sin el apoyo, el libre sería: {fmtS(cobradoNuevos)} − ({fmtS(gastosCalc)} + {fmtS(apoyo)}{hormiga > 0 ? ` + ${fmtS(hormiga)}` : ""}) = <strong style={{ color: (cobradoNuevos - gastosCalc - apoyo - hormiga) >= 0 ? "#fbbf24" : "#f87171" }}>{(cobradoNuevos - gastosCalc - apoyo - hormiga) >= 0 ? "+" : ""}{fmtS(cobradoNuevos - gastosCalc - apoyo - hormiga)}</strong>
+                          </div>
+                        </div>
+                      )}
+
+                      {(d.cajaIngresos != null || d.cajaEgresos != null) && (
+                        <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(63,63,70,0.4)" }}>
+                          <div style={{ color: "#cbd5e1", fontWeight: 700 }}>💼 Caja real (lo que efectivamente entró/salió):</div>
+                          <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
+                            Ingresos del negocio: {fmtS(d.cajaIngresos || 0)}<br/>
+                            Egresos del negocio: {fmtS(d.cajaEgresos || 0)}<br/>
+                            Balance real: <strong style={{ color: (d.cajaBalance || 0) >= 0 ? "#34d399" : "#f87171" }}>{fmtS(d.cajaBalance || 0)}</strong>
+                            <br/><span style={{ color: "#52525b", fontSize: 10 }}>Excluye gastoAjeno y movimientos fuera del negocio.</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             )
           })}
