@@ -24,13 +24,14 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
     return arr
   }, [year, month, diasCalendario])
 
-  // Operating-day baseline = calendar days - tienda rest days - holidays/closed
-  // + days an employee covered the shop on a normally-closed day + cobertura extra.
+  // Operating-day baseline = calendar days - tienda rest days - non-op days
+  // (feriado/cerrado/descanso manual del tracker fuera del patrón) + extras.
   const diasOpBase = useMemo(() => {
     const diasDescansoTiendaCount = calendarDays.filter(d => diasDescansoTienda.includes(d.nombre)).length
     const diasFeriadoCerrado = calendarDays.filter(d => {
-      if (tracker[d.dia] !== "Feriado" && tracker[d.dia] !== "Cerrado") return false
-      // No descontar dos veces si ya es descanso de la tienda
+      const t = tracker[d.dia]
+      if (t !== "Feriado" && t !== "Cerrado" && t !== "Descanso") return false
+      // No descontar dos veces si ya es descanso del patrón
       return !diasDescansoTienda.includes(d.nombre)
     }).length
     const diasAbiertosExtra = new Set()
@@ -136,17 +137,21 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
     })
   }, [workers, calendarDays, year, month])
 
-  // Días realmente operativos del mes = patrón − Feriados/Cerrados del tracker.
+  // Días realmente operativos del mes = patrón − días no-operativos del tracker.
+  // No-operativos = Feriado / Cerrado / Descanso manual (que no cae en patrón —
+  // si ya cae en patrón, ya está descontado por countDiasOperativosMes).
   // No suma extras (cobertura, días abiertos extra) porque esos son aperturas
   // por encima de lo normal — el divisor sigue siendo "lo planeado" para
   // que el costo/día sea estable.
   const diasOpReal = useMemo(() => {
     const patron = countDiasOperativosMes(year, month, diasDescansoTienda)
-    const feriadosCerrados = calendarDays.filter(d => {
-      if (tracker[d.dia] !== "Feriado" && tracker[d.dia] !== "Cerrado") return false
+    const noOperativos = calendarDays.filter(d => {
+      const t = tracker[d.dia]
+      if (t !== "Feriado" && t !== "Cerrado" && t !== "Descanso") return false
+      // Si ya cae en descanso del patrón, no doble-descontar
       return !diasDescansoTienda.includes(d.nombre)
     }).length
-    return Math.max(1, patron - feriadosCerrados)
+    return Math.max(1, patron - noOperativos)
   }, [year, month, diasDescansoTienda, calendarDays, tracker])
 
   return {
