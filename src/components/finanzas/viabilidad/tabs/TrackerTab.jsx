@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import Card from "../../ui/Card"
-import { MESES } from "../../../../lib/finanzas/constants"
+import { MESES, DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 
 const STATE_COLORS = {
   "Operó": "bg-emerald-500/20 border-emerald-500/40 text-emerald-300",
@@ -14,8 +14,17 @@ const STATE_COLORS = {
 export default function TrackerTab({
   year, setYear, month, setMonth,
   diasCalendario, diasOpBase, calendarDays,
-  tracker, effectiveTracker, trackerData, setTrackerData,
+  tracker, effectiveTracker, setTrackerData,
+  tiendaConfig, setTiendaConfig,
 }) {
+  const diasDescansoTienda = tiendaConfig?.diasDescansoSemanal || []
+  const toggleDiaDescanso = (dia) => {
+    const set = new Set(diasDescansoTienda)
+    if (set.has(dia)) set.delete(dia)
+    else set.add(dia)
+    setTiendaConfig({ ...(tiendaConfig || {}), diasDescansoSemanal: [...set] })
+  }
+  const ORDEN_SEMANAL = [...DIAS_SEMANA.slice(1), DIAS_SEMANA[0]]
   const updateTracker = useCallback((dia, val) => {
     setTrackerData(prev => {
       const key = `${year}-${month}`
@@ -29,6 +38,38 @@ export default function TrackerTab({
 
   return (
     <Card title="Tracker del mes" icon="📅" accent="sky">
+      {/* Patrón semanal de la tienda — vive acá para que esté junto al
+          calendario que afecta. Cambiar un día acá modifica el auto-llenado
+          de los días futuros (los pasados ya están congelados). */}
+      <div className="mb-5 bg-zinc-800/40 rounded-xl p-4 border border-zinc-700/40">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+            🏪 Patrón semanal de la tienda
+          </h3>
+          <span className="text-[10px] text-zinc-500">
+            Días que la tienda no opera por default
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {ORDEN_SEMANAL.map(dia => {
+            const active = diasDescansoTienda.includes(dia)
+            return (
+              <button key={dia} onClick={() => toggleDiaDescanso(dia)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  active
+                    ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                    : "bg-zinc-800/60 text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-600"
+                }`}>
+                {active ? "✓" : ""} {dia}
+              </button>
+            )
+          })}
+        </div>
+        {diasDescansoTienda.length === 0 && (
+          <p className="mt-2 text-[11px] text-zinc-500 italic">Sin descansos — la tienda opera los 7 días.</p>
+        )}
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => { if (month === 1) { setMonth(12); setYear(year - 1) } else setMonth(month - 1) }}
           className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-all text-lg">‹</button>
@@ -85,6 +126,25 @@ export default function TrackerTab({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 bg-zinc-800/40 rounded-xl p-4 border border-zinc-700/50">
+        <h3 className="text-sm font-semibold text-zinc-300 mb-2">📖 Reglas del tracker</h3>
+        <div className="text-xs text-zinc-500 space-y-1.5 leading-relaxed">
+          <p><strong className="text-zinc-400">Patrón semanal</strong> = qué hace la tienda <em>normalmente</em>. Aplica a días futuros y a pasados que aún no se editaron.</p>
+          <p><strong className="text-zinc-400">Calendario</strong> = qué pasó/pasa cada día específico. Override puntual.</p>
+          <p>—</p>
+          <p>📌 <strong className="text-zinc-400">Día pasado:</strong> queda <strong>congelado</strong> con lo que mostraba — cambiar el patrón después <strong>NO lo reescribe</strong>.</p>
+          <p>📌 <strong className="text-zinc-400">Día futuro:</strong> usa el patrón actual; si lo editás, queda fijo desde ese momento.</p>
+          <p>📌 <strong className="text-zinc-400">Override (puntito 🔵):</strong> click en cualquier botón → ese día queda <em>fijado</em> a esa elección, ignora el patrón.</p>
+          <p>📌 <strong className="text-zinc-400">Cambiar el patrón</strong> (arriba): solo afecta días que <strong>aún no pasaron</strong>. El historial nunca se modifica.</p>
+          <p>—</p>
+          <p>💡 <strong className="text-zinc-400">Casos típicos:</strong></p>
+          <p>· "Este domingo abrí extra" → click en ese día → "Operó"</p>
+          <p>· "Cerré el martes 28 por inventario" → click → "Cerrado"</p>
+          <p>· "Cambié de día de descanso permanente" → editá el patrón arriba</p>
+          <p>· "Es 1 de mayo, feriado" → click en el día 1 → "Feriado"</p>
+        </div>
       </div>
     </Card>
   )

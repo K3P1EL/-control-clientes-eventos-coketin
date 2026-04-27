@@ -1,28 +1,18 @@
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
-import { MESES, DIAS_SEMANA } from "../../../../lib/finanzas/constants"
+import { MESES } from "../../../../lib/finanzas/constants"
 import { peruNow } from "../../../../lib/finanzas/helpers"
 import CoberturaExtra from "../components/CoberturaExtra"
 
-// Year/month picker + tienda config + cobertura extra + how-to-use guide.
-// All numeric inputs are pure controlled fields — state lives in
-// useViabilidadState in the parent.
+// Year/month picker + cobertura extra + how-to-use guide.
+// El patrón semanal de la tienda ahora vive en el Tracker tab para tener
+// todo lo de la tienda en un solo lugar.
 export default function ConfigTab({
   year, setYear, month, setMonth,
   diasCalendario, diasOpBase,
   workers, workersCalc, calendarDays, effectiveTracker,
   cobExtra, setCobExtra,
-  tiendaConfig, setTiendaConfig,
 }) {
-  const diasDescansoTienda = tiendaConfig?.diasDescansoSemanal || []
-  const toggleDiaDescanso = (dia) => {
-    const set = new Set(diasDescansoTienda)
-    if (set.has(dia)) set.delete(dia)
-    else set.add(dia)
-    setTiendaConfig({ ...(tiendaConfig || {}), diasDescansoSemanal: [...set] })
-  }
-  // Lunes primero, Domingo al final (DIAS_SEMANA arranca con Domingo)
-  const ORDEN_SEMANAL = [...DIAS_SEMANA.slice(1), DIAS_SEMANA[0]]
   return (
     <Card title="Configuración del mes" icon="⚙️" accent="sky">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
@@ -44,7 +34,7 @@ export default function ConfigTab({
             {diasOpBase}
             <span className="text-[10px] text-zinc-500 font-normal ml-2">({diasCalendario} - {diasCalendario - diasOpBase} cerrados)</span>
           </div>
-          <div className="text-[10px] text-zinc-600 mt-1">Auto: según 🏪 en Personal</div>
+          <div className="text-[10px] text-zinc-600 mt-1">Auto: 30 − descansos − cerrados</div>
         </div>
       </div>
 
@@ -62,47 +52,17 @@ export default function ConfigTab({
         )
       })()}
 
-      <div className="mt-6 bg-zinc-800/40 rounded-xl p-4 border border-zinc-700/50">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
-            🏪 Días de descanso de la tienda
-          </h3>
-          <span className="text-[10px] text-zinc-500">
-            Independiente del personal — define cuándo la tienda no opera por default
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {ORDEN_SEMANAL.map(dia => {
-            const active = diasDescansoTienda.includes(dia)
-            return (
-              <button key={dia} onClick={() => toggleDiaDescanso(dia)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                  active
-                    ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
-                    : "bg-zinc-800/60 text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-600"
-                }`}>
-                {active ? "✓" : ""} {dia}
-              </button>
-            )
-          })}
-        </div>
-        {diasDescansoTienda.length === 0 && (
-          <p className="mt-2 text-[11px] text-zinc-500 italic">Sin descansos — la tienda opera los 7 días.</p>
-        )}
-      </div>
-
       <CoberturaExtra workers={workers} workersCalc={workersCalc} calendarDays={calendarDays} effectiveTracker={effectiveTracker} diasOpBase={diasOpBase} cobExtra={cobExtra} setCobExtra={setCobExtra} year={year} month={month} />
 
       <div className="mt-6 bg-zinc-800/40 rounded-xl p-4 border border-zinc-700/50">
         <h3 className="text-sm font-semibold text-zinc-300 mb-2">📖 Cómo usar</h3>
         <div className="text-xs text-zinc-500 space-y-1.5 leading-relaxed">
           <p><strong className="text-zinc-400">1)</strong> Cambia Año y Mes.</p>
-          <p><strong className="text-zinc-400">2)</strong> En PERSONAL, marca con 🏪 al encargado de la tienda.</p>
-          <p><strong className="text-zinc-400">3)</strong> Cada trabajador tiene su propio día fijo de descanso.</p>
-          <p><strong className="text-zinc-400">4)</strong> En SERVICIOS, agrega más gastos mensuales.</p>
-          <p><strong className="text-zinc-400">5)</strong> En APOYOS, pon ingresos externos como alquiler.</p>
-          <p><strong className="text-zinc-400">6)</strong> En el TRACKER marca cada fecha.</p>
-          <p><strong className="text-zinc-400">7)</strong> Revisá la Meta diaria real.</p>
+          <p><strong className="text-zinc-400">2)</strong> En el <strong>TRACKER</strong> definí qué días de la semana descansa la tienda y editá días puntuales (feriados, cerrados, aperturas extras).</p>
+          <p><strong className="text-zinc-400">3)</strong> En <strong>PERSONAL</strong>, marca con 🏪 al encargado (para detectar coberturas) y configurá el descanso personal de cada trabajador.</p>
+          <p><strong className="text-zinc-400">4)</strong> En <strong>SERVICIOS</strong>, agrega gastos mensuales (luz, agua, internet, etc.).</p>
+          <p><strong className="text-zinc-400">5)</strong> En <strong>APOYOS</strong>, pon ingresos externos como alquiler.</p>
+          <p><strong className="text-zinc-400">6)</strong> Revisá <strong>ANÁLISIS</strong> y <strong>CAJA</strong> para ver la meta diaria y si la semana alcanza.</p>
         </div>
       </div>
     </Card>

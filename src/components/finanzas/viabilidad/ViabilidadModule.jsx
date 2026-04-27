@@ -110,7 +110,6 @@ export default function ViabilidadModule() {
           workers={state.workers} workersCalc={calc.workersCalc}
           calendarDays={calc.calendarDays} effectiveTracker={calc.effectiveTracker}
           cobExtra={cobExtra} setCobExtra={setCobExtra}
-          tiendaConfig={state.tiendaConfig} setTiendaConfig={state.setTiendaConfig}
         />
       )}
 
@@ -148,6 +147,7 @@ export default function ViabilidadModule() {
           calendarDays={calc.calendarDays}
           tracker={tracker} effectiveTracker={calc.effectiveTracker}
           trackerData={state.trackerData} setTrackerData={state.setTrackerData}
+          tiendaConfig={state.tiendaConfig} setTiendaConfig={state.setTiendaConfig}
         />
       )}
 
