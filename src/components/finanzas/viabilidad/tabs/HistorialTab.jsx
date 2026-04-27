@@ -122,7 +122,9 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
 
                 {/* 3 perspectivas: cobrado de nuevos / de anteriores / total */}
                 {(() => {
-                  const gastos = d.gastoSemanal || d.gastoMes || 0
+                  const gastosCalc = d.gastoSemanal || d.gastoMes || 0
+                  const hormiga = (c.tipo === "semana" ? d.hormigaSemana : d.hormigaMes) || 0
+                  const gastos = gastosCalc + hormiga
                   const cobradoNuevos = d.enCaja || 0 // enCaja de contratos de esta semana
                   const deAnteriores = d.deAnteriores || 0
                   const totalCobrado = cobradoNuevos + deAnteriores
@@ -145,7 +147,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                         {box("Cobrado de nuevos", cobradoNuevos, "contratos de esta semana", "#34d399", false, false)}
                         {box("De anteriores", deAnteriores, "cobros de semanas pasadas", "#a78bfa", false, deAnteriores === 0)}
                         {box("Total cobrado", totalCobrado, "nuevos + anteriores", "#38bdf8", false, false)}
-                        {box("Gastos", gastos, "lo que costó operar", "#f87171", false, false)}
+                        {box("Gastos", gastos, hormiga > 0 ? `calc + 🐜 ${fmtS(hormiga)}` : "lo que costó operar", "#f87171", false, false)}
                       </div>
                       {/* Libres — ¿alcanza? */}
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
@@ -158,7 +160,8 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
 
                 {/* Apoyo line — shows subsidy impact */}
                 {(d.apoyo || 0) > 0 && (() => {
-                  const gastoSinApoyo = (d.gastoSemanal || d.gastoMes || 0) + d.apoyo
+                  const hormigaP = (c.tipo === "semana" ? d.hormigaSemana : d.hormigaMes) || 0
+                  const gastoSinApoyo = (d.gastoSemanal || d.gastoMes || 0) + d.apoyo + hormigaP
                   const libreSinApoyo = (d.enCaja || 0) - gastoSinApoyo
                   return (
                     <div style={{ fontSize: 11, color: "#a1a1aa", marginBottom: 6 }}>
