@@ -13,6 +13,7 @@ export function useViabilidadCalc(inputs) {
   const {
     year, month, workers, services, apoyos, tracker, cobExtra,
     diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana,
+    tiendaConfig, setTrackerData,
   } = inputs
 
   const cobExtraPagadoAparte = cobExtra?.pagadoAparte || false
@@ -21,7 +22,7 @@ export function useViabilidadCalc(inputs) {
   const {
     diasCalendario, calendarDays, diasOpBase, effectiveTracker,
     diasOperados, diasDescansosCerrados, descansosProyectados, resumenDescansos,
-  } = useCalendarioOp({ year, month, workers, tracker, cobExtra })
+  } = useCalendarioOp({ year, month, workers, tracker, cobExtra, tiendaConfig, setTrackerData })
 
   // "Fecha de referencia" para los KPIs diarios: hoy si estamos en el mes
   // actual, último día del mes si mirás un mes pasado o futuro. Así el KPI

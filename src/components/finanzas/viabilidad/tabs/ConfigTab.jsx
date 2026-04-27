@@ -1,10 +1,10 @@
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
-import { MESES } from "../../../../lib/finanzas/constants"
+import { MESES, DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { peruNow } from "../../../../lib/finanzas/helpers"
 import CoberturaExtra from "../components/CoberturaExtra"
 
-// Year/month picker + cobertura extra + how-to-use guide.
+// Year/month picker + tienda config + cobertura extra + how-to-use guide.
 // All numeric inputs are pure controlled fields — state lives in
 // useViabilidadState in the parent.
 export default function ConfigTab({
@@ -12,7 +12,17 @@ export default function ConfigTab({
   diasCalendario, diasOpBase,
   workers, workersCalc, calendarDays, effectiveTracker,
   cobExtra, setCobExtra,
+  tiendaConfig, setTiendaConfig,
 }) {
+  const diasDescansoTienda = tiendaConfig?.diasDescansoSemanal || []
+  const toggleDiaDescanso = (dia) => {
+    const set = new Set(diasDescansoTienda)
+    if (set.has(dia)) set.delete(dia)
+    else set.add(dia)
+    setTiendaConfig({ ...(tiendaConfig || {}), diasDescansoSemanal: [...set] })
+  }
+  // Lunes primero, Domingo al final (DIAS_SEMANA arranca con Domingo)
+  const ORDEN_SEMANAL = [...DIAS_SEMANA.slice(1), DIAS_SEMANA[0]]
   return (
     <Card title="Configuración del mes" icon="⚙️" accent="sky">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
@@ -51,6 +61,35 @@ export default function ConfigTab({
           <div className="mt-3 text-xs text-emerald-400/70 flex items-center gap-1.5">✅ Estás en el mes actual</div>
         )
       })()}
+
+      <div className="mt-6 bg-zinc-800/40 rounded-xl p-4 border border-zinc-700/50">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+            🏪 Días de descanso de la tienda
+          </h3>
+          <span className="text-[10px] text-zinc-500">
+            Independiente del personal — define cuándo la tienda no opera por default
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {ORDEN_SEMANAL.map(dia => {
+            const active = diasDescansoTienda.includes(dia)
+            return (
+              <button key={dia} onClick={() => toggleDiaDescanso(dia)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  active
+                    ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                    : "bg-zinc-800/60 text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-600"
+                }`}>
+                {active ? "✓" : ""} {dia}
+              </button>
+            )
+          })}
+        </div>
+        {diasDescansoTienda.length === 0 && (
+          <p className="mt-2 text-[11px] text-zinc-500 italic">Sin descansos — la tienda opera los 7 días.</p>
+        )}
+      </div>
 
       <CoberturaExtra workers={workers} workersCalc={workersCalc} calendarDays={calendarDays} effectiveTracker={effectiveTracker} diasOpBase={diasOpBase} cobExtra={cobExtra} setCobExtra={setCobExtra} year={year} month={month} />
 

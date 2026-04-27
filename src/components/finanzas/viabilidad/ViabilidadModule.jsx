@@ -53,6 +53,7 @@ export default function ViabilidadModule() {
     tracker, cobExtra,
     diaAnalisis: state.diaAnalisis, cajaSemanaSol: state.cajaSemanaSol, cajaAcumMes: state.cajaAcumMes,
     contarApoyo: state.contarApoyo, diasOpSemana: state.diasOpSemana,
+    tiendaConfig: state.tiendaConfig, setTrackerData: state.setTrackerData,
   })
 
   const { cierres, currentWeek, currentMonth: cierreMonth, currentYear: cierreYear } = useCierres(calc, state)
@@ -109,6 +110,7 @@ export default function ViabilidadModule() {
           workers={state.workers} workersCalc={calc.workersCalc}
           calendarDays={calc.calendarDays} effectiveTracker={calc.effectiveTracker}
           cobExtra={cobExtra} setCobExtra={setCobExtra}
+          tiendaConfig={state.tiendaConfig} setTiendaConfig={state.setTiendaConfig}
         />
       )}
 

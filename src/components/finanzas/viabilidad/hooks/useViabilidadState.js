@@ -26,6 +26,11 @@ const INIT_SERVICES = [
 const INIT_APOYOS = [
   { concepto: "alquiler", montoMensual: 1000, divisor: 30, nota: "" },
 ]
+// Default config de la TIENDA — días de la semana en que NO opera por
+// defecto. Independiente de los workers (cualquier cambio de personal
+// no afecta este flag). Se sobreescribe por overrides manuales en el
+// tracker (tracker[d.dia] = "Cerrado", "Feriado", etc.).
+const INIT_TIENDA_CONFIG = { diasDescansoSemanal: ["Domingo"] }
 
 // Owns the entire persisted state of the Viabilidad module. Persistence
 // is two-tier (Supabase + localStorage fallback) handled by useSupabaseSync.
@@ -42,6 +47,7 @@ export function useViabilidadState() {
   const [contarApoyo, setContarApoyo] = useState("SI")
   const [diasOpSemana, setDiasOpSemana] = useState(6)
   const [cobExtraAll, setCobExtraAll] = useState({})
+  const [tiendaConfig, setTiendaConfig] = useState(INIT_TIENDA_CONFIG)
   const [loaded, setLoaded] = useState(false)
 
   // Apply a saved blob (from cloud OR localStorage migration). Validates
@@ -67,6 +73,15 @@ export function useViabilidadState() {
       if (saved.contarApoyo === "SI" || saved.contarApoyo === "NO") setContarApoyo(saved.contarApoyo)
       if (typeof saved.diasOpSemana === "number") setDiasOpSemana(saved.diasOpSemana)
       if (saved.cobExtraAll && typeof saved.cobExtraAll === "object") setCobExtraAll(saved.cobExtraAll)
+      // tiendaConfig: si está guardado, usarlo. Si no, derivarlo del worker
+      // marcado como `negocioDepende` (compat con data anterior al refactor)
+      // — su día de descanso se vuelve el descanso default de la tienda.
+      if (saved.tiendaConfig && typeof saved.tiendaConfig === "object" && Array.isArray(saved.tiendaConfig.diasDescansoSemanal)) {
+        setTiendaConfig(saved.tiendaConfig)
+      } else if (Array.isArray(saved.workers)) {
+        const enc = saved.workers.find(w => w && w.negocioDepende && w.diaDescanso)
+        if (enc) setTiendaConfig({ diasDescansoSemanal: [enc.diaDescanso] })
+      }
     }
     setLoaded(true)
   }, [])
@@ -80,7 +95,8 @@ export function useViabilidadState() {
     data: useMemo(() => ({
       year, month, workers, services, apoyos, trackerData,
       diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll,
-    }), [year, month, workers, services, apoyos, trackerData, diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll]),
+      tiendaConfig,
+    }), [year, month, workers, services, apoyos, trackerData, diaAnalisis, cajaSemanaSol, cajaAcumMes, contarApoyo, diasOpSemana, cobExtraAll, tiendaConfig]),
     loaded,
   })
 
@@ -97,5 +113,6 @@ export function useViabilidadState() {
     contarApoyo, setContarApoyo,
     diasOpSemana, setDiasOpSemana,
     cobExtraAll, setCobExtraAll,
+    tiendaConfig, setTiendaConfig,
   }
 }
