@@ -40,15 +40,21 @@ export function useCajaCalc({
 
     // Personal: real cost from attendance (only days in this month have marks)
     // Solo cuentan los días en que el trabajador estaba en un período activo.
+    // personalCost = real (con marcas), personalBudget = esperado (sin marcas
+    // pero respetando historial y descansos fijos). El presupuesto se usa
+    // arriba para mostrar "Presupuesto: …" — antes usaba totalPersonal.pagoSemanal
+    // que incluía trabajadores dados de baja a mitad de mes.
     let personalCost = 0
+    let personalBudget = 0
     workersCalc.forEach(w => {
       if (!w.name) return
       const marcas = w.diasMarcados || {}
       weekDaysThisMonth.forEach(d => {
         const fecha = new Date(year, month - 1, d.dia)
         if (!isActiveOnDate(w, fecha)) return
-        const marca = marcas[d.dia] || ""
         const isRest = w.diaDescanso && d.nombre === w.diaDescanso
+        if (!isRest) personalBudget += w.costoDiario
+        const marca = marcas[d.dia] || ""
         if (marca === "noVino") return
         if (isRest && !marca) return
         personalCost += w.costoDiario
@@ -74,10 +80,12 @@ export function useCajaCalc({
       })
     }
 
-    return { personalCost, servCost, apoyoCost, realDays: fullWeekDays }
+    return { personalCost, personalBudget, servCost, apoyoCost, realDays: fullWeekDays }
   }, [isCurrentMonth, currentWeekISO, calendarDays, workersCalc, servicesCalc, apoyosCalc, contarApoyo, year, month])
 
-  const trabajadoresSemana = totalPersonal.pagoSemanal // presupuestado (flat)
+  // Presupuestado: respeta historial (baja/reingreso) y descansos fijos.
+  // Si no estamos en el mes actual cae al pagoSemanal flat para meses pasados.
+  const trabajadoresSemana = weekCalc ? weekCalc.personalBudget : totalPersonal.pagoSemanal
   const trabajadoresSemanaReal = weekCalc ? weekCalc.personalCost : trabajadoresSemana
   const proporcionServSemana = weekCalc ? weekCalc.servCost : costoDiarioServicios * diasOpSemana
   const apoyoSemanal = weekCalc ? weekCalc.apoyoCost : (contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario * diasOpSemana) : 0)
