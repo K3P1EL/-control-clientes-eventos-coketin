@@ -20,7 +20,7 @@ export function useViabilidadCalc(inputs) {
   const cobExtraMonto = cobExtra?.monto || 0
 
   const {
-    diasCalendario, calendarDays, diasOpBase, effectiveTracker, diasOpMesPatron,
+    diasCalendario, calendarDays, diasOpBase, effectiveTracker, diasOpReal,
     diasOperados, diasDescansosCerrados, descansosProyectados, resumenDescansos,
   } = useCalendarioOp({ year, month, workers, tracker, cobExtra, tiendaConfig, setTrackerData })
 
@@ -45,6 +45,7 @@ export function useViabilidadCalc(inputs) {
   } = useServiciosCalc({
     services, diasOpBase, calendarDays, year, month, diasCalendario, refDate, diaAnalisis, diasOperados,
     diasDescansoTienda: tiendaConfig?.diasDescansoSemanal || [],
+    diasOpReal,
   })
 
   const { apoyosCalc, totalApoyos, apoyoDiarioExt } = useApoyosCalc({
@@ -79,7 +80,7 @@ export function useViabilidadCalc(inputs) {
   })
 
   return {
-    diasCalendario, calendarDays, diasOpBase, effectiveTracker, diasOpMesPatron,
+    diasCalendario, calendarDays, diasOpBase, effectiveTracker, diasOpReal,
     diasOperados, diasDescansosCerrados, descansosProyectados, resumenDescansos,
     workersCalc, totalPersonal,
     servicesCalc, totalServicios,

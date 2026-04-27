@@ -12,7 +12,7 @@ const TONE_BADGE = {
   zinc: "bg-zinc-700/30 text-zinc-400 border-zinc-600/40",
 }
 
-export default function ServiciosTab({ services, setServices, servicesCalc, totalServicios, diasOpBase, diasOpMesPatron, diasCalendario }) {
+export default function ServiciosTab({ services, setServices, servicesCalc, totalServicios, diasOpBase, diasOpReal, diasCalendario }) {
   const [expanded, setExpanded] = useState(null)
 
   const updateService = useCallback((idx, field, val) => {
@@ -94,13 +94,13 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
                       <NumInput value={services[i].divisor} onChange={v => updateService(i, "divisor", v)} min={1} />
                       {(() => {
                         const modo = services[i].modo || "operativo"
-                        const auto = modo === "calendario" ? diasCalendario : diasOpMesPatron
+                        const auto = modo === "calendario" ? diasCalendario : diasOpReal
                         const usaAuto = !services[i].divisor
                         return (
                           <span
                             title={usaAuto
-                              ? `Vacío = se usa el cálculo automático (${auto} días este mes). Cambia mes a mes.`
-                              : `Manual: ${services[i].divisor}. Auto sería: ${auto}. Borra el campo para usar el auto.`}
+                              ? `Auto: ${auto} días este mes (patrón semanal − feriados/cerrados del tracker). Se ajusta solo.`
+                              : `Manual: ${services[i].divisor}. Auto ahora sería: ${auto}. Borrá el campo para usar el auto.`}
                             className={`text-[10px] font-mono whitespace-nowrap ${usaAuto ? "text-emerald-400/80" : "text-amber-400/70"}`}
                           >
                             {usaAuto ? `auto: ${auto}` : `≠ ${auto}`}

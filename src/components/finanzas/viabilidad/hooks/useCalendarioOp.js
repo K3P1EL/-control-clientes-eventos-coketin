@@ -136,13 +136,21 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
     })
   }, [workers, calendarDays, year, month])
 
-  // Días operativos del mes según el patrón semanal de la tienda — no
-  // depende del tracker. Sirve como divisor "auto" de los servicios modo
-  // operativo cuando el usuario no quiere fijar uno manual.
-  const diasOpMesPatron = useMemo(() => countDiasOperativosMes(year, month, diasDescansoTienda), [year, month, diasDescansoTienda])
+  // Días realmente operativos del mes = patrón − Feriados/Cerrados del tracker.
+  // No suma extras (cobertura, días abiertos extra) porque esos son aperturas
+  // por encima de lo normal — el divisor sigue siendo "lo planeado" para
+  // que el costo/día sea estable.
+  const diasOpReal = useMemo(() => {
+    const patron = countDiasOperativosMes(year, month, diasDescansoTienda)
+    const feriadosCerrados = calendarDays.filter(d => {
+      if (tracker[d.dia] !== "Feriado" && tracker[d.dia] !== "Cerrado") return false
+      return !diasDescansoTienda.includes(d.nombre)
+    }).length
+    return Math.max(1, patron - feriadosCerrados)
+  }, [year, month, diasDescansoTienda, calendarDays, tracker])
 
   return {
-    diasCalendario, calendarDays, diasOpBase, effectiveTracker, diasOpMesPatron,
+    diasCalendario, calendarDays, diasOpBase, effectiveTracker, diasOpReal,
     diasOperados, diasDescansosCerrados, descansosProyectados, resumenDescansos,
   }
 }
