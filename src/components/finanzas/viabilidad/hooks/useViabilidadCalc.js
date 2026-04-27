@@ -45,7 +45,7 @@ export function useViabilidadCalc(inputs) {
   } = useServiciosCalc({
     services, diasOpBase, calendarDays, year, month, diasCalendario, refDate, diaAnalisis, diasOperados,
     diasDescansoTienda: tiendaConfig?.diasDescansoSemanal || [],
-    diasOpReal,
+    diasOpReal, tracker,
   })
 
   const { apoyosCalc, totalApoyos, apoyoDiarioExt } = useApoyosCalc({
