@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef } from "react"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { getDaysInMonth, getDayName, getWeekNumberCal, peruNow, isActiveOnDate, getMarcasMes } from "../../../../lib/finanzas/helpers"
+import { getDaysInMonth, getDayName, getWeekNumberCal, peruNow, isActiveOnDate, getMarcasMes, countDiasOperativosMes } from "../../../../lib/finanzas/helpers"
 
 // Calendario + tracker efectivo + resúmenes de descanso.
 // No depende de workersCalc/servicesCalc/apoyosCalc — es el primer eslabón.
@@ -136,8 +136,13 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
     })
   }, [workers, calendarDays, year, month])
 
+  // Días operativos del mes según el patrón semanal de la tienda — no
+  // depende del tracker. Sirve como divisor "auto" de los servicios modo
+  // operativo cuando el usuario no quiere fijar uno manual.
+  const diasOpMesPatron = useMemo(() => countDiasOperativosMes(year, month, diasDescansoTienda), [year, month, diasDescansoTienda])
+
   return {
-    diasCalendario, calendarDays, diasOpBase, effectiveTracker,
+    diasCalendario, calendarDays, diasOpBase, effectiveTracker, diasOpMesPatron,
     diasOperados, diasDescansosCerrados, descansosProyectados, resumenDescansos,
   }
 }

@@ -128,6 +128,8 @@ export default function ViabilidadModule() {
           services={state.services} setServices={state.setServices}
           servicesCalc={calc.servicesCalc} totalServicios={calc.totalServicios}
           diasOpBase={calc.diasOpBase}
+          diasOpMesPatron={calc.diasOpMesPatron}
+          diasCalendario={calc.diasCalendario}
         />
       )}
 

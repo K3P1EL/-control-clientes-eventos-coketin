@@ -12,7 +12,7 @@ const TONE_BADGE = {
   zinc: "bg-zinc-700/30 text-zinc-400 border-zinc-600/40",
 }
 
-export default function ServiciosTab({ services, setServices, servicesCalc, totalServicios, diasOpBase }) {
+export default function ServiciosTab({ services, setServices, servicesCalc, totalServicios, diasOpBase, diasOpMesPatron, diasCalendario }) {
   const [expanded, setExpanded] = useState(null)
 
   const updateService = useCallback((idx, field, val) => {
@@ -89,7 +89,26 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
                       <option value="calendario">🗓️ Cal</option>
                     </select>
                   </td>
-                  <td className="px-2"><NumInput value={services[i].divisor} onChange={v => updateService(i, "divisor", v)} min={1} /></td>
+                  <td className="px-2">
+                    <div className="flex items-center gap-1.5">
+                      <NumInput value={services[i].divisor} onChange={v => updateService(i, "divisor", v)} min={1} />
+                      {(() => {
+                        const modo = services[i].modo || "operativo"
+                        const auto = modo === "calendario" ? diasCalendario : diasOpMesPatron
+                        const usaAuto = !services[i].divisor
+                        return (
+                          <span
+                            title={usaAuto
+                              ? `Vacío = se usa el cálculo automático (${auto} días este mes). Cambia mes a mes.`
+                              : `Manual: ${services[i].divisor}. Auto sería: ${auto}. Borra el campo para usar el auto.`}
+                            className={`text-[10px] font-mono whitespace-nowrap ${usaAuto ? "text-emerald-400/80" : "text-amber-400/70"}`}
+                          >
+                            {usaAuto ? `auto: ${auto}` : `≠ ${auto}`}
+                          </span>
+                        )
+                      })()}
+                    </div>
+                  </td>
                   <td className="px-2 text-right text-sky-400 font-mono">{fmt(s.costoDiario)}</td>
                   <td className="px-2 text-right text-zinc-200 font-mono font-semibold">{fmt(s.costoMesReal)}</td>
                   <td className="px-2"><TextInput value={services[i].nota} onChange={v => updateService(i, "nota", v)} placeholder="Nota" /></td>
