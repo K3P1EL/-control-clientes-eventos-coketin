@@ -3,7 +3,7 @@ import Card from "../../ui/Card"
 import { MESES_CORTO } from "../../../../lib/finanzas/constants"
 import { fmtS } from "../../../../lib/finanzas/helpers"
 
-export default function HistorialTab({ cierres, currentWeek, currentMonth, currentYear, calc }) {
+export default function HistorialTab({ cierres, currentWeek, currentMonth, currentYear, calc, recalcularCierre }) {
   const [filterTipo, setFilterTipo] = useState("semana")
   const [viewYear, setViewYear] = useState(currentYear)
 
@@ -117,7 +117,16 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                       {isViable ? "✅ Viable" : "❌ No viable"}
                     </span>
                   </div>
-                  <span style={{ fontSize: 10, color: "#52525b" }}>{c.anio}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {recalcularCierre && c.id && (
+                      <button onClick={() => { if (confirm("Recalcular este cierre con la configuración actual? Los datos congelados se actualizarán.")) recalcularCierre(c.id) }}
+                        style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(139,92,246,0.4)", background: "rgba(139,92,246,0.1)", color: "#a78bfa", cursor: "pointer", fontSize: 10, fontWeight: 700 }}
+                        title="Borra el cierre y lo regenera con la config actual">
+                        🔄 Recalcular
+                      </button>
+                    )}
+                    <span style={{ fontSize: 10, color: "#52525b" }}>{c.anio}</span>
+                  </div>
                 </div>
 
                 {/* 3 perspectivas: cobrado de nuevos / de anteriores / total */}

@@ -337,5 +337,23 @@ export function useCierres(calc, state) {
     catch (e) { logError("cierres.delete", e); alert("Error eliminando cierre") }
   }, [])
 
-  return { cierres, loaded, saveCierre, removeCierre, currentWeek, currentMonth, currentYear }
+  // Borra solo el cierre del Supabase para que la próxima auto-close lo
+  // regenere con la config y data actuales. Útil si la sem/mes quedó
+  // congelada con un gastoSemanal/gastoMes mal calculado por cambios de
+  // config (baja de personal, día de descanso, etc.). Los datos vivos
+  // (cobrado, caja real, hormigas) ya se recalculan solos al abrir.
+  const recalcularCierre = useCallback(async (id) => {
+    try {
+      await deleteCierre(id)
+      setCierres(prev => prev.filter(c => c.id !== id))
+      // El useEffect de auto-close lo va a recrear porque la lista de
+      // cierres cambió. Pero necesitamos forzar el efecto: setLoaded(false)
+      // dispararía recargar — más simple: recargar la lista de cierres
+      // para que el efecto vea que falta el cierre y lo regenere.
+      const fresh = await loadCierres()
+      setCierres(fresh || [])
+    } catch (e) { logError("cierres.recalc", e); alert("Error recalculando cierre") }
+  }, [])
+
+  return { cierres, loaded, saveCierre, removeCierre, recalcularCierre, currentWeek, currentMonth, currentYear }
 }

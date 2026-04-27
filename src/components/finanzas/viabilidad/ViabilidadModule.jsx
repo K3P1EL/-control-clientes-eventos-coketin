@@ -56,7 +56,7 @@ export default function ViabilidadModule() {
     tiendaConfig: state.tiendaConfig, setTrackerData: state.setTrackerData,
   })
 
-  const { cierres, currentWeek, currentMonth: cierreMonth, currentYear: cierreYear } = useCierres(calc, state)
+  const { cierres, currentWeek, currentMonth: cierreMonth, currentYear: cierreYear, recalcularCierre } = useCierres(calc, state)
 
   if (!state.loaded) {
     return (
@@ -191,6 +191,7 @@ export default function ViabilidadModule() {
           currentMonth={cierreMonth}
           currentYear={cierreYear}
           calc={calc}
+          recalcularCierre={recalcularCierre}
         />
       )}
     </div>
