@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { loadCierres, upsertCierre, deleteCierre } from "../../../../services/finanzas"
-import { peruNow, getWeekNumberISO, getISOYear, getDaysInMonth, parseLocalDate, calcContract, isActiveOnDate, getDiaMarca, isDayOperativo, countDiasOperativosMes } from "../../../../lib/finanzas/helpers"
+import { peruNow, getWeekNumberISO, getISOYear, getDaysInMonth, parseLocalDate, calcContract, isActiveOnDate, getDiaMarca, isDayOperativoReal, countDiasOperativosMesReal } from "../../../../lib/finanzas/helpers"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import { logError } from "../../../../lib/logger"
 import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
@@ -35,7 +35,10 @@ function getEntryDate(e) {
 // `wYear` y caminamos Mon–Sun. Para servicios/apoyos prorrateados por mes,
 // cada día usa el divisor de SU propio mes (no un mes único compartido),
 // así una semana que cruza fin/inicio de mes se prorratea correcto.
-function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targetWeek, diasOpBase, diasDescansoTienda = []) {
+function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targetWeek, diasOpBase, diasDescansoTienda = [], trackerData = {}) {
+  // Helper para obtener el tracker del mes específico (los cierres semanales
+  // pueden cruzar dos meses, cada día consulta su mes correspondiente).
+  const getMonthTracker = (y, m) => trackerData[`${y}-${m}`] || {}
   // Lunes de la semana ISO 1 de wYear: el lunes en/antes del 4-ene.
   const jan4 = new Date(wYear, 0, 4)
   const jan4Dow = (jan4.getDay() + 6) % 7  // Mon=0..Sun=6
@@ -62,7 +65,8 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targ
     })
   })
 
-  // Servicios: respetan modo (operativo / calendario).
+  // Servicios: respetan modo (operativo / calendario) Y el tracker mensual
+  // (Feriado/Cerrado/Descanso manuales en su mes correspondiente).
   let servProportion = 0
   services.forEach(s => {
     if (!s.nombre) return
@@ -70,9 +74,10 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targ
     weekDays.forEach(({ dia, month: dm, year: dy }) => {
       const date = new Date(dy, dm - 1, dia)
       if (!isActiveOnDate(s, date)) return
+      const monthTracker = getMonthTracker(dy, dm)
       if (modo === "operativo") {
-        if (!isDayOperativo(date, diasDescansoTienda)) return
-        const div = s.divisor || countDiasOperativosMes(dy, dm, diasDescansoTienda) || diasOpBase || 1
+        if (!isDayOperativoReal(date, diasDescansoTienda, monthTracker)) return
+        const div = s.divisor || countDiasOperativosMesReal(dy, dm, diasDescansoTienda, monthTracker) || diasOpBase || 1
         servProportion += (s.pagoMensual || 0) / div
       } else {
         const dim = getDaysInMonth(dy, dm)
@@ -236,7 +241,7 @@ export function useCierres(calc, state) {
           gastoSemanal = existing.data.gastoSemanal
           apoyo = existing.data.apoyo ?? 0
         } else if (st) {
-          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, wYear, w, c.diasOpBase, st.tiendaConfig?.diasDescansoSemanal || [])
+          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, wYear, w, c.diasOpBase, st.tiendaConfig?.diasDescansoSemanal || [], st.trackerData || {})
           gastoSemanal = real ? real.gastoNeto : currentGastoSemanal
           apoyo = real ? real.apoyo : currentApoyoSemanal
         } else {

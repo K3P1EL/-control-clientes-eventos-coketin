@@ -1,7 +1,7 @@
 import { useState } from "react"
 import Card from "../../ui/Card"
 import { MESES_CORTO, DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { fmtS, isActiveOnDate, getDiaMarca, getDaysInMonth, parseLocalDate, getWeekNumberISO, getISOYear, isDayOperativo, countDiasOperativosMes } from "../../../../lib/finanzas/helpers"
+import { fmtS, isActiveOnDate, getDiaMarca, getDaysInMonth, parseLocalDate, getWeekNumberISO, getISOYear, isDayOperativoReal, countDiasOperativosMesReal } from "../../../../lib/finanzas/helpers"
 import { useCajaSnapshot } from "../hooks/useCajaSnapshot"
 
 // Calcula los 7 días reales de una semana ISO (cualquier año), iguales que
@@ -27,8 +27,9 @@ function getDaysOfPeriod(tipo, periodo, anio) {
 // Breakdown detallado del gasto para un período (semana o mes). Lo calcula
 // AL VUELO con la config actual — puede no coincidir con el `gastoSemanal`
 // congelado si cambió algo desde que se cerró. En ese caso usar 🔄 Recalcular.
-function breakdownGasto({ workers, services, apoyos, contarApoyo, cajaEntries, tipo, periodo, anio, diasDescansoTienda = [] }) {
+function breakdownGasto({ workers, services, apoyos, contarApoyo, cajaEntries, tipo, periodo, anio, diasDescansoTienda = [], trackerData = {} }) {
   const days = getDaysOfPeriod(tipo, periodo, anio)
+  const getMonthTracker = (y, m) => trackerData[`${y}-${m}`] || {}
   const personal = []
   workers.forEach(w => {
     if (!w.name) return
@@ -54,9 +55,10 @@ function breakdownGasto({ workers, services, apoyos, contarApoyo, cajaEntries, t
     days.forEach(date => {
       if (!isActiveOnDate(s, date)) return
       const dyear = date.getFullYear(), dmonth = date.getMonth() + 1
+      const monthTracker = getMonthTracker(dyear, dmonth)
       if (modo === "operativo") {
-        if (!isDayOperativo(date, diasDescansoTienda)) return
-        const div = s.divisor || countDiasOperativosMes(dyear, dmonth, diasDescansoTienda) || 1
+        if (!isDayOperativoReal(date, diasDescansoTienda, monthTracker)) return
+        const div = s.divisor || countDiasOperativosMesReal(dyear, dmonth, diasDescansoTienda, monthTracker) || 1
         total += (s.pagoMensual || 0) / div
       } else {
         const dim = getDaysInMonth(dyear, dmonth)
@@ -324,6 +326,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                     contarApoyo: viabState.contarApoyo, cajaEntries: cajaEntries || [],
                     tipo: c.tipo, periodo: c.periodo, anio: c.anio,
                     diasDescansoTienda: viabState.tiendaConfig?.diasDescansoSemanal || [],
+                    trackerData: viabState.trackerData || {},
                   }) : null
                   const desfase = bd ? Math.abs(bd.gastoCalculado - gastosCalcCongelado) > 0.5 : false
                   return (

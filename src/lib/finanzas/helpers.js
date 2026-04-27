@@ -87,6 +87,38 @@ export function countDiasOperativosMes(year, month, diasDescansoTienda) {
   return count
 }
 
+// Versión que también descuenta Feriado/Cerrado/Descanso manuales del tracker
+// del mes (monthTracker = `trackerData[year-month]`) y suma "Operó" manual
+// en días del patrón. Coincide con la lógica de diasOpReal para el mes actual.
+// Para cierres pasados, se llama con el tracker del mes correspondiente.
+export function countDiasOperativosMesReal(year, month, diasDescansoTienda, monthTracker = {}) {
+  const dim = getDaysInMonth(year, month)
+  let count = 0
+  for (let d = 1; d <= dim; d++) {
+    const date = new Date(year, month - 1, d)
+    const t = monthTracker[d]
+    const enPatron = !isDayOperativo(date, diasDescansoTienda)
+    if (enPatron) {
+      // Día de descanso del patrón: solo cuenta si está marcado "Operó"
+      if (t === "Operó") count++
+    } else {
+      // Día normal: cuenta salvo Feriado/Cerrado/Descanso manual
+      if (t !== "Feriado" && t !== "Cerrado" && t !== "Descanso") count++
+    }
+  }
+  return count
+}
+
+// True si un día específico es operativo según patrón + tracker del mes.
+export function isDayOperativoReal(date, diasDescansoTienda, monthTracker = {}) {
+  const d = date instanceof Date ? date : parseLocalDate(date)
+  if (!d) return false
+  const t = monthTracker[d.getDate()]
+  const enPatron = !isDayOperativo(d, diasDescansoTienda)
+  if (enPatron) return t === "Operó"
+  return t !== "Feriado" && t !== "Cerrado" && t !== "Descanso"
+}
+
 // ── Marcas de calendario por mes (per-worker) ───────────────────────────
 // `worker.diasMarcados` evolucionó: el shape viejo era plano `{[dia]: marca}`
 // (ambiguo, no distinguía mes), el nuevo es `{[YYYY-MM]: {[dia]: marca}}`
