@@ -3,7 +3,7 @@ import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
 import Select from "../../ui/Select"
-import { fmt, fmtS, peruNow, getWeekNumberISO, isActiveOnDate, monthKey, getDiaMarca } from "../../../../lib/finanzas/helpers"
+import { fmt, fmtS, peruNow, getWeekNumberISO, isActiveOnDate, monthKey, getDiaMarca, safeRemoveRecord } from "../../../../lib/finanzas/helpers"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import WorkerCalendar from "../components/WorkerCalendar"
 import PeriodosEditor from "../components/PeriodosEditor"
@@ -154,8 +154,11 @@ export default function PersonalTab({
     setWorkers(prev => [...prev, { name: "", pagoSemanal: 0, diasTrabSem: 6, diaDescanso: "", extrasNoTrabajo: 0, extrasTrabajoExtra: 0, extrasTrabajoTienda: 0, diasMarcados: {}, negocioDepende: false }])
   }, [setWorkers])
 
+  // No-destructive remove: si el trabajador está activo lo da de baja con
+  // fecha de hoy en vez de borrarlo. Así sus marcas/historial sobreviven
+  // para reportes pasados. Solo borra fila vacía o ya inactivo (con confirm).
   const removeWorker = useCallback((idx) => {
-    setWorkers(prev => prev.filter((_, i) => i !== idx))
+    setWorkers(prev => safeRemoveRecord(prev, idx, "name").list)
   }, [setWorkers])
 
   return (

@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react"
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
-import { fmt } from "../../../../lib/finanzas/helpers"
+import { fmt, safeRemoveRecord } from "../../../../lib/finanzas/helpers"
 import PeriodosEditor from "../components/PeriodosEditor"
 
 const TONE_BADGE = {
@@ -27,8 +27,9 @@ export default function ApoyosTab({ apoyos, setApoyos, apoyosCalc, totalApoyos, 
     setApoyos(prev => [...prev, { concepto: "", montoMensual: 0, divisor: diasCalendario, nota: "" }])
   }, [setApoyos, diasCalendario])
 
+  // No-destructive remove: da de baja en lugar de borrar si está activo.
   const removeApoyo = useCallback((idx) => {
-    setApoyos(prev => prev.filter((_, i) => i !== idx))
+    setApoyos(prev => safeRemoveRecord(prev, idx, "concepto").list)
   }, [setApoyos])
 
   return (

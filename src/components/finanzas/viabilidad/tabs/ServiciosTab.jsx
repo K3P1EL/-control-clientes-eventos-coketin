@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react"
 import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
-import { fmt } from "../../../../lib/finanzas/helpers"
+import { fmt, safeRemoveRecord } from "../../../../lib/finanzas/helpers"
 import PeriodosEditor from "../components/PeriodosEditor"
 
 const TONE_BADGE = {
@@ -27,8 +27,12 @@ export default function ServiciosTab({ services, setServices, servicesCalc, tota
     setServices(prev => [...prev, { nombre: "", pagoMensual: 0, diaPago: "", divisor: diasOpBase, nota: "" }])
   }, [setServices, diasOpBase])
 
+  // No-destructive remove: si el servicio está activo lo da de baja con
+  // fecha de hoy en lugar de borrarlo, así no se pierde el historial.
+  // Solo elimina realmente si la fila está vacía o si ya estaba inactivo
+  // (en este último caso pide confirmación).
   const removeService = useCallback((idx) => {
-    setServices(prev => prev.filter((_, i) => i !== idx))
+    setServices(prev => safeRemoveRecord(prev, idx, "nombre").list)
   }, [setServices])
 
   return (

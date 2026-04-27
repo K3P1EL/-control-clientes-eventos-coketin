@@ -211,6 +211,42 @@ export function getRecordStatus(record, viewYear, viewMonth) {
   }
 }
 
+// Borrado "seguro" para records con historial (workers, servicios, apoyos).
+// Comportamiento según estado del record:
+//   - sin nombre (fila vacía recién agregada): elimina del array directo
+//   - activo hoy: registra una baja con fecha de hoy en el historial → queda
+//     histórico, no se pierde data
+//   - ya inactivo: pide confirmación y entonces elimina del array
+// Devuelve `{ action, list }` donde action es "deleted" | "deactivated" | "kept".
+// `nameField` permite reusar para records con campos distintos (workers usan
+// `name`, servicios usan `nombre`, apoyos usan `concepto`).
+export function safeRemoveRecord(list, idx, nameField = "nombre") {
+  if (idx < 0 || idx >= list.length) return { action: "kept", list }
+  const record = list[idx]
+  const name = (record?.[nameField] || "").trim()
+
+  if (!name) {
+    // Fila vacía → eliminar sin preguntar
+    return { action: "deleted", list: list.filter((_, i) => i !== idx) }
+  }
+
+  const activo = isActiveNow(record)
+  if (activo) {
+    // Activo: registrar baja hoy, no eliminar
+    const nuevoHist = registrarBaja(ensureHistorial(record), peruToday())
+    const next = list.map((r, i) => i === idx ? { ...r, historial: nuevoHist, periodos: undefined } : r)
+    return { action: "deactivated", list: next }
+  }
+
+  // Ya inactivo: confirmar antes de eliminar permanente
+  // eslint-disable-next-line no-undef
+  const ok = typeof window !== "undefined" && window.confirm
+    ? window.confirm(`¿Eliminar permanentemente "${name}"? Se borrará todo su historial.`)
+    : true
+  if (!ok) return { action: "kept", list }
+  return { action: "deleted", list: list.filter((_, i) => i !== idx) }
+}
+
 // Acciones sobre el historial. Devuelven el array nuevo.
 // Idempotentes: si ya existe un evento del mismo tipo en esa fecha, no duplican.
 export function registrarBaja(historial, fecha) {
