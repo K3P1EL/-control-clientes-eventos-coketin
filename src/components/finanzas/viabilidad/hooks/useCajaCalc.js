@@ -1,6 +1,7 @@
 import { useMemo } from "react"
-import { getWeekNumberISO, peruNow, isActiveOnDate, getDiaMarca } from "../../../../lib/finanzas/helpers"
+import { getWeekNumberISO, peruNow, isActiveOnDate, getDiaMarca, parseLocalDate } from "../../../../lib/finanzas/helpers"
 import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
+import { useCajaSnapshot } from "./useCajaSnapshot"
 
 // Caja semanal/mensual: suma reales por asistencia (no flat).
 // Personal: reads diasMarcados per worker. Services/apoyo: proportioned
@@ -17,6 +18,26 @@ export function useCajaCalc({
   const currentWeekISO = getWeekNumberISO(peruNow())
   const now = peruNow()
   const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1)
+
+  // Gastos hormiga: egresos del negocio con flag gastoHormiga, suman al
+  // gasto neto. Se calculan por semana ISO (actual) y por mes (year/month).
+  const cajaEntries = useCajaSnapshot()
+  const { hormigaSemanal, hormigaMes } = useMemo(() => {
+    let sem = 0, mes = 0
+    cajaEntries.forEach(e => {
+      if (e.eliminado) return
+      if (e.delNegocio === false) return
+      if (e.gastoAjeno) return
+      if (!e.gastoHormiga) return
+      if (e.tipo !== "egreso") return
+      const d = parseLocalDate(e.fecha)
+      if (!d) return
+      const m = e.monto || 0
+      if (d.getFullYear() === year && (d.getMonth() + 1) === month) mes += m
+      if (isCurrentMonth && getWeekNumberISO(d) === currentWeekISO) sem += m
+    })
+    return { hormigaSemanal: sem, hormigaMes: mes }
+  }, [cajaEntries, year, month, currentWeekISO, isCurrentMonth])
 
   const weekCalc = useMemo(() => {
     if (!isCurrentMonth || currentWeekISO == null) return null
@@ -83,14 +104,14 @@ export function useCajaCalc({
   const trabajadoresSemanaReal = weekCalc ? weekCalc.personalCost : trabajadoresSemana
   const proporcionServSemana = weekCalc ? weekCalc.servCost : costoDiarioServicios * diasOpSemana
   const apoyoSemanal = weekCalc ? weekCalc.apoyoCost : (contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario * diasOpSemana) : 0)
-  const gastoNetoSemanal = trabajadoresSemanaReal + proporcionServSemana - apoyoSemanal
+  const gastoNetoSemanal = trabajadoresSemanaReal + proporcionServSemana - apoyoSemanal + hormigaSemanal
   const gastoPresupuestadoSemanal = trabajadoresSemana + (costoDiarioServicios * diasOpSemana) - (contarApoyo === "SI" ? (totalApoyos.montoMensual / diasCalendario * diasOpSemana) : 0)
   const cajaLibreSemana = cajaSemanaSol - gastoNetoSemanal
 
   const trabRealMes = totalPersonal.costoMesReal
   const serviciosMes = totalServicios.costoMesReal
   const apoyoMes = contarApoyo === "SI" ? totalApoyos.montoMensualReal : 0
-  const gastoRealMes = trabRealMes + serviciosMes - apoyoMes
+  const gastoRealMes = trabRealMes + serviciosMes - apoyoMes + hormigaMes
   const cajaVsGasto3A = cajaAcumMes - gastoRealMes
   const cajaVsDevengado3A = cajaAcumMes - totalDevengado3A
   const cajaVsGasto3B = cajaAcumMes - gastoRealMes
@@ -102,6 +123,7 @@ export function useCajaCalc({
 
   return {
     trabajadoresSemana, trabajadoresSemanaReal, proporcionServSemana, apoyoSemanal,
+    hormigaSemanal, hormigaMes,
     gastoNetoSemanal, gastoPresupuestadoSemanal, cajaLibreSemana,
     trabRealMes, serviciosMes, apoyoMes, gastoRealMes,
     cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,

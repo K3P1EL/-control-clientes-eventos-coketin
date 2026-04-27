@@ -204,7 +204,7 @@ export function useCierres(calc, state) {
         })
         const ganancia = deNuevos + deAnteriores
 
-        let cajaIng = 0, cajaEgr = 0, hasCaja = false
+        let cajaIng = 0, cajaEgr = 0, hormigaSemana = 0, hasCaja = false
         cajaEntries.forEach(e => {
           if (e.eliminado) return
           if (e.delNegocio === false) return
@@ -216,7 +216,10 @@ export function useCierres(calc, state) {
           if (entryISOYear !== wYear || ed.week !== w) return
           hasCaja = true
           if (e.tipo === "ingreso") cajaIng += e.monto || 0
-          else if (e.tipo === "egreso") cajaEgr += e.monto || 0
+          else if (e.tipo === "egreso") {
+            cajaEgr += e.monto || 0
+            if (e.gastoHormiga) hormigaSemana += e.monto || 0
+          }
         })
 
         if (!hasContracts && !hasCaja) continue
@@ -241,7 +244,7 @@ export function useCierres(calc, state) {
         try {
           await upsertCierre({
             tipo: "semana", periodo: w, anio: wYear,
-            data: { ganancia, deNuevos, deAnteriores, enCaja, gastoSemanal, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            data: { ganancia, deNuevos, deAnteriores, enCaja, gastoSemanal, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr, hormigaSemana },
             viable: libre >= 0, nota: existing?.nota || "",
           })
           changed = true
@@ -274,7 +277,7 @@ export function useCierres(calc, state) {
         })
         const ganancia = deNuevosM + deAnterioresM
 
-        let cajaIng = 0, cajaEgr = 0, hasCaja = false
+        let cajaIng = 0, cajaEgr = 0, hormigaMesAcum = 0, hasCaja = false
         cajaEntries.forEach(e => {
           if (e.eliminado) return
           if (e.delNegocio === false) return
@@ -283,7 +286,10 @@ export function useCierres(calc, state) {
           if (!ed || ed.year !== mYear || ed.month !== mNum) return
           hasCaja = true
           if (e.tipo === "ingreso") cajaIng += e.monto || 0
-          else if (e.tipo === "egreso") cajaEgr += e.monto || 0
+          else if (e.tipo === "egreso") {
+            cajaEgr += e.monto || 0
+            if (e.gastoHormiga) hormigaMesAcum += e.monto || 0
+          }
         })
 
         if (!hasContracts && !hasCaja) continue
@@ -296,7 +302,7 @@ export function useCierres(calc, state) {
         try {
           await upsertCierre({
             tipo: "mes", periodo: mNum, anio: mYear,
-            data: { ganancia, deNuevos: deNuevosM, deAnteriores: deAnterioresM, enCaja, gastoMes, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr },
+            data: { ganancia, deNuevos: deNuevosM, deAnteriores: deAnterioresM, enCaja, gastoMes, apoyo, libre, cajaIngresos: cajaIng, cajaEgresos: cajaEgr, cajaBalance: cajaIng - cajaEgr, hormigaMes: hormigaMesAcum },
             viable: libre >= 0, nota: existing?.nota || "",
           })
           changed = true

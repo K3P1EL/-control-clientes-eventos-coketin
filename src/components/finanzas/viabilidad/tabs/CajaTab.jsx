@@ -14,7 +14,7 @@ export default function CajaTab({
   cajaAcumMes, setCajaAcumMes,
   contarApoyo, setContarApoyo,
   diasOpSemana, setDiasOpSemana,
-  trabajadoresSemana, trabajadoresSemanaPresup, proporcionServSemana, apoyoSemanal, gastoNetoSemanal, cajaLibreSemana,
+  trabajadoresSemana, trabajadoresSemanaPresup, proporcionServSemana, apoyoSemanal, hormigaSemanal, hormigaMes, gastoNetoSemanal, cajaLibreSemana,
   trabRealMes, serviciosMes, apoyoMes, gastoRealMes,
   totalDevengado3A, totalDevengado3B,
   cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,
@@ -84,6 +84,9 @@ export default function CajaTab({
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60">
             <span className="text-sm text-zinc-400">Apoyo semanal</span><span className="font-mono text-emerald-400">-{fmt(apoyoSemanal)}</span>
           </div>
+          <div className="flex justify-between items-center py-2 border-b border-zinc-800/60">
+            <span className="text-sm text-zinc-400">🐜 Gastos hormiga semana</span><span className="font-mono text-pink-400">{fmt(hormigaSemanal || 0)}</span>
+          </div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60 font-semibold">
             <span className="text-sm text-zinc-300">Gasto neto semanal</span><span className="font-mono text-zinc-100">{fmt(gastoNetoSemanal)}</span>
           </div>
@@ -101,6 +104,7 @@ export default function CajaTab({
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Trabajadores real mes</span><span className="font-mono text-zinc-200">{fmt(trabRealMes)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Servicios mes</span><span className="font-mono text-zinc-200">{fmt(serviciosMes)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Apoyo mes</span><span className="font-mono text-emerald-400">-{fmt(apoyoMes)}</span></div>
+          <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">🐜 Gastos hormiga mes</span><span className="font-mono text-pink-400">{fmt(hormigaMes || 0)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60 font-semibold"><span className="text-sm text-zinc-300">Gasto real mes</span><span className="font-mono text-zinc-100">{fmt(gastoRealMes)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Devengado 3A</span><span className="font-mono text-amber-400">{fmt(totalDevengado3A)}</span></div>
           <div className={`flex justify-between items-center py-3 px-4 rounded-xl border ${cajaVsGasto3A >= 0 ? "bg-emerald-500/10 border-emerald-500/30" : "bg-red-500/10 border-red-500/30"}`}>
@@ -119,6 +123,7 @@ export default function CajaTab({
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Trabajadores real mes</span><span className="font-mono text-zinc-200">{fmt(trabRealMes)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Servicios mes</span><span className="font-mono text-zinc-200">{fmt(serviciosMes)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Apoyo mes</span><span className="font-mono text-emerald-400">-{fmt(apoyoMes)}</span></div>
+          <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">🐜 Gastos hormiga mes</span><span className="font-mono text-pink-400">{fmt(hormigaMes || 0)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60 font-semibold"><span className="text-sm text-zinc-300">Gasto real mes</span><span className="font-mono text-zinc-100">{fmt(gastoRealMes)}</span></div>
           <div className="flex justify-between items-center py-2 border-b border-zinc-800/60"><span className="text-sm text-zinc-400">Devengado ciclo 3B</span><span className="font-mono text-violet-400">{fmt(totalDevengado3B)}</span></div>
           <div className={`flex justify-between items-center py-3 px-4 rounded-xl border ${cajaVsGasto3B >= 0 ? "bg-emerald-500/10 border-emerald-500/30" : "bg-red-500/10 border-red-500/30"}`}>

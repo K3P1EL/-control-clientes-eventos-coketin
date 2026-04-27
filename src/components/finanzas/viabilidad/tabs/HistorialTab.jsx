@@ -175,6 +175,9 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                     <span>Caja ingresos: <strong style={{ color: "#34d399" }}>{fmtS(d.cajaIngresos || 0)}</strong></span>
                     <span>Caja egresos: <strong style={{ color: "#f87171" }}>{fmtS(d.cajaEgresos || 0)}</strong></span>
                     <span>Balance caja: <strong style={{ color: (d.cajaBalance || 0) >= 0 ? "#34d399" : "#f87171" }}>{fmtS(d.cajaBalance || 0)}</strong></span>
+                    {((c.tipo === "semana" ? d.hormigaSemana : d.hormigaMes) > 0) && (
+                      <span>🐜 Hormiga: <strong style={{ color: "#f472b6" }}>{fmtS(c.tipo === "semana" ? d.hormigaSemana : d.hormigaMes)}</strong></span>
+                    )}
                   </div>
                 )}
 

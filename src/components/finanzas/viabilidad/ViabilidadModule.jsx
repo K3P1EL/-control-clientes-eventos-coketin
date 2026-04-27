@@ -171,6 +171,8 @@ export default function ViabilidadModule() {
           trabajadoresSemanaPresup={calc.trabajadoresSemana}
           proporcionServSemana={calc.proporcionServSemana}
           apoyoSemanal={calc.apoyoSemanal}
+          hormigaSemanal={calc.hormigaSemanal}
+          hormigaMes={calc.hormigaMes}
           gastoNetoSemanal={calc.gastoNetoSemanal}
           cajaLibreSemana={calc.cajaLibreSemana}
           trabRealMes={calc.trabRealMes} serviciosMes={calc.serviciosMes} apoyoMes={calc.apoyoMes} gastoRealMes={calc.gastoRealMes}

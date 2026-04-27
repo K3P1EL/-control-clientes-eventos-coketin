@@ -61,6 +61,7 @@ export function useViabilidadCalc(inputs) {
 
   const {
     trabajadoresSemana, trabajadoresSemanaReal, proporcionServSemana, apoyoSemanal,
+    hormigaSemanal, hormigaMes,
     gastoNetoSemanal, gastoPresupuestadoSemanal, cajaLibreSemana,
     trabRealMes, serviciosMes, apoyoMes, gastoRealMes,
     cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,
@@ -86,7 +87,7 @@ export function useViabilidadCalc(inputs) {
     vista3A, totalDevengado3A, totalFalta3A,
     vista3B, totalDevengado3B, totalFalta3B,
     proximosVencimientos,
-    trabajadoresSemana, trabajadoresSemanaReal, proporcionServSemana, apoyoSemanal, gastoNetoSemanal, gastoPresupuestadoSemanal, cajaLibreSemana,
+    trabajadoresSemana, trabajadoresSemanaReal, proporcionServSemana, apoyoSemanal, hormigaSemanal, hormigaMes, gastoNetoSemanal, gastoPresupuestadoSemanal, cajaLibreSemana,
     trabRealMes, serviciosMes, apoyoMes, gastoRealMes,
     cajaVsGasto3A, cajaVsDevengado3A, cajaVsGasto3B, cajaVsDevengado3B,
     metaDiariaNecesaria, ritmoActual, diffRitmo,
