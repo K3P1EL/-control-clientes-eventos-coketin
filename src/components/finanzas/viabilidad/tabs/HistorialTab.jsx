@@ -1,12 +1,112 @@
 import { useState } from "react"
 import Card from "../../ui/Card"
-import { MESES_CORTO } from "../../../../lib/finanzas/constants"
-import { fmtS } from "../../../../lib/finanzas/helpers"
+import { MESES_CORTO, DIAS_SEMANA } from "../../../../lib/finanzas/constants"
+import { fmtS, isActiveOnDate, getDiaMarca, getDaysInMonth, parseLocalDate, getWeekNumberISO, getISOYear } from "../../../../lib/finanzas/helpers"
+import { useCajaSnapshot } from "../hooks/useCajaSnapshot"
 
-export default function HistorialTab({ cierres, currentWeek, currentMonth, currentYear, calc, recalcularCierre }) {
+// Calcula los 7 días reales de una semana ISO (cualquier año), iguales que
+// el resto del sistema. Si es mes, devuelve los días del mes.
+function getDaysOfPeriod(tipo, periodo, anio) {
+  if (tipo === "mes") {
+    const dias = getDaysInMonth(anio, periodo)
+    return Array.from({ length: dias }, (_, i) => new Date(anio, periodo - 1, i + 1))
+  }
+  const jan4 = new Date(anio, 0, 4)
+  const jan4Dow = (jan4.getDay() + 6) % 7
+  const week1Mon = new Date(jan4)
+  week1Mon.setDate(jan4.getDate() - jan4Dow)
+  const days = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(week1Mon)
+    d.setDate(week1Mon.getDate() + (periodo - 1) * 7 + i)
+    days.push(d)
+  }
+  return days
+}
+
+// Breakdown detallado del gasto para un período (semana o mes). Lo calcula
+// AL VUELO con la config actual — puede no coincidir con el `gastoSemanal`
+// congelado si cambió algo desde que se cerró. En ese caso usar 🔄 Recalcular.
+function breakdownGasto({ workers, services, apoyos, contarApoyo, cajaEntries, tipo, periodo, anio }) {
+  const days = getDaysOfPeriod(tipo, periodo, anio)
+  const personal = []
+  workers.forEach(w => {
+    if (!w.name) return
+    const costoDiario = (w.pagoSemanal && w.diasTrabSem > 0) ? w.pagoSemanal / w.diasTrabSem : 0
+    let dias = 0
+    days.forEach(date => {
+      if (!isActiveOnDate(w, date)) return
+      const dyName = DIAS_SEMANA[date.getDay()]
+      const isRest = w.diaDescanso && dyName === w.diaDescanso
+      const marca = getDiaMarca(w, date.getFullYear(), date.getMonth() + 1, date.getDate())
+      if (marca === "noVino") return
+      if (isRest && !marca) return
+      dias++
+    })
+    if (dias > 0) personal.push({ name: w.name, dias, costoDiario, total: dias * costoDiario })
+  })
+
+  const serviciosCalc = []
+  services.forEach(s => {
+    if (!s.nombre) return
+    let total = 0, dias = 0
+    days.forEach(date => {
+      if (!isActiveOnDate(s, date)) return
+      const dim = getDaysInMonth(date.getFullYear(), date.getMonth() + 1)
+      const div = s.divisor || dim
+      total += div > 0 ? (s.pagoMensual || 0) / div : 0
+      dias++
+    })
+    if (dias > 0) serviciosCalc.push({ nombre: s.nombre, dias, pagoMensual: s.pagoMensual || 0, total })
+  })
+
+  const apoyosCalc = []
+  if (contarApoyo === "SI") {
+    apoyos.forEach(a => {
+      if (!a.concepto) return
+      let total = 0, dias = 0
+      days.forEach(date => {
+        if (!isActiveOnDate(a, date)) return
+        const dim = getDaysInMonth(date.getFullYear(), date.getMonth() + 1)
+        total += (a.montoMensual || 0) / dim
+        dias++
+      })
+      if (dias > 0) apoyosCalc.push({ concepto: a.concepto, dias, montoMensual: a.montoMensual || 0, total })
+    })
+  }
+
+  const hormigaItems = []
+  cajaEntries.forEach(e => {
+    if (e.eliminado) return
+    if (e.delNegocio === false) return
+    if (e.gastoAjeno) return
+    if (!e.gastoHormiga) return
+    if (e.tipo !== "egreso") return
+    const d = parseLocalDate(e.fecha)
+    if (!d) return
+    const inPeriod = tipo === "semana"
+      ? (getWeekNumberISO(d) === periodo && getISOYear(d) === anio)
+      : (d.getFullYear() === anio && (d.getMonth() + 1) === periodo)
+    if (inPeriod) hormigaItems.push({ fecha: e.fecha, concepto: e.concepto || "Sin concepto", monto: e.monto || 0 })
+  })
+
+  const personalTotal = personal.reduce((s, x) => s + x.total, 0)
+  const serviciosTotal = serviciosCalc.reduce((s, x) => s + x.total, 0)
+  const apoyosTotal = apoyosCalc.reduce((s, x) => s + x.total, 0)
+  const hormigaTotal = hormigaItems.reduce((s, x) => s + x.monto, 0)
+  return {
+    personal, servicios: serviciosCalc, apoyos: apoyosCalc, hormiga: hormigaItems,
+    personalTotal, serviciosTotal, apoyosTotal, hormigaTotal,
+    gastoCalculado: personalTotal + serviciosTotal - apoyosTotal,
+    gastoNeto: personalTotal + serviciosTotal - apoyosTotal + hormigaTotal,
+  }
+}
+
+export default function HistorialTab({ cierres, currentWeek, currentMonth, currentYear, calc, recalcularCierre, viabState }) {
   const [filterTipo, setFilterTipo] = useState("semana")
   const [viewYear, setViewYear] = useState(currentYear)
   const [explicaOpen, setExplicaOpen] = useState(null) // id del cierre expandido
+  const cajaEntries = useCajaSnapshot()
 
   // Available years from cierres data
   const availableYears = [...new Set(cierres.map(c => c.anio))].sort((a, b) => b - a)
@@ -203,14 +303,21 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
 
                 {/* Panel "Cómo se calculó" — desglose matemático */}
                 {explicaOpen === c.id && (() => {
-                  const gastosCalc = d.gastoSemanal || d.gastoMes || 0
-                  const hormiga = (c.tipo === "semana" ? d.hormigaSemana : d.hormigaMes) || 0
-                  const gastos = gastosCalc + hormiga
+                  const gastosCalcCongelado = d.gastoSemanal || d.gastoMes || 0
+                  const hormigaGuardada = (c.tipo === "semana" ? d.hormigaSemana : d.hormigaMes) || 0
+                  const gastos = gastosCalcCongelado + hormigaGuardada
                   const cobradoNuevos = d.enCaja || 0
                   const deAnteriores = d.deAnteriores || 0
                   const totalCobrado = cobradoNuevos + deAnteriores
                   const apoyo = d.apoyo || 0
                   const periodoLabel = c.tipo === "semana" ? `Semana ${c.periodo}` : MESES_CORTO[c.periodo]
+                  // Breakdown detallado al vuelo (puede no coincidir con el congelado si cambió la config)
+                  const bd = viabState ? breakdownGasto({
+                    workers: viabState.workers, services: viabState.services, apoyos: viabState.apoyos,
+                    contarApoyo: viabState.contarApoyo, cajaEntries: cajaEntries || [],
+                    tipo: c.tipo, periodo: c.periodo, anio: c.anio,
+                  }) : null
+                  const desfase = bd ? Math.abs(bd.gastoCalculado - gastosCalcCongelado) > 0.5 : false
                   return (
                     <div style={{ marginTop: 12, padding: 14, background: "rgba(15,23,42,0.5)", border: "1px solid rgba(56,189,248,0.2)", borderRadius: 10, fontSize: 12, lineHeight: 1.65, color: "#cbd5e1" }}>
                       <div style={{ fontSize: 12, fontWeight: 800, color: "#38bdf8", marginBottom: 8 }}>🔍 Desglose del cálculo — {periodoLabel}</div>
@@ -240,10 +347,70 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                       <div style={{ marginBottom: 10 }}>
                         <div style={{ color: "#f87171", fontWeight: 700 }}>📤 Gastos: {fmtS(gastos)}</div>
                         <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
-                          Gasto calculado: {fmtS(gastosCalc)} (personal con asistencia + servicios prorrateados − apoyo)<br/>
-                          {hormiga > 0 ? <>🐜 Hormiga: {fmtS(hormiga)} (egresos del negocio marcados como hormiga)<br/></> : null}
-                          <strong style={{ color: "#f87171" }}>Total: {fmtS(gastosCalc)}{hormiga > 0 ? ` + ${fmtS(hormiga)} = ${fmtS(gastos)}` : ""}</strong>
+                          Gasto calculado (congelado al cierre): <strong style={{ color: "#fbbf24" }}>{fmtS(gastosCalcCongelado)}</strong><br/>
+                          {hormigaGuardada > 0 ? <>🐜 Hormiga registrada: {fmtS(hormigaGuardada)}<br/></> : null}
+                          <strong style={{ color: "#f87171" }}>Total: {fmtS(gastosCalcCongelado)}{hormigaGuardada > 0 ? ` + ${fmtS(hormigaGuardada)} = ${fmtS(gastos)}` : ""}</strong>
                         </div>
+
+                        {bd && (
+                          <div style={{ marginTop: 10, padding: 10, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 8 }}>
+                            <div style={{ color: "#fbbf24", fontWeight: 700, fontSize: 11, marginBottom: 6 }}>
+                              🔬 Detalle del cálculo (con la config actual):
+                              {desfase && <span style={{ color: "#f472b6", fontSize: 10, marginLeft: 8 }}>⚠️ no coincide con el congelado — usá 🔄 Recalcular para sincronizar</span>}
+                            </div>
+
+                            <div style={{ marginBottom: 8 }}>
+                              <div style={{ color: "#cbd5e1", fontWeight: 600, fontSize: 11 }}>👷 Personal: {fmtS(bd.personalTotal)}</div>
+                              {bd.personal.length === 0 ? <div style={{ paddingLeft: 14, fontSize: 10, color: "#52525b", fontStyle: "italic" }}>Sin trabajadores activos en este período</div> : (
+                                bd.personal.map(p => (
+                                  <div key={p.name} style={{ paddingLeft: 14, fontSize: 10, color: "#94a3b8" }}>
+                                    · {p.name}: {p.dias}d × {fmtS(p.costoDiario)} = <strong style={{ color: "#cbd5e1" }}>{fmtS(p.total)}</strong>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            <div style={{ marginBottom: 8 }}>
+                              <div style={{ color: "#cbd5e1", fontWeight: 600, fontSize: 11 }}>🏢 Servicios: {fmtS(bd.serviciosTotal)}</div>
+                              {bd.servicios.length === 0 ? <div style={{ paddingLeft: 14, fontSize: 10, color: "#52525b", fontStyle: "italic" }}>Sin servicios activos</div> : (
+                                bd.servicios.map(s => (
+                                  <div key={s.nombre} style={{ paddingLeft: 14, fontSize: 10, color: "#94a3b8" }}>
+                                    · {s.nombre} ({fmtS(s.pagoMensual)}/mes): {s.dias}d activos = <strong style={{ color: "#cbd5e1" }}>{fmtS(s.total)}</strong>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+
+                            {bd.apoyos.length > 0 && (
+                              <div style={{ marginBottom: 8 }}>
+                                <div style={{ color: "#34d399", fontWeight: 600, fontSize: 11 }}>🤝 Apoyos: −{fmtS(bd.apoyosTotal)}</div>
+                                {bd.apoyos.map(a => (
+                                  <div key={a.concepto} style={{ paddingLeft: 14, fontSize: 10, color: "#94a3b8" }}>
+                                    · {a.concepto} ({fmtS(a.montoMensual)}/mes): {a.dias}d activos = <strong style={{ color: "#34d399" }}>{fmtS(a.total)}</strong>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {bd.hormiga.length > 0 && (
+                              <div style={{ marginBottom: 8 }}>
+                                <div style={{ color: "#f472b6", fontWeight: 600, fontSize: 11 }}>🐜 Hormiga: {fmtS(bd.hormigaTotal)}</div>
+                                {bd.hormiga.map((h, i) => (
+                                  <div key={i} style={{ paddingLeft: 14, fontSize: 10, color: "#94a3b8" }}>
+                                    · {h.fecha} — {h.concepto}: <strong style={{ color: "#f472b6" }}>{fmtS(h.monto)}</strong>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div style={{ paddingTop: 6, borderTop: "1px dashed rgba(63,63,70,0.4)", fontSize: 11 }}>
+                              <span style={{ color: "#94a3b8" }}>Total calculado: </span>
+                              <strong style={{ color: "#fbbf24" }}>
+                                {fmtS(bd.personalTotal)} + {fmtS(bd.serviciosTotal)} − {fmtS(bd.apoyosTotal)}{bd.hormigaTotal > 0 ? ` + ${fmtS(bd.hormigaTotal)}` : ""} = {fmtS(bd.gastoNeto)}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ marginBottom: 6, paddingTop: 8, borderTop: "1px dashed rgba(63,63,70,0.4)" }}>
@@ -264,7 +431,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
                         <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px dashed rgba(63,63,70,0.4)" }}>
                           <div style={{ color: "#fbbf24", fontWeight: 700 }}>🤝 Apoyo en este período: {fmtS(apoyo)}</div>
                           <div style={{ paddingLeft: 14, color: "#94a3b8", fontSize: 11 }}>
-                            Sin el apoyo, el libre sería: {fmtS(cobradoNuevos)} − ({fmtS(gastosCalc)} + {fmtS(apoyo)}{hormiga > 0 ? ` + ${fmtS(hormiga)}` : ""}) = <strong style={{ color: (cobradoNuevos - gastosCalc - apoyo - hormiga) >= 0 ? "#fbbf24" : "#f87171" }}>{(cobradoNuevos - gastosCalc - apoyo - hormiga) >= 0 ? "+" : ""}{fmtS(cobradoNuevos - gastosCalc - apoyo - hormiga)}</strong>
+                            Sin el apoyo, el libre sería: {fmtS(cobradoNuevos)} − ({fmtS(gastosCalcCongelado)} + {fmtS(apoyo)}{hormigaGuardada > 0 ? ` + ${fmtS(hormigaGuardada)}` : ""}) = <strong style={{ color: (cobradoNuevos - gastosCalcCongelado - apoyo - hormigaGuardada) >= 0 ? "#fbbf24" : "#f87171" }}>{(cobradoNuevos - gastosCalcCongelado - apoyo - hormigaGuardada) >= 0 ? "+" : ""}{fmtS(cobradoNuevos - gastosCalcCongelado - apoyo - hormigaGuardada)}</strong>
                           </div>
                         </div>
                       )}

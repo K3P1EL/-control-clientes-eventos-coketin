@@ -192,6 +192,7 @@ export default function ViabilidadModule() {
           currentYear={cierreYear}
           calc={calc}
           recalcularCierre={recalcularCierre}
+          viabState={state}
         />
       )}
     </div>
