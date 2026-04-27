@@ -25,7 +25,8 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
   }, [year, month, diasCalendario])
 
   // Operating-day baseline = calendar days - tienda rest days - non-op days
-  // (feriado/cerrado/descanso manual del tracker fuera del patrón) + extras.
+  // (feriado/cerrado/descanso manual del tracker fuera del patrón) + extras
+  // (días en patrón marcados "Operó" en el tracker + cobertura por workers).
   const diasOpBase = useMemo(() => {
     const diasDescansoTiendaCount = calendarDays.filter(d => diasDescansoTienda.includes(d.nombre)).length
     const diasFeriadoCerrado = calendarDays.filter(d => {
@@ -33,6 +34,10 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
       if (t !== "Feriado" && t !== "Cerrado" && t !== "Descanso") return false
       // No descontar dos veces si ya es descanso del patrón
       return !diasDescansoTienda.includes(d.nombre)
+    }).length
+    // Operó manual en día de descanso del patrón = apertura extra (override).
+    const diasOperaPatronManual = calendarDays.filter(d => {
+      return tracker[d.dia] === "Operó" && diasDescansoTienda.includes(d.nombre)
     }).length
     const diasAbiertosExtra = new Set()
     workers.forEach(w => {
@@ -44,7 +49,7 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
         if (isActiveOnDate(w, fecha)) diasAbiertosExtra.add(Number(dia))
       })
     })
-    return diasCalendario - diasDescansoTiendaCount - diasFeriadoCerrado + diasAbiertosExtra.size + cobExtraDias
+    return diasCalendario - diasDescansoTiendaCount - diasFeriadoCerrado + diasOperaPatronManual + diasAbiertosExtra.size + cobExtraDias
   }, [workers, calendarDays, diasCalendario, cobExtraDias, tracker, year, month, diasDescansoTienda])
 
   // For days the user hasn't manually marked: assume "Operó" for past days
@@ -151,7 +156,11 @@ export function useCalendarioOp({ year, month, workers, tracker, cobExtra, tiend
       // Si ya cae en descanso del patrón, no doble-descontar
       return !diasDescansoTienda.includes(d.nombre)
     }).length
-    return Math.max(1, patron - noOperativos)
+    // Día de descanso del patrón marcado manualmente como "Operó" cuenta extra
+    const operaPatronManual = calendarDays.filter(d => {
+      return tracker[d.dia] === "Operó" && diasDescansoTienda.includes(d.nombre)
+    }).length
+    return Math.max(1, patron - noOperativos + operaPatronManual)
   }, [year, month, diasDescansoTienda, calendarDays, tracker])
 
   return {
