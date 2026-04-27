@@ -52,13 +52,22 @@ export function useServiciosCalc({ services, diasOpBase, calendarDays, year, mon
       .reduce((s, v) => s + v.costoDiario, 0)
   }, [servicesCalc, refDate])
 
+  // Divisor coherente con el resto del módulo: para servicios "operativo"
+  // usa diasOpReal (patrón − Feriados/Cerrados/Descansos del tracker actual);
+  // para "calendario" usa días del mes. Override manual (s.divisor) gana.
+  const divFor = (s) => {
+    const modo = s.modo || "operativo"
+    if (modo === "calendario") return diasCalendario || getDaysInMonth(year, month)
+    return s.divisor || diasOpReal || countDiasOperativosMesReal(year, month, diasDescansoTienda, tracker) || diasOpBase || 1
+  }
+
   // ── Vista 3A — month cycle (day 1 → day of payment) ─────────────────
   const vista3A = useMemo(() => {
     const simDay = diaAnalisis
     return servicesCalc.filter(s => s.nombre).map(s => {
       const diaPago = typeof s.diaPago === "number" ? s.diaPago : null
       if (diaPago === null) return { nombre: s.nombre, costoMensual: s.pagoMensual, diaPago: "Sin fecha", diasDeveng: "—", devengado: "—", faltaRecup: "—", diasRest: "—", estado: "Sin fecha" }
-      const div = s.divisor || diasOpBase
+      const div = divFor(s)
       const costoDiario = div > 0 ? s.pagoMensual / div : 0
       const diasDeveng = diasOperados > 0 ? Math.min(diasOperados, diaPago) : Math.min(simDay, diaPago)
       const devengado = costoDiario * diasDeveng
@@ -71,7 +80,8 @@ export function useServiciosCalc({ services, diasOpBase, calendarDays, year, mon
       else estado = `Faltan ${diasRest}d`
       return { nombre: s.nombre, costoMensual: s.pagoMensual, diaPago, diasDeveng, devengado, faltaRecup, diasRest, estado }
     })
-  }, [servicesCalc, diaAnalisis, diasOperados, diasOpBase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servicesCalc, diaAnalisis, diasOperados, diasOpBase, diasOpReal, diasDescansoTienda, tracker])
 
   const totalDevengado3A = vista3A.reduce((s, v) => s + (typeof v.devengado === "number" ? v.devengado : 0), 0)
   const totalFalta3A = vista3A.reduce((s, v) => s + (typeof v.faltaRecup === "number" ? v.faltaRecup : 0), 0)
@@ -82,7 +92,7 @@ export function useServiciosCalc({ services, diasOpBase, calendarDays, year, mon
     return servicesCalc.filter(s => s.nombre).map(s => {
       const diaPago = typeof s.diaPago === "number" ? s.diaPago : null
       if (diaPago === null) return { nombre: s.nombre, costoMensual: s.pagoMensual, diaPago: "Sin fecha", diasCiclo: "—", devengadoCiclo: "—", faltaCiclo: "—", diasAlPago: "—", estadoCiclo: "Sin fecha" }
-      const div = s.divisor || diasOpBase
+      const div = divFor(s)
       const costoDiario = div > 0 ? s.pagoMensual / div : 0
       const diasCiclo = simDay < diaPago ? (diasCalendario - diaPago + simDay) : (simDay - diaPago)
       const devengadoCiclo = costoDiario * diasCiclo
@@ -96,7 +106,8 @@ export function useServiciosCalc({ services, diasOpBase, calendarDays, year, mon
       else estadoCiclo = `En curso ${diaPago - simDay}d`
       return { nombre: s.nombre, costoMensual: s.pagoMensual, diaPago, diasCiclo, devengadoCiclo, faltaCiclo, diasAlPago, estadoCiclo }
     })
-  }, [servicesCalc, diaAnalisis, diasCalendario, diasOpBase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servicesCalc, diaAnalisis, diasCalendario, diasOpBase, diasOpReal, diasDescansoTienda, tracker])
 
   const totalDevengado3B = vista3B.reduce((s, v) => s + (typeof v.devengadoCiclo === "number" ? v.devengadoCiclo : 0), 0)
   const totalFalta3B = vista3B.reduce((s, v) => s + (typeof v.faltaCiclo === "number" ? v.faltaCiclo : 0), 0)

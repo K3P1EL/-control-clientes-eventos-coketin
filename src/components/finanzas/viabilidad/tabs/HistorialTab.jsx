@@ -176,13 +176,22 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
     let cobradoHastaHoy = 0
     contratos.forEach(c => {
       if (c.eliminado || c.cancelado) return
-      const isHomeWeek = filterTipo === "semana" && (c.anio || currentYear) === currentYear && c.semana === periodo
-      const isHomeMes = filterTipo === "mes" && (c.anio || currentYear) === currentYear && c.mes === periodo
+      // Tolerancia ±1 año en semana ISO (sem 53/sem 1 cruzan año calendar).
+      const cAnio = c.anio || currentYear
+      const yearOK = filterTipo === "semana"
+        ? (cAnio === currentYear || cAnio === currentYear - 1 || cAnio === currentYear + 1)
+        : (cAnio === currentYear)
+      const isHomeWeek = filterTipo === "semana" && yearOK && c.semana === periodo
+      const isHomeMes = filterTipo === "mes" && yearOK && c.mes === periodo
       const enPeriodoY = (a) => {
         if (a.noTrack || !a.enCaja) return false
         const d = parseLocalDate(a.fecha)
         if (!d || dayKey(d) > hoyKey) return false
-        if (filterTipo === "semana") return getWeekNumberISO(d) === periodo && getISOYear(d) === currentYear
+        if (filterTipo === "semana") {
+          if (getWeekNumberISO(d) !== periodo) return false
+          const isoY = getISOYear(d)
+          return isoY === currentYear || isoY === currentYear - 1 || isoY === currentYear + 1
+        }
         return d.getFullYear() === currentYear && (d.getMonth() + 1) === periodo
       }
       ;(c.adelantos || []).forEach(a => { if (enPeriodoY(a)) cobradoHastaHoy += a.monto || 0 })

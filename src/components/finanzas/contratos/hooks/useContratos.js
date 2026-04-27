@@ -113,15 +113,19 @@ export function useContratos({ preloadedData } = {}) {
   }, [contracts])
 
   const handleSave = useCallback((form) => {
+    // Rellenar fechas vacías de adelantos/cobros con el home date del contrato
+    // antes de guardar — así filtros y reconciliación los toman en período
+    // sin esperar al próximo reload.
+    const filled = fillMissingPaymentDates(form)
     setContracts(prev => {
-      const exists = prev.find(c => c.id === form.id)
+      const exists = prev.find(c => c.id === filled.id)
       if (exists) {
         // Al editar, preservar el num que ya tenía (aunque cambie de año).
-        return prev.map(c => c.id === form.id ? { ...form, num: c.num ?? form.num } : c)
+        return prev.map(c => c.id === filled.id ? { ...filled, num: c.num ?? filled.num } : c)
       }
       // Nuevo contrato: asignar siguiente num disponible para su año.
-      const year = form.anio || new Date().getFullYear()
-      return [...prev, { ...form, num: nextNumForYear(prev, year) }]
+      const year = filled.anio || new Date().getFullYear()
+      return [...prev, { ...filled, num: nextNumForYear(prev, year) }]
     })
   }, [])
 
