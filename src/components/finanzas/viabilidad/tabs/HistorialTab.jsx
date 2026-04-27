@@ -1,8 +1,9 @@
 import { useState } from "react"
 import Card from "../../ui/Card"
 import { MESES_CORTO, DIAS_SEMANA } from "../../../../lib/finanzas/constants"
-import { fmtS, isActiveOnDate, getDiaMarca, getDaysInMonth, parseLocalDate, getWeekNumberISO, getISOYear, isDayOperativoReal, countDiasOperativosMesReal } from "../../../../lib/finanzas/helpers"
+import { fmtS, isActiveOnDate, getDiaMarca, getDaysInMonth, parseLocalDate, getWeekNumberISO, getISOYear, isDayOperativoReal, countDiasOperativosMesReal, peruNow } from "../../../../lib/finanzas/helpers"
 import { useCajaSnapshot } from "../hooks/useCajaSnapshot"
+import { useContratosSnapshot } from "../../caja/hooks/useContratosSnapshot"
 
 // Calcula los 7 días reales de una semana ISO (cualquier año), iguales que
 // el resto del sistema. Si es mes, devuelve los días del mes.
@@ -116,6 +117,7 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
   const [viewYear, setViewYear] = useState(currentYear)
   const [explicaOpen, setExplicaOpen] = useState(null) // id del cierre expandido
   const cajaEntries = useCajaSnapshot()
+  const contratos = useContratosSnapshot()
 
   // Available years from cierres data
   const availableYears = [...new Set(cierres.map(c => c.anio))].sort((a, b) => b - a)
@@ -144,6 +146,92 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
   const liveGastoSemanal = calc?.gastoNetoSemanal || 0
   const liveGastoMes = calc?.gastoRealMes || 0
 
+  // ── EN PROCESO: desglose Hasta hoy + Proyección al cierre ─────────────
+  const enProceso = (() => {
+    if (viewYear !== currentYear) return null
+    const periodo = filterTipo === "semana" ? currentWeek : currentMonth
+    const days = getDaysOfPeriod(filterTipo, periodo, currentYear)
+    const hoy = peruNow()
+    const hoyKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`
+    const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    const diasPasados = days.filter(d => dayKey(d) <= hoyKey).length
+    const diasRestantes = days.length - diasPasados
+
+    // Días operativos pasados/restantes (según tracker + patrón)
+    const diasDescansoTienda = viabState?.tiendaConfig?.diasDescansoSemanal || []
+    const trackerData = viabState?.trackerData || {}
+    const diasOpPasados = days.filter(d => {
+      if (dayKey(d) > hoyKey) return false
+      const monthTracker = trackerData[`${d.getFullYear()}-${d.getMonth() + 1}`] || {}
+      return isDayOperativoReal(d, diasDescansoTienda, monthTracker)
+    }).length
+    const diasOpRestantes = days.filter(d => {
+      if (dayKey(d) <= hoyKey) return false
+      const monthTracker = trackerData[`${d.getFullYear()}-${d.getMonth() + 1}`] || {}
+      return isDayOperativoReal(d, diasDescansoTienda, monthTracker)
+    }).length
+
+    // Cobrado real hasta hoy: enCaja de contratos cuyo home cae en período + cobros de
+    // contratos viejos que cayeron en este período hasta hoy (todos con fecha ≤ hoy).
+    let cobradoHastaHoy = 0
+    contratos.forEach(c => {
+      if (c.eliminado || c.cancelado) return
+      const isHomeWeek = filterTipo === "semana" && (c.anio || currentYear) === currentYear && c.semana === periodo
+      const isHomeMes = filterTipo === "mes" && (c.anio || currentYear) === currentYear && c.mes === periodo
+      const enPeriodoY = (a) => {
+        if (a.noTrack || !a.enCaja) return false
+        const d = parseLocalDate(a.fecha)
+        if (!d || dayKey(d) > hoyKey) return false
+        if (filterTipo === "semana") return getWeekNumberISO(d) === periodo && getISOYear(d) === currentYear
+        return d.getFullYear() === currentYear && (d.getMonth() + 1) === periodo
+      }
+      ;(c.adelantos || []).forEach(a => { if (enPeriodoY(a)) cobradoHastaHoy += a.monto || 0 })
+      ;(c.cobros || []).forEach(a => { if (enPeriodoY(a)) cobradoHastaHoy += a.monto || 0 })
+      // Restar gastos del contrato si home cae en período y la fecha del gasto ≤ hoy
+      if (isHomeWeek || isHomeMes) {
+        const gastosArr = Array.isArray(c.gastos) ? c.gastos : []
+        gastosArr.forEach(g => {
+          if (!g || !(g.monto > 0)) return
+          const gd = parseLocalDate(g.fecha)
+          if (gd && dayKey(gd) <= hoyKey) cobradoHastaHoy -= g.monto
+        })
+      }
+    })
+
+    // Gasto hasta hoy: prorratear personal+servicios+apoyos por días op pasados.
+    // Usar el ritmo del calc (gastoNetoSemanal o gastoRealMes) y proporción.
+    const gastoTotal = filterTipo === "semana" ? liveGastoSemanal : liveGastoMes
+    const totalDiasOp = diasOpPasados + diasOpRestantes || 1
+    const gastoHastaHoy = gastoTotal * (diasOpPasados / totalDiasOp)
+    const gastoRestante = gastoTotal - gastoHastaHoy
+
+    // Hormigas hasta hoy (de Caja)
+    let hormigaHastaHoy = 0
+    cajaEntries.forEach(e => {
+      if (e.eliminado || e.delNegocio === false || e.gastoAjeno) return
+      if (!e.gastoHormiga || e.tipo !== "egreso") return
+      const d = parseLocalDate(e.fecha)
+      if (!d || dayKey(d) > hoyKey) return
+      const inP = filterTipo === "semana"
+        ? (getWeekNumberISO(d) === periodo && getISOYear(d) === currentYear)
+        : (d.getFullYear() === currentYear && (d.getMonth() + 1) === periodo)
+      if (inP) hormigaHastaHoy += e.monto || 0
+    })
+
+    const libreActual = cobradoHastaHoy - gastoHastaHoy - hormigaHastaHoy
+    // Proyección: asumir mismo ritmo de cobro para días op restantes
+    const ritmoCobro = diasOpPasados > 0 ? cobradoHastaHoy / diasOpPasados : 0
+    const cobradoProyectado = cobradoHastaHoy + ritmoCobro * diasOpRestantes
+    const libreProyectado = cobradoProyectado - gastoTotal - hormigaHastaHoy
+
+    return {
+      diasPasados, diasRestantes, diasOpPasados, diasOpRestantes,
+      cobradoHastaHoy, gastoHastaHoy, hormigaHastaHoy, libreActual,
+      cobradoProyectado, gastoRestante, libreProyectado, gastoTotal,
+      ritmoCobro,
+    }
+  })()
+
   return (
     <Card title="Historial de cierres" icon="📚" accent="violet">
       <div className="flex gap-2 mb-4 flex-wrap items-center">
@@ -162,27 +250,88 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
       </div>
 
       {/* Current period — en proceso (only for current year) */}
-      {viewYear === currentYear && <div className="mb-4">
+      {viewYear === currentYear && enProceso && <div className="mb-4">
         <div style={{
           background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.3)",
           borderRadius: 12, padding: "16px 20px",
         }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 16, fontWeight: 800, color: "#38bdf8" }}>{currentLabel}</span>
               <span style={{
                 padding: "2px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700,
                 background: "rgba(14,165,233,0.2)", color: "#38bdf8", border: "1px solid rgba(14,165,233,0.3)",
-              }}>⏳ En proceso</span>
+              }}>
+                ⏳ Día {enProceso.diasPasados} de {enProceso.diasPasados + enProceso.diasRestantes}
+              </span>
+              <span style={{ fontSize: 10, color: "#71717a" }}>
+                {enProceso.diasOpPasados} op pasados · {enProceso.diasOpRestantes} op restantes
+              </span>
             </div>
           </div>
-          <div style={{ fontSize: 11, color: "#71717a", marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: "#71717a", marginBottom: 12 }}>
             Datos en vivo — se actualizan cuando cambiás algo en los otros tabs
           </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12 }}>
+
+          {/* Hasta hoy + Proyección lado a lado */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
+            {/* Hasta hoy */}
+            <div style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#34d399", textTransform: "uppercase", marginBottom: 8 }}>🟢 Hasta hoy ({enProceso.diasPasados}d)</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#94a3b8" }}>Cobrado</span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#34d399" }}>{fmtS(enProceso.cobradoHastaHoy)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#94a3b8" }}>Gastos prorrateados</span>
+                  <span style={{ fontFamily: "monospace", color: "#f87171" }}>−{fmtS(enProceso.gastoHastaHoy)}</span>
+                </div>
+                {enProceso.hormigaHastaHoy > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#94a3b8" }}>🐜 Hormigas</span>
+                    <span style={{ fontFamily: "monospace", color: "#f472b6" }}>−{fmtS(enProceso.hormigaHastaHoy)}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 4, borderTop: "1px dashed rgba(63,63,70,0.4)", marginTop: 2 }}>
+                  <span style={{ color: "#cbd5e1", fontWeight: 700 }}>Libre actual</span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 800, color: enProceso.libreActual >= 0 ? "#34d399" : "#f87171" }}>
+                    {enProceso.libreActual >= 0 ? "+" : ""}{fmtS(enProceso.libreActual)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Proyección al cierre */}
+            <div style={{ background: "rgba(56,189,248,0.06)", border: "1px solid rgba(56,189,248,0.25)", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", marginBottom: 8 }}>🔵 Proyección al cierre ({enProceso.diasRestantes}d restantes)</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#94a3b8" }}>Cobrado proyectado</span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#38bdf8" }}>{fmtS(enProceso.cobradoProyectado)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#94a3b8" }}>Gasto total esperado</span>
+                  <span style={{ fontFamily: "monospace", color: "#f87171" }}>−{fmtS(enProceso.gastoTotal + enProceso.hormigaHastaHoy)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 4, borderTop: "1px dashed rgba(63,63,70,0.4)", marginTop: 2 }}>
+                  <span style={{ color: "#cbd5e1", fontWeight: 700 }}>Libre proyectado</span>
+                  <span style={{ fontFamily: "monospace", fontWeight: 800, color: enProceso.libreProyectado >= 0 ? "#34d399" : "#f87171" }}>
+                    {enProceso.libreProyectado >= 0 ? "+" : ""}{fmtS(enProceso.libreProyectado)}
+                  </span>
+                </div>
+                <div style={{ fontSize: 9, color: "#52525b", marginTop: 2 }}>
+                  Asume el mismo ritmo de cobro ({fmtS(enProceso.ritmoCobro)}/día op).
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer compacto */}
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12, marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(63,63,70,0.4)" }}>
             <div>
-              <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gastos {filterTipo === "semana" ? "semana" : "mes"}</div>
-              <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(filterTipo === "semana" ? liveGastoSemanal : liveGastoMes)}</div>
+              <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Gasto total {filterTipo === "semana" ? "semana" : "mes"}</div>
+              <div style={{ fontWeight: 700, color: "#f87171", fontFamily: "monospace" }}>{fmtS(enProceso.gastoTotal)}</div>
             </div>
             <div>
               <div style={{ color: "#71717a", fontSize: 10, textTransform: "uppercase" }}>Meta diaria</div>
