@@ -3,7 +3,8 @@ import Card from "../../ui/Card"
 import NumInput from "../../ui/NumInput"
 import TextInput from "../../ui/TextInput"
 import Select from "../../ui/Select"
-import { fmt, fmtS, peruNow, getWeekNumberISO, isActiveOnDate, monthKey, getMarcasMes } from "../../../../lib/finanzas/helpers"
+import { fmt, fmtS, peruNow, getWeekNumberISO, isActiveOnDate, monthKey, getDiaMarca } from "../../../../lib/finanzas/helpers"
+import { DIAS_SEMANA } from "../../../../lib/finanzas/constants"
 import WorkerCalendar from "../components/WorkerCalendar"
 import PeriodosEditor from "../components/PeriodosEditor"
 
@@ -14,41 +15,50 @@ const TONE_BADGE = {
   zinc: "bg-zinc-700/30 text-zinc-400 border-zinc-600/40",
 }
 
-function WeeklyPaySummary({ workersCalc, calendarDays, year, month }) {
+function WeeklyPaySummary({ workersCalc, year, month }) {
   const now = peruNow()
   const currentWeek = getWeekNumberISO(now)
   const isCurrentMonth = year === now.getFullYear() && month === (now.getMonth() + 1)
 
   const summary = useMemo(() => {
     if (!isCurrentMonth) return null
-    const weekDays = calendarDays.filter(d => {
-      const date = new Date(year, month - 1, d.dia)
-      return getWeekNumberISO(date) === currentWeek
-    })
-    if (weekDays.length === 0) return null
+
+    // 7 días reales de la semana ISO actual, anclados al lunes de la semana 1
+    // del año vigente. Soporta semanas que cruzan meses sin truncar.
+    const jan4 = new Date(year, 0, 4)
+    const jan4Dow = (jan4.getDay() + 6) % 7  // Mon=0..Sun=6
+    const week1Mon = new Date(jan4)
+    week1Mon.setDate(jan4.getDate() - jan4Dow)
+    const allWeekDates = []
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(week1Mon)
+      d.setDate(week1Mon.getDate() + (currentWeek - 1) * 7 + i)
+      allWeekDates.push(d)
+    }
 
     const rows = workersCalc.filter(w => w.name).map(w => {
-      const marcas = getMarcasMes(w, year, month)
       let diasTrabajados = 0
       let diasFaltados = 0
-      weekDays.forEach(d => {
-        const fecha = new Date(year, month - 1, d.dia)
-        if (!isActiveOnDate(w, fecha)) return
-        const marca = marcas[d.dia] || ""
-        const isRest = w.diaDescanso && d.nombre === w.diaDescanso
+      let diasEsperados = 0
+      allWeekDates.forEach(date => {
+        if (!isActiveOnDate(w, date)) return
+        const dyName = DIAS_SEMANA[date.getDay()]
+        const isRest = w.diaDescanso && dyName === w.diaDescanso
+        if (!isRest) diasEsperados++
+        const marca = getDiaMarca(w, date.getFullYear(), date.getMonth() + 1, date.getDate())
         if (marca === "noVino") { diasFaltados++; return }
         if (isRest && !marca) return
         diasTrabajados++
       })
       const pago = diasTrabajados * w.costoDiario
-      const pagoCompleto = w.pagoSemanal
+      const pagoCompleto = diasEsperados * w.costoDiario
       return { name: w.name, diasTrabajados, diasFaltados, costoDiario: w.costoDiario, pago, pagoCompleto }
-    }).filter(r => r.diasTrabajados > 0 || r.diasFaltados > 0)
+    }).filter(r => r.diasTrabajados > 0 || r.diasFaltados > 0 || r.pagoCompleto > 0)
 
     const total = rows.reduce((s, r) => s + r.pago, 0)
     const totalPresupuestado = rows.reduce((s, r) => s + r.pagoCompleto, 0)
-    return { rows, total, totalPresupuestado, weekDays: weekDays.length }
-  }, [isCurrentMonth, calendarDays, workersCalc, year, month, currentWeek])
+    return { rows, total, totalPresupuestado, weekDays: 7 }
+  }, [isCurrentMonth, workersCalc, year, currentWeek])
 
   if (!summary) return null
 
@@ -265,7 +275,7 @@ export default function PersonalTab({
       <button onClick={addWorker} className="mt-4 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-sm hover:bg-amber-500/20 transition-all">+ Agregar trabajador</button>
 
       {/* Weekly pay summary for current week */}
-      <WeeklyPaySummary workersCalc={workersCalc} calendarDays={calendarDays} year={year} month={month} />
+      <WeeklyPaySummary workersCalc={workersCalc} year={year} month={month} />
 
       <div className="mt-6 pt-4 border-t border-zinc-800">
         <h3 className="text-sm font-semibold text-zinc-400 mb-3 uppercase tracking-wider">Resumen de descansos fijos por día</h3>
