@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import DarkStatCard from "../ui/DarkStatCard"
-import { formatMoney, peruToday, peruNow, getWeekNumberISO } from "../../../lib/finanzas/helpers"
+import { formatMoney, peruToday, peruNow, getWeekNumberISO, getISOYear } from "../../../lib/finanzas/helpers"
 import { MESES, MESES_CORTO } from "../../../lib/finanzas/constants"
 import { useCajaEntries } from "./hooks/useCajaEntries"
 import { useCajaDesglose } from "./hooks/useCajaDesglose"
@@ -21,8 +21,11 @@ const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: 
 export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, readOnly = false, preloadedData }) {
   const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset } = useCajaEntries({ preloadedData })
 
-  const currentWeekNum = getWeekNumberISO(peruNow())
-  const currentMonthNum = peruNow().getMonth() + 1
+  const _now = peruNow()
+  const currentWeekNum = getWeekNumberISO(_now)
+  const currentMonthNum = _now.getMonth() + 1
+  const currentYear = _now.getFullYear()
+  const currentISOYear = getISOYear(_now)
 
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
@@ -42,15 +45,22 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
     else { setSortBy(field); setSortDir("desc") }
   }
 
-  // Resolve an entry's ISO week/month for filtering. Cheap to compute
-  // on the fly — entries are small.
+  // Resolve an entry's ISO week/month/year for filtering. Cheap to compute
+  // on the fly — entries are small. Mes filtra por calendar year, semana
+  // por ISO year (con tolerancia ±1 para sem 53/sem 1 que cruzan año).
   const entryWeek = (e) => { if (!e.fecha) return null; const d = new Date(e.fecha + "T12:00:00"); return getWeekNumberISO(d) }
   const entryMonth = (e) => { if (!e.fecha) return null; const parts = e.fecha.split("-"); return parts[1] ? +parts[1] : null }
+  const entryYear = (e) => { if (!e.fecha) return null; const parts = e.fecha.split("-"); return parts[0] ? +parts[0] : null }
+  const entryISOYear = (e) => { if (!e.fecha) return null; const d = new Date(e.fecha + "T12:00:00"); return getISOYear(d) }
 
   const filtered = useMemo(() => {
     let list = [...activeEntries]
-    if (filterMes) list = list.filter(e => entryMonth(e) === +filterMes)
-    if (filterSem) list = list.filter(e => String(entryWeek(e)) === filterSem)
+    if (filterMes) list = list.filter(e => entryMonth(e) === +filterMes && entryYear(e) === currentYear)
+    if (filterSem) list = list.filter(e => {
+      if (String(entryWeek(e)) !== filterSem) return false
+      const iy = entryISOYear(e)
+      return iy === currentISOYear || iy === currentISOYear - 1 || iy === currentISOYear + 1
+    })
     if (soloExterno) list = list.filter(e => e.delNegocio === false)
     else if (soloNegocio) list = list.filter(e => e.delNegocio !== false)
     if (soloContrato) list = list.filter(e => e.deContrato && e.delNegocio !== false)
@@ -60,7 +70,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
       else cmp = (a.fecha || "").localeCompare(b.fecha || "")
       return sortDir === "asc" ? cmp : -cmp
     })
-  }, [activeEntries, filterMes, filterSem, soloNegocio, soloContrato, soloExterno, sortBy, sortDir])
+  }, [activeEntries, filterMes, filterSem, soloNegocio, soloContrato, soloExterno, sortBy, sortDir, currentYear, currentISOYear])
 
   // setQuickAll/setQuickWeek/setQuickMonth come from props (shared with Contratos).
 
@@ -82,10 +92,10 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
   // Same period filter so the chip is consistent with the table.
   const contratosSnapshot = useContratosSnapshot()
   const reconciliationPeriod = useMemo(() => {
-    if (filterSem) return { type: "semana", value: +filterSem }
-    if (filterMes) return { type: "mes", value: +filterMes }
-    return { type: null, value: null }
-  }, [filterSem, filterMes])
+    if (filterSem) return { type: "semana", value: +filterSem, year: currentISOYear }
+    if (filterMes) return { type: "mes", value: +filterMes, year: currentYear }
+    return { type: null, value: null, year: null }
+  }, [filterSem, filterMes, currentISOYear, currentYear])
   const reconciliation = useReconciliation(contratosSnapshot, activeEntries, reconciliationPeriod)
   const reconciliationLabel = filterSem ? `Sem ${filterSem}` : filterMes ? MESES[+filterMes] : "Todo el tiempo"
 

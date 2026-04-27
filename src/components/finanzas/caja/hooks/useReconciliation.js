@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { parseLocalDate, getWeekNumberISO, getGastosTotal } from "../../../../lib/finanzas/helpers"
+import { parseLocalDate, getWeekNumberISO, getISOYear, getGastosTotal } from "../../../../lib/finanzas/helpers"
 
 // Computes the cross-module reconciliation between Contratos and Caja.
 //
@@ -19,16 +19,29 @@ import { parseLocalDate, getWeekNumberISO, getGastosTotal } from "../../../../li
 // against the period. This mirrors exactly what the user does when they
 // create two separate entries in Caja for the same contract.
 //
-// `period` is { type: "semana"|"mes"|null, value: number|null }. null
-// means "all time".
+// `period` is { type: "semana"|"mes"|null, value: number|null, year: number|null }.
+// null type means "all time". `year` filtra por año (calendar para mes,
+// ISO para semana). Si no se pasa, no se filtra por año.
 export function useReconciliation(contracts, entries, period) {
   return useMemo(() => {
     const dateInPeriod = (dateStr) => {
       if (!period || !period.type) return true
       const d = parseLocalDate(dateStr)
       if (!d) return false
-      if (period.type === "semana") return getWeekNumberISO(d) === period.value
-      if (period.type === "mes") return (d.getMonth() + 1) === period.value
+      if (period.type === "semana") {
+        if (getWeekNumberISO(d) !== period.value) return false
+        if (period.year != null) {
+          const isoY = getISOYear(d)
+          // Tolerancia de ±1 año para sem 53 / sem 1 que cruzan año.
+          return isoY === period.year || isoY === period.year - 1 || isoY === period.year + 1
+        }
+        return true
+      }
+      if (period.type === "mes") {
+        if ((d.getMonth() + 1) !== period.value) return false
+        if (period.year != null && d.getFullYear() !== period.year) return false
+        return true
+      }
       return true
     }
 

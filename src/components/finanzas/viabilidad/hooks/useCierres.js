@@ -31,22 +31,22 @@ function getEntryDate(e) {
 // (not the flat pagoSemanal), plus the proportional services and apoyo.
 //
 // ISO weeks can cross month boundaries (e.g. week 14 = Mar 30 – Apr 5).
-// We find the actual 7 days of the week by starting from a known Thursday
-// in that ISO week, then walking Mon–Sun. Worker marks (diasMarcados) are
-// keyed by day-of-month, so we use the day number from whichever month
-// each date falls in.
-function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month, targetWeek, diasOpBase) {
-  // Find the 7 real calendar dates for this ISO week.
-  // Strategy: scan a range around the target month to find days matching the week.
+// Anclamos la semana en el lunes de la semana ISO `targetWeek` del año ISO
+// `wYear` y caminamos Mon–Sun. Para servicios/apoyos prorrateados por mes,
+// cada día usa el divisor de SU propio mes (no un mes único compartido),
+// así una semana que cruza fin/inicio de mes se prorratea correcto.
+function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, wYear, targetWeek, diasOpBase) {
+  // Lunes de la semana ISO 1 de wYear: el lunes en/antes del 4-ene.
+  const jan4 = new Date(wYear, 0, 4)
+  const jan4Dow = (jan4.getDay() + 6) % 7  // Mon=0..Sun=6
+  const week1Mon = new Date(jan4)
+  week1Mon.setDate(jan4.getDate() - jan4Dow)
   const weekDays = []
-  const scanStart = new Date(year, month - 2, 1)  // prev month start
-  const scanEnd = new Date(year, month, 0)         // current month end
-  for (let d = new Date(scanStart); d <= scanEnd; d.setDate(d.getDate() + 1)) {
-    if (getWeekNumberISO(d) === targetWeek) {
-      weekDays.push({ dia: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear(), nombre: DIAS_SEMANA[d.getDay()] })
-    }
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(week1Mon)
+    d.setDate(week1Mon.getDate() + (targetWeek - 1) * 7 + i)
+    weekDays.push({ dia: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear(), nombre: DIAS_SEMANA[d.getDay()] })
   }
-  if (weekDays.length === 0) return null
 
   let personalCost = 0
   workers.forEach(w => {
@@ -63,31 +63,33 @@ function calcGastoSemanaReal(workers, services, apoyos, contarApoyo, year, month
     })
   })
 
-  // Services: respetan historial. Cada servicio aporta costoDiario por cada
-  // día de la semana que estuvo activo.
-  const realDays = weekDays.length
-  const daysInMonth = getDaysInMonth(year, month)
+  // Servicios: cada día usa el divisor del mes en que CAE ese día. Si la
+  // semana cruza dos meses, los días aportan distinto costoDiario.
   let servProportion = 0
   services.forEach(s => {
     if (!s.nombre) return
-    const div = s.divisor || diasOpBase || Math.max(1, daysInMonth - 4)
-    const costoDiario = div > 0 ? (s.pagoMensual || 0) / div : 0
-    const activeInWeek = weekDays.filter(({ dia, month: dm, year: dy }) =>
-      isActiveOnDate(s, new Date(dy, dm - 1, dia))
-    ).length
-    servProportion += costoDiario * activeInWeek
+    weekDays.forEach(({ dia, month: dm, year: dy }) => {
+      const date = new Date(dy, dm - 1, dia)
+      if (!isActiveOnDate(s, date)) return
+      const dim = getDaysInMonth(dy, dm)
+      const div = s.divisor || diasOpBase || Math.max(1, dim - 4)
+      const costoDiario = div > 0 ? (s.pagoMensual || 0) / div : 0
+      servProportion += costoDiario
+    })
   })
 
-  // Apoyos: igual trato, por día activo
+  // Apoyos: idem servicios — divisor por mes de cada día.
   let apoyoProportion = 0
   if (contarApoyo === "SI") {
     apoyos.forEach(a => {
       if (!a.concepto) return
-      const costoDiario = (a.montoMensual || 0) / daysInMonth
-      const activeInWeek = weekDays.filter(({ dia, month: dm, year: dy }) =>
-        isActiveOnDate(a, new Date(dy, dm - 1, dia))
-      ).length
-      apoyoProportion += costoDiario * activeInWeek
+      weekDays.forEach(({ dia, month: dm, year: dy }) => {
+        const date = new Date(dy, dm - 1, dia)
+        if (!isActiveOnDate(a, date)) return
+        const dim = getDaysInMonth(dy, dm)
+        const costoDiario = (a.montoMensual || 0) / dim
+        apoyoProportion += costoDiario
+      })
     })
   }
 
@@ -228,7 +230,7 @@ export function useCierres(calc, state) {
           gastoSemanal = existing.data.gastoSemanal
           apoyo = existing.data.apoyo ?? 0
         } else if (st) {
-          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, currentYear, currentMonth, w, c.diasOpBase)
+          const real = calcGastoSemanaReal(st.workers, st.services, st.apoyos, st.contarApoyo, wYear, w, c.diasOpBase)
           gastoSemanal = real ? real.gastoNeto : currentGastoSemanal
           apoyo = real ? real.apoyo : currentApoyoSemanal
         } else {
