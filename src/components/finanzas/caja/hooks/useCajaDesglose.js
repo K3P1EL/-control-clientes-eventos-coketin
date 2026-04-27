@@ -13,7 +13,7 @@ export function useCajaDesglose(filtered) {
     let contratoIn = 0, contratoOut = 0, fueraIn = 0, fueraOut = 0
     let contYapeIn = 0, contYapeOut = 0, contEfecIn = 0, contEfecOut = 0
     let fueraYapeIn = 0, fueraYapeOut = 0, fueraEfecIn = 0, fueraEfecOut = 0
-    let sueldoOut = 0, servicioOut = 0, gastoAjenoOut = 0, gastoAjenoIn = 0
+    let sueldoOut = 0, servicioOut = 0, hormigaOut = 0, gastoAjenoOut = 0, gastoAjenoIn = 0
 
     filtered.forEach(e => {
       const m = e.monto || 0
@@ -42,6 +42,7 @@ export function useCajaDesglose(filtered) {
         else { fueraOut += m; if (isYape) fueraYapeOut += m; else fueraEfecOut += m }
         if (!e.gastoAjeno && e.categoria === "sueldo") sueldoOut += m
         if (!e.gastoAjeno && e.categoria === "servicio") servicioOut += m
+        if (!e.gastoAjeno && e.gastoHormiga) hormigaOut += m
       }
     })
 
@@ -59,7 +60,7 @@ export function useCajaDesglose(filtered) {
       contYapeBal: contYapeIn - contYapeOut, contEfecBal: contEfecIn - contEfecOut,
       fueraYapeBal: fueraYapeIn - fueraYapeOut, fueraEfecBal: fueraEfecIn - fueraEfecOut,
       contYapeIn, contYapeOut, contEfecIn, contEfecOut,
-      sueldoOut, servicioOut, gastoAjenoIn, gastoAjenoOut, gastoAjenoBal: gastoAjenoIn - gastoAjenoOut,
+      sueldoOut, servicioOut, hormigaOut, gastoAjenoIn, gastoAjenoOut, gastoAjenoBal: gastoAjenoIn - gastoAjenoOut,
     }
   }, [filtered])
 }

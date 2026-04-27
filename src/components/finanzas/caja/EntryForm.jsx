@@ -70,12 +70,20 @@ export default function EntryForm({ form, setForm, editId, onSubmit, onCancel })
             📋 Del contrato
           </button>
         )}
-        <button onClick={() => setForm(p => ({ ...p, gastoAjeno: !p.gastoAjeno }))}
+        <button onClick={() => setForm(p => ({ ...p, gastoAjeno: !p.gastoAjeno, ...(!p.gastoAjeno ? { gastoHormiga: false } : {}) }))}
           style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, cursor: "pointer", border: form.gastoAjeno ? "1px solid rgba(251,191,36,0.4)" : "1px solid #3f3f46", background: form.gastoAjeno ? "rgba(251,191,36,0.1)" : "#27272a", color: form.gastoAjeno ? "#fbbf24" : "#71717a", fontSize: 12, fontWeight: 700 }}>
           <span style={{ width: 18, height: 18, borderRadius: 4, border: form.gastoAjeno ? "2px solid #fbbf24" : "2px solid #52525b", background: form.gastoAjeno ? "rgba(251,191,36,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#fbbf24" }}>{form.gastoAjeno ? "✓" : ""}</span>
           💰 Gasto ajeno
         </button>
         {form.gastoAjeno && <span style={{ fontSize: 11, color: "#a16207" }}>Salió de caja pero no es para el negocio</span>}
+        {form.delNegocio && form.tipo === "egreso" && !form.gastoAjeno && (
+          <button onClick={() => setForm(p => ({ ...p, gastoHormiga: !p.gastoHormiga }))}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, cursor: "pointer", border: form.gastoHormiga ? "1px solid rgba(244,114,182,0.4)" : "1px solid #3f3f46", background: form.gastoHormiga ? "rgba(244,114,182,0.1)" : "#27272a", color: form.gastoHormiga ? "#f472b6" : "#71717a", fontSize: 12, fontWeight: 700 }}>
+            <span style={{ width: 18, height: 18, borderRadius: 4, border: form.gastoHormiga ? "2px solid #f472b6" : "2px solid #52525b", background: form.gastoHormiga ? "rgba(244,114,182,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#f472b6" }}>{form.gastoHormiga ? "✓" : ""}</span>
+            🐜 Hormiga
+          </button>
+        )}
+        {form.gastoHormiga && <span style={{ fontSize: 11, color: "#be185d" }}>Gasto chico/recurrente del negocio</span>}
         {form.delNegocio && form.tipo === "egreso" && !form.gastoAjeno && (
           <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
             <span style={{ fontSize: 10, color: "#52525b", marginRight: 2 }}>Cat:</span>

@@ -12,7 +12,7 @@ import MetricsView from "./MetricsView"
 import ReconciliationChip from "./ReconciliationChip"
 import CajaTrashModal from "./CajaTrashModal"
 
-const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: "", modalidad: "Yape", delNegocio: true, deContrato: true, gastoAjeno: false, categoria: "" }
+const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: "", modalidad: "Yape", delNegocio: true, deContrato: true, gastoAjeno: false, gastoHormiga: false, categoria: "" }
 
 // Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
 // so switching between Contratos ↔ Caja keeps the same time window.
@@ -112,7 +112,7 @@ export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuick
       fecha: e.fecha, tipo: e.tipo, monto: e.monto, concepto: e.concepto,
       quien: e.quien || "", modalidad: e.modalidad || "Yape",
       delNegocio: e.delNegocio !== false, deContrato: e.deContrato || false,
-      gastoAjeno: e.gastoAjeno || false, categoria: e.categoria || "",
+      gastoAjeno: e.gastoAjeno || false, gastoHormiga: e.gastoHormiga || false, categoria: e.categoria || "",
     })
     setEditId(e.id)
     setShowForm(true)

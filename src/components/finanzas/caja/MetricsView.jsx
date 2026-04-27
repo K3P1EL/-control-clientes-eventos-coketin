@@ -120,7 +120,7 @@ export default function MetricsView({ desglose, totalIngresos, totalEgresos, bal
       </div>
 
       {/* ── CONCILIACION ── */}
-      {(desglose.sueldoOut > 0 || desglose.servicioOut > 0) && (
+      {(desglose.sueldoOut > 0 || desglose.servicioOut > 0 || desglose.hormigaOut > 0) && (
         <div style={cDark.card}>
           <div style={{ padding: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: "#e4e4e7", marginBottom: 12 }}>🔗 Conciliación con Contratos</div>
@@ -137,9 +137,15 @@ export default function MetricsView({ desglose, totalIngresos, totalEgresos, bal
                   <div style={{ fontSize: 16, fontWeight: 800, color: "#38bdf8", marginTop: 2 }}>{formatMoney(desglose.servicioOut)}</div>
                 </div>
               )}
+              {desglose.hormigaOut > 0 && (
+                <div style={{ background: "rgba(244,114,182,0.06)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(244,114,182,0.15)" }}>
+                  <div style={{ fontSize: 10, color: "#f472b6", fontWeight: 700 }}>🐜 Gastos hormiga</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#f472b6", marginTop: 2 }}>{formatMoney(desglose.hormigaOut)}</div>
+                </div>
+              )}
               <div style={{ background: "rgba(16,185,129,0.06)", borderRadius: 10, padding: "10px 14px", border: "1px solid rgba(16,185,129,0.15)" }}>
-                <div style={{ fontSize: 10, color: "#34d399", fontWeight: 700 }}>Balance negocio + Sueldos{desglose.servicioOut > 0 ? " + Servicios" : ""}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#34d399", marginTop: 2 }}>{formatMoney(desglose.negBal + desglose.sueldoOut + desglose.servicioOut)}</div>
+                <div style={{ fontSize: 10, color: "#34d399", fontWeight: 700 }}>Balance negocio + Sueldos{desglose.servicioOut > 0 ? " + Servicios" : ""}{desglose.hormigaOut > 0 ? " + Hormiga" : ""}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#34d399", marginTop: 2 }}>{formatMoney(desglose.negBal + desglose.sueldoOut + desglose.servicioOut + desglose.hormigaOut)}</div>
                 <div style={{ fontSize: 9, color: "#52525b", marginTop: 2 }}>≈ debería coincidir con Contratos "En Caja"</div>
               </div>
             </div>
