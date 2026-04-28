@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { STORAGE_KEYS } from "../../../../lib/finanzas/constants"
-import { calcContract, normalizeContract, fillMissingPaymentDates, getContractHomeDate, parseLocalDate, getWeekNumberISO, getGastosTotal } from "../../../../lib/finanzas/helpers"
+import { calcContract, normalizeContract, fillMissingPaymentDates, getContractHomeDate, parseLocalDate, getWeekNumberISO, getISOYear, getGastosTotal } from "../../../../lib/finanzas/helpers"
 import { useSupabaseSync } from "../../hooks/useSupabaseSync"
 import { loadContratos, saveContratos, deleteContratos } from "../../../../services/finanzas"
 import { remove as removeLocal } from "../../../../lib/storage"
@@ -117,6 +117,19 @@ export function useContratos({ preloadedData } = {}) {
     // antes de guardar — así filtros y reconciliación los toman en período
     // sin esperar al próximo reload.
     const filled = fillMissingPaymentDates(form)
+    // Auto-derivar semana/mes/anio del homeDate (primer pago real). Antes
+    // se asignaban en el modal con peruNow() al crear, así que un contrato
+    // cargado HOY con fechas de la semana pasada quedaba en la semana
+    // equivocada. La fuente de verdad ahora es la fecha del pago.
+    const homeDate = getContractHomeDate(filled)
+    if (homeDate) {
+      const d = parseLocalDate(homeDate)
+      if (d) {
+        filled.semana = getWeekNumberISO(d)
+        filled.mes = d.getMonth() + 1
+        filled.anio = d.getFullYear()  // calendar year — los filtros toleran ±1 para sem 53
+      }
+    }
     setContracts(prev => {
       const exists = prev.find(c => c.id === filled.id)
       if (exists) {
