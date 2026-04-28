@@ -293,7 +293,7 @@ export function safeRemoveRecord(list, idx, nameField = "nombre") {
   }
 
   // Ya inactivo: confirmar antes de eliminar permanente
-  // eslint-disable-next-line no-undef
+   
   const ok = typeof window !== "undefined" && window.confirm
     ? window.confirm(`¿Eliminar permanentemente "${name}"? Se borrará todo su historial.`)
     : true
@@ -391,9 +391,14 @@ export function normalizeContract(c) {
 
   const gastos = normalizeGastos(c)
 
+  // Descartamos campos viejos (shape pre-arrays) al construir el objeto nuevo.
+  // Las variables se asignan pero no se usan — eso es intencional.
+  // eslint-disable-next-line no-unused-vars
   const { adelanto, modalAdel, recibioAdel, fechaAdel, enCajaAdel, noTrackAdel,
+          // eslint-disable-next-line no-unused-vars
           cobro, modalCobro, recibioCobro, fechaCobro, enCajaCobro, noTrackCobro,
-          gastosRegistradoCaja, // consumido al migrar al array
+          // eslint-disable-next-line no-unused-vars
+          gastosRegistradoCaja,
           ...rest } = c
   return { ...rest, adelantos, cobros, gastos }
 }

@@ -17,6 +17,7 @@ export default function DarkMoneyInput({ value, onChange, style }) {
       userTyping.current = false
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRaw(value === 0 ? "" : String(value || ""))
   }, [value])
 

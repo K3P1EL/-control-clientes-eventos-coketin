@@ -21,6 +21,7 @@ export default function ShareLinkModal({ onClose }) {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => { refresh() }, [])
 
   const handleCreate = async () => {

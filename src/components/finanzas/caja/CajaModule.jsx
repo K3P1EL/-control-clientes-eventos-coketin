@@ -19,7 +19,7 @@ const EMPTY_FORM = { fecha: "", tipo: "ingreso", monto: 0, concepto: "", quien: 
 // readOnly: modo vista pública — oculta form/edit/delete. preloadedData:
 // array de entries para saltarse Supabase (usado con token de vista).
 export default function CajaModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, readOnly = false, preloadedData }) {
-  const { loaded, entries, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete, handleReset } = useCajaEntries({ preloadedData })
+  const { loaded, activeEntries, deletedEntries, addEntry, removeEntry, restoreEntry, permanentDelete } = useCajaEntries({ preloadedData })
 
   const _now = peruNow()
   const currentWeekNum = getWeekNumberISO(_now)

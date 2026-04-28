@@ -13,9 +13,9 @@ import FileViewerModal from "./registro/FileViewerModal"
 import RegistroTable from "./registro/RegistroTable"
 
 export default memo(function Registro({
-  regs, user, adm, tags, photos, clients, locales, users,
+  regs, user, adm, tags, clients, locales, users,
   navRegId, navRegDate, clearNavReg,
-  onAddReg, onUpdateReg, onUploadRegPhoto, onHardDeleteReg, onAddClient, onDeleteClient, onAddContratoArchivo, onDeleteContratoArchivo, onUpdateContrato, goToClient,
+  onAddReg, onUpdateReg, onHardDeleteReg, onAddClient, onDeleteClient, onAddContratoArchivo, onDeleteContratoArchivo, onUpdateContrato, goToClient,
 }) {
   const [date,      setDate]      = useState(today())
   // Admin defaults to null (employee grid). When localStorage has a saved
@@ -139,7 +139,7 @@ export default memo(function Registro({
       }
       if (clientId && contratoId) {
         const results = await Promise.allSettled(files.map(f => onAddContratoArchivo(clientId, contratoId, f)))
-        const failed = results.filter((r,i) => r.status === "rejected").map((r,i) => files[i]?.name || `archivo ${i+1}`)
+        const failed = results.filter(r => r.status === "rejected").map((r,i) => files[i]?.name || `archivo ${i+1}`)
         if (failed.length) alert(`Error subiendo: ${failed.join(", ")}`)
         onUpdateReg(regId, { foto: "SI" })
       } else {

@@ -139,7 +139,6 @@ export default function HistorialTab({ cierres, currentWeek, currentMonth, curre
     color: active ? "#38bdf8" : "#71717a",
   })
 
-  const currentPeriodo = filterTipo === "semana" ? currentWeek : currentMonth
   const currentLabel = filterTipo === "semana" ? `Semana ${currentWeek}` : MESES_CORTO[currentMonth]
 
   // Live numbers for current period from calc

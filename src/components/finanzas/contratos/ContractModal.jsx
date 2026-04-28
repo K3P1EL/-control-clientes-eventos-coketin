@@ -175,6 +175,7 @@ export default function ContractModal({ contract, onSave, onClose, nextId, prodT
   const initial = useMemo(() => JSON.stringify(normalized || defaultForm(nextId)), [normalized, nextId])
   const isDirty = JSON.stringify(form) !== initial
   const dirtyRef = useRef(isDirty)
+  // eslint-disable-next-line react-hooks/refs
   dirtyRef.current = isDirty
   const safeClose = () => {
     if (dirtyRef.current && !window.confirm("¿Descartar cambios sin guardar?")) return

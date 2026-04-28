@@ -14,6 +14,7 @@ import { setJSON } from "./storage"
 export function useDebouncedPersist(key, data, loaded, delay = 400) {
   const timer = useRef(null)
   const latest = useRef(data)
+  // eslint-disable-next-line react-hooks/refs
   latest.current = data
 
   // Schedule a debounced save on every data change.

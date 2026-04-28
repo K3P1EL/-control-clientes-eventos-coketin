@@ -24,7 +24,7 @@ function fmtDateShort(raw) {
 //   🗑️  → soft delete (sends to Papelera, can be restored)
 //   🗑️× → hard delete (skips Papelera, gone immediately, with confirm)
 export default function TablaView({
-  filtered, filteredSummary, filterSem, filterMes, currentWeekNum, quickLabel,
+  filtered, filteredSummary, filterSem, filterMes, quickLabel,
   filterEstado, setFilterEstado, search, setSearch, setQuickAll,
   sortBy, sortDir, toggleSort,
   onEdit, onDelete, onPermanentDelete,

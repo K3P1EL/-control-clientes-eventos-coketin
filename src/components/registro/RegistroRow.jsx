@@ -28,7 +28,7 @@ function CopyBtn({ text }) {
 // client changes without inspecting hundreds of unrelated entries.
 function RegistroRow({
   r, i, linked, isSel, isDrag, canEdit, isUploading,
-  total, adm, locales, tags,
+  adm, locales, tags,
   upd, del, restore, hardDel,
   setSelectedRow, setContractUpId, setPreviewRegId, cRef,
   goToClient, onAddClient, user,

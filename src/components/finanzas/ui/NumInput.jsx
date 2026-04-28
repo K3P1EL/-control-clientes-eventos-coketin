@@ -14,7 +14,7 @@ export default function NumInput({ value, onChange, placeholder = "", className 
       inputMode="numeric"
       value={display}
       onChange={e => {
-        const v = e.target.value.replace(/[^0-9.\-]/g, "")
+        const v = e.target.value.replace(/[^0-9.-]/g, "")
         setRaw(v)
         if (v === "" || v === "-") return onChange("")
         const num = Number(v)

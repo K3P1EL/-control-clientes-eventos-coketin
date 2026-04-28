@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { fetchPublicContratos, fetchPublicCaja } from "../services/shareTokens"
 import { peruNow, getWeekNumberISO } from "../lib/finanzas/helpers"
 import { MESES_CORTO } from "../lib/finanzas/constants"

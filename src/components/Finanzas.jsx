@@ -6,7 +6,6 @@ import ShareLinkModal from "./finanzas/ShareLinkModal"
 import { peruNow, getWeekNumberISO, calcContract } from "../lib/finanzas/helpers"
 import { MESES_CORTO } from "../lib/finanzas/constants"
 import { useContratosSnapshot } from "./finanzas/caja/hooks/useContratosSnapshot"
-import { useCajaDesglose } from "./finanzas/caja/hooks/useCajaDesglose"
 import { exportResumen } from "../lib/finanzas/exportResumen"
 
 // Top-level Finanzas entry. Holds a small tab bar to switch between

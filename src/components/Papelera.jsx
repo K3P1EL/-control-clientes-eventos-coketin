@@ -20,7 +20,7 @@ function timeAgo(ts) {
 }
 
 export default function Papelera({
-  clients, contactos, regs,
+  clients, contactos,
   onRestoreClient, onPermanentDeleteClient,
   onRestoreContacto, onPermanentDeleteContacto,
   adm, trashDays = 10,

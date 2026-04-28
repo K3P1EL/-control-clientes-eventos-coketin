@@ -55,6 +55,7 @@ export function DInput({ value, onCommit, tag = "input", ...props }) {
   const timer = useRef(null)
   const mounted = useRef(true)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setLocal(prev => (value ?? "") === prev ? prev : (value ?? "")) }, [value])
   useEffect(() => () => { mounted.current = false; clearTimeout(timer.current) }, [])
 
@@ -165,6 +166,7 @@ export function DatePicker({ value, onChange, placeholder = "Seleccionar" }) {
     return () => document.removeEventListener("mousedown", close)
   }, [open])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (value) {
       const d = new Date(value + "T00:00:00")

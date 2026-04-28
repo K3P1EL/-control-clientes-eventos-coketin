@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react"
 import { C } from "../lib/colors"
-import { inp, mi, btn, td, ib, sel, DInput, toast, SafeImg } from "./shared"
+import { inp, mi, ib, sel, DInput, toast, SafeImg } from "./shared"
 import { Bdg } from "./shared"
 import { fmtDate } from "../lib/helpers"
 import { getStr, setStr } from "../lib/storage"
@@ -111,7 +111,7 @@ export default memo(function Almacen({
             {/* Archivos de SALIDA */}
             <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, borderLeft:`3px solid ${C.orange}` }}>
               <h3 style={{ fontSize:14, fontWeight:600, marginTop:0, marginBottom:10, color:C.orange }}>Lo que se lleva</h3>
-              <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingCount(c=>c+files.length);const failed=[];await Promise.all(files.map(f=>onAddAlmacenArchivo(s.id,f).catch(err=>failed.push(f.name))));setUploadingCount(c=>Math.max(0,c-files.length));if(failed.length)toast(`Error subiendo: ${failed.join(", ")}`)}} />
+              <input ref={fRef} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingCount(c=>c+files.length);const failed=[];await Promise.all(files.map(f=>onAddAlmacenArchivo(s.id,f).catch(()=>failed.push(f.name))));setUploadingCount(c=>Math.max(0,c-files.length));if(failed.length)toast(`Error subiendo: ${failed.join(", ")}`)}} />
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                 <button onClick={()=>fRef.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.orange, cursor:"pointer", padding:"6px 14px", fontSize:11, fontWeight:600 }}>Subir foto</button>
                 {uploadingCount > 0 && <span style={{ fontSize:11, color:C.orange }}>{uploadingCount} subiendo...</span>}
@@ -143,7 +143,7 @@ export default memo(function Almacen({
             {/* Archivos de RECOJO */}
             <div style={{ background:C.card, borderRadius:12, border:`1px solid ${C.border}`, padding:20, borderLeft:`3px solid ${C.green}` }}>
               <h3 style={{ fontSize:14, fontWeight:600, marginTop:0, marginBottom:10, color:C.green }}>Lo que se recoge</h3>
-              <input ref={fRefRecojo} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingRecojo(c=>c+files.length);const failed=[];await Promise.all(files.map(f=>onAddArchivoRecojo(s.id,f).catch(err=>failed.push(f.name))));setUploadingRecojo(c=>Math.max(0,c-files.length));if(failed.length)toast(`Error subiendo: ${failed.join(", ")}`)}} />
+              <input ref={fRefRecojo} type="file" accept="video/*,image/*,application/pdf" multiple style={{ display:"none" }} onChange={async e=>{const files=Array.from(e.target.files||[]);e.target.value="";if(!files.length)return;setUploadingRecojo(c=>c+files.length);const failed=[];await Promise.all(files.map(f=>onAddArchivoRecojo(s.id,f).catch(()=>failed.push(f.name))));setUploadingRecojo(c=>Math.max(0,c-files.length));if(failed.length)toast(`Error subiendo: ${failed.join(", ")}`)}} />
               <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                 <button onClick={()=>fRefRecojo.current?.click()} style={{ background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.green, cursor:"pointer", padding:"6px 14px", fontSize:11, fontWeight:600 }}>Subir foto</button>
                 {uploadingRecojo > 0 && <span style={{ fontSize:11, color:C.green }}>{uploadingRecojo} subiendo...</span>}

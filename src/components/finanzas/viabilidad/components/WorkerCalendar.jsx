@@ -35,7 +35,6 @@ export default function WorkerCalendar({ worker, calendarDays, effectiveTracker,
                 const marca = getMarcasMes(worker, year, month)[d.dia] || ""
                 const isFeriado = effectiveTracker[d.dia] === "Feriado"
                 const isPast = isPastMonth || d.dia <= today
-                const isToday = d.dia === today && !isPastMonth
                 const fecha = new Date(year, month - 1, d.dia)
                 const isInactive = !isActiveOnDate(worker, fecha)
 

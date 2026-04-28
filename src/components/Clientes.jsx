@@ -3,7 +3,7 @@ import { C } from "../lib/colors"
 import { today, fmtDate, consumeChangeTipo, genCode, canScanOCR, OCR_PER_HOUR_LIMIT, fichaStatus, fichaCanal } from "../lib/helpers"
 import { LIMITS } from "../lib/constants"
 import { getOCRUsage } from "../services/config"
-import { lbl, inp, mi, btn, td, ib, DInput, SafeImg, DatePicker } from "./shared"
+import { lbl, inp, btn, DInput, SafeImg, DatePicker } from "./shared"
 import { parseOCRText } from "../services/ocr"
 import { incrementOCRCount } from "../services/config"
 import { getStr, setStr } from "../lib/storage"
@@ -27,7 +27,7 @@ export default memo(function Clientes({
   navClientId, clearNavClient, changeTab, returnToTab,
   goToReg, goToAlmacen,
   onAddClient, onUpdateClient, onDeleteClient,
-  onAddContrato, onUpdateContrato,
+  onUpdateContrato,
   onAddAdelanto, onUpdateAdelanto, onDeleteAdelanto,
   onAddContratoArchivo, onDeleteContratoArchivo,
   onMergeClients, onAddContacto,
@@ -235,8 +235,6 @@ export default memo(function Clientes({
     const contratos = getContratos(c)
     const regIds    = getRegIds(c)
     const ct        = contratos[activeContrato] || contratos[0]
-    const totalAdel = (ct?.adelantos||[]).filter(a=>!a.invalid).reduce((s,a)=>s+(Number(a.monto)||0),0)
-    const resto     = (Number(ct?.total)||0) - totalAdel
     const isSimple  = (user.view_mode || "completo") === "simple"
 
     // Navigation via pre-built browse list

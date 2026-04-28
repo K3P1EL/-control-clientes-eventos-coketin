@@ -57,7 +57,8 @@ function StorageBrowser() {
     setLoading(false)
   }
 
-  useEffect(() => { load("registros") }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
+  useEffect(() => { load("registros") }, [])
 
   const toggleSelect = (path) => {
     setSelected(prev => {
@@ -95,7 +96,7 @@ function StorageBrowser() {
     }))
     if (errors.length) alert("Errores al eliminar:\n" + errors.join("\n"))
     // Recargar la lista real del storage en vez de confiar en el estado local
-    try { setFiles(await listStorageFiles(folder)) } catch { }
+    try { setFiles(await listStorageFiles(folder)) } catch { /* recarga falló — UI se ajusta al refresh */ }
     setSelected(new Set())
     setDeleting(new Set())
   }

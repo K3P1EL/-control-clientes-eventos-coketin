@@ -13,11 +13,11 @@ export function setStr(key, value) {
   try {
     if (value == null || value === "") localStorage.removeItem(key)
     else localStorage.setItem(key, String(value))
-  } catch {}
+  } catch { /* localStorage unavailable */ }
 }
 
 export function remove(key) {
-  try { localStorage.removeItem(key) } catch {}
+  try { localStorage.removeItem(key) } catch { /* localStorage unavailable */ }
 }
 
 export function getJSON(key, fallback = null) {
@@ -33,5 +33,5 @@ export function setJSON(key, value) {
   try {
     if (value == null) localStorage.removeItem(key)
     else localStorage.setItem(key, JSON.stringify(value))
-  } catch {}
+  } catch { /* localStorage unavailable */ }
 }

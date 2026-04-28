@@ -15,7 +15,7 @@ import PendientesView from "./views/PendientesView"
 // Period filter (filterSem / filterMes) comes from the parent Finanzas.jsx
 // so switching between Contratos ↔ Caja keeps the same time window.
 export default function ContratosModule({ filterSem, filterMes, setQuickAll, setQuickWeek, setQuickMonth, prodTags = [], readOnly = false, preloadedData }) {
-  const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handlePermanentDelete, handleReset, calcSummary } = useContratos({ preloadedData })
+  const { loaded, contracts, activeContracts, nextContractId, handleSave, handleDelete, handleRestore, handlePermanentDelete, calcSummary } = useContratos({ preloadedData })
 
   const [editContract, setEditContract] = useState(undefined)
   const [deleteId, setDeleteId] = useState(null)
@@ -127,7 +127,7 @@ export default function ContratosModule({ filterSem, filterMes, setQuickAll, set
       {view === "tabla" && (
         <TablaView
           filtered={filtered} filteredSummary={filteredSummary}
-          filterSem={filterSem} filterMes={filterMes} currentWeekNum={currentWeekNum} quickLabel={quickLabel}
+          filterSem={filterSem} filterMes={filterMes} quickLabel={quickLabel}
           filterEstado={filterEstado} setFilterEstado={setFilterEstado}
           search={search} setSearch={setSearch}
           setQuickAll={clearAll}
