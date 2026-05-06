@@ -59,8 +59,10 @@ export function useViabilidadState() {
       // usuario) — si no hay, usamos hoy.
       const fbYear = typeof saved.year === "number" ? saved.year : peruNow().getFullYear()
       const fbMonth = typeof saved.month === "number" ? saved.month : (peruNow().getMonth() + 1)
-      if (typeof saved.year === "number") setYear(saved.year)
-      if (typeof saved.month === "number") setMonth(saved.month)
+      // No restauramos saved.year/month al cargar: siempre arrancamos en el mes
+      // actual (definido por el initialState con peruNow). El usuario puede
+      // navegar manualmente a otros meses durante la sesión, pero al recargar
+      // queremos ver el mes vigente.
       if (Array.isArray(saved.workers)) setWorkers(saved.workers
         .filter(w => w && typeof w === "object")
         .map(w => ({ ...w, diasMarcados: normalizeDiasMarcados(w.diasMarcados, fbYear, fbMonth) })))
