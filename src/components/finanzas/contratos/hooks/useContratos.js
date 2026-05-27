@@ -70,12 +70,6 @@ export function useContratos({ preloadedData } = {}) {
     const base = (Array.isArray(saved) && saved.length > 0)
       ? saved.map(c => {
           const norm = fillMissingPaymentDates(normalizeContract(c))
-          // Migrate: old "descuento" was used for gastos (costs), not price discounts.
-          // Se mueve descuento al array de gastos (1 entrada) si gastos sigue vacío.
-          if (norm.descuento > 0 && Array.isArray(norm.gastos) && norm.gastos.length === 0) {
-            norm.gastos = [{ monto: norm.descuento, concepto: "", fecha: "", modalidad: "Efectivo", registradoCaja: false }]
-            norm.descuento = 0
-          }
           if (!norm.anio) {
             const homeDate = getContractHomeDate(norm)
             const inferFrom = homeDate ? parseLocalDate(homeDate) : null
